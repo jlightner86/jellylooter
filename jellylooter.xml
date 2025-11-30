@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Container version="2">
+  <Name>JellyLooter</Name>
+  <Repository>jlightner86/jellylooter</Repository>
+  <Registry>https://hub.docker.com/r/jlightner86/jellylooter</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/jlightner86/jellylooter/issues</Support>
+  <Project>https://github.com/jlightner86/jellylooter</Project>
+  <Overview>
+    JellyLooter Ultimate is a bulk downloader and sync tool for Jellyfin. 
+    It allows you to browse remote Jellyfin libraries, download content, and keep local folders in sync.
+    Includes De-duplication to prevent downloading items you already own.
+  </Overview>
+  <Category>Downloaders: MediaApp:Video</Category>
+  <WebUI>http://[IP]:[PORT:5000]/</WebUI>
+  <Icon>https://raw.githubusercontent.com/jlightner86/jellylooter/main/icon.png</Icon>
+  <Config Name="Web UI Port" Target="5000" Default="5059" Mode="tcp" Description="The web interface port." Type="Port" Display="always" Required="true" Mask="false">5059</Config>
+  <Config Name="Config Path" Target="/config" Default="/mnt/user/appdata/jellylooter" Mode="rw" Description="Where configuration files are stored." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/jellylooter</Config>
+  <Config Name="Storage Root" Target="/storage" Default="/mnt/user/" Mode="rw" Description="Map this to your User Share root (/mnt/user/) to allow browsing and downloading to any share." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/</Config>
+  <DonateText>Buy me a coffee</DonateText>
+ https://buymeacoffee.com/friendlymedia
+</Container>
