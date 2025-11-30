@@ -35,14 +35,18 @@ button.sec { background: #555; } button.dl { background: var(--success); } butto
 .help-actions { display: flex; gap: 10px; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); }
 .btn-gh { background: #24292e; flex: 1; text-decoration: none; text-align: center; color: white; padding: 12px; border-radius: 4px; font-weight: bold; }
 .btn-bmc { background: #FFDD00; color: #000 !important; flex: 1; text-decoration: none; text-align: center; padding: 12px; border-radius: 4px; font-weight: bold; }
-.btn-log { background: #555; flex: 1; text-decoration: none; text-align: center; color: white; padding: 12px; border-radius: 4px; font-weight: bold; }
 
 @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } .poster-grid { grid-template-columns: repeat(3, 1fr); gap: 5px; } .poster-check { display: block; opacity: 0.5; } .poster-check.checked { opacity: 1; } .help-actions { flex-direction: column; } }
 </style>
 </head>
 <body>
 <div style="display:flex; justify-content:space-between; margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:10px">
-    <div style="display:flex; align-items:center; gap:10px"><h1>JellyLooter</h1><button onclick="toggleTheme()" class="sec" style="padding:5px 10px">🌗</button><button class="sec" style="padding:5px 10px" onclick="document.getElementById('helpModal').style.display='block'">?</button></div>
+    <div style="display:flex; align-items:center; gap:10px">
+        <h1>JellyLooter</h1>
+        <button onclick="toggleTheme()" class="sec" style="padding:5px 10px" title="Toggle Theme">🌗</button>
+        <button class="sec" style="padding:5px 10px" onclick="window.location.href='/changelog'" title="View Changelog">📜</button>
+        <button class="sec" style="padding:5px 10px" onclick="document.getElementById('helpModal').style.display='block'" title="Help">?</button>
+    </div>
     <div style="text-align:right">
         <div style="display:flex; gap:10px; align-items:center">
             Limit: <input id="speedLimit" type="number" style="width:50px; padding:5px" placeholder="0"> KB/s 
@@ -119,23 +123,19 @@ button.sec { background: #555; } button.dl { background: var(--success); } butto
 <div id="browserModal" class="modal" style="z-index:2100"><div class="modal-content" style="max-width:600px; height:80vh"><h3>Select Folder</h3><span id="currentPath" style="font-family:monospace; color:var(--accent)">/storage</span><div id="browserList" style="background:var(--input); margin:10px 0; border-radius:4px; flex-grow:1; overflow-y:auto"></div><div style="text-align:right"><button class="sec" onclick="closeBrowser('browserModal')">Cancel</button> <button onclick="selectCurrentFolder()">Select</button></div></div></div>
 
 <div id="helpModal" class="modal">
-    <div class="modal-content" style="max-width:700px; height:auto">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
-            <h2 style="margin:0">JellyLooter Guide</h2>
-            <button class="sec" onclick="closeBrowser('helpModal')">Close</button>
-        </div>
-        
-        <div class="help-row"><div style="display:flex; align-items:center; margin-bottom:5px"><span class="help-num">1</span> <b>Connect Remote</b></div><p style="margin:0; font-size:0.9rem">Add your friend's server details (User/Pass or API Key).</p></div>
-        <div class="help-row"><div style="display:flex; align-items:center; margin-bottom:5px"><span class="help-num">2</span> <b>Dedupe</b></div><p style="margin:0; font-size:0.9rem">Connect Local Jellyfin & click "Refresh Library" to scan your files. This prevents duplicate downloads.</p></div>
-        <div class="help-row"><div style="display:flex; align-items:center; margin-bottom:5px"><span class="help-num">3</span> <b>Manual Download</b></div><p style="margin:0; font-size:0.9rem">Browse remotely. Select items/folders. Click Download.</p></div>
-        <div class="help-row"><div style="display:flex; align-items:center; margin-bottom:5px"><span class="help-num">4</span> <b>Auto-Sync</b></div><p style="margin:0; font-size:0.9rem">Map remote libraries to local folders. Sync runs daily at the specified time.</p></div>
-        <div class="help-row"><div style="display:flex; align-items:center; margin-bottom:5px"><span class="help-num">5</span> <b>Queue & Recursive</b></div><p style="margin:0; font-size:0.9rem">Downloading a Season/Series automatically finds all episodes inside. Expand the <b>QUEUE</b> section on the dashboard to view or cancel pending tasks.</p></div>
+    <div class="modal-content" style="max-width:600px; height:auto">
+        <h3>Help & Documentation</h3>
+        <div style="margin-bottom:15px"><b>1. Connections:</b> Add remote Jellyfin servers using API Keys or User/Pass.</div>
+        <div style="margin-bottom:15px"><b>2. Dedupe:</b> Connect your Local Jellyfin. Click "Refresh Library" to scan your files. This prevents duplicate downloads.</div>
+        <div style="margin-bottom:15px"><b>3. Manual Download:</b> Open the Remote Explorer. Click items/folders to select. Click "Download" to fetch.</div>
+        <div style="margin-bottom:15px"><b>4. Auto-Sync:</b> Map remote libraries to local folders. Sync runs daily at the specified time.</div>
+        <div style="margin-bottom:15px"><b>5. Queue:</b> Expand the QUEUE section on the dashboard to view and cancel pending items.</div>
         
         <div class="help-actions">
             <a href="https://github.com/jlightner86/jellylooter" target="_blank" class="btn-gh">★ Star on GitHub</a>
-            <a href="/changelog" class="btn-log">📜 Changelog</a>
             <a href="https://buymeacoffee.com/friendlymedia" target="_blank" class="btn-bmc">☕ Buy me a Coffee</a>
         </div>
+        <div style="text-align:right; margin-top:20px"><button class="sec" onclick="closeBrowser('helpModal')">Close</button></div>
     </div>
 </div>
 
