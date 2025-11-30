@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>JellyLooter</title>
-    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/jlightner86/jellylooter/main/icon.png">
 <style>
 :root { --bg: #121212; --card: #1f1f1f; --accent: #7289da; --text: #f0f0f0; --success: #2ecc71; --border: #333; --input: #121212; }
 [data-theme="light"] { --bg: #f5f6fa; --card: #ffffff; --accent: #007bff; --text: #212529; --success: #28a745; --border: #dee2e6; --input: #fff; }
@@ -31,7 +30,16 @@ button.sec { background: #555; } button.dl { background: var(--success); } butto
 .tab { padding: 10px 20px; cursor: pointer; color: #888; font-weight: bold; }
 .tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); margin-bottom: -2px; }
 .auth-method { display: none; } .auth-method.show { display: block; }
-@media (max-width: 768px) { .grid { grid-template-columns: 1fr; } .poster-grid { grid-template-columns: repeat(3, 1fr); gap: 5px; } .poster-check { display: block; opacity: 0.5; } .poster-check.checked { opacity: 1; } }
+
+/* Help Modal Specifics */
+.help-row { padding: 15px 0; border-bottom: 1px solid var(--border); }
+.help-row:last-child { border-bottom: none; }
+.help-num { display: inline-block; width: 24px; height: 24px; background: var(--accent); color: white; border-radius: 50%; text-align: center; line-height: 24px; margin-right: 10px; font-weight: bold; font-size: 0.9rem; }
+.help-actions { display: flex; gap: 10px; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); }
+.btn-gh { background: #24292e; flex: 1; text-decoration: none; text-align: center; color: white; padding: 12px; border-radius: 4px; font-weight: bold; }
+.btn-bmc { background: #FFDD00; color: #000 !important; flex: 1; text-decoration: none; text-align: center; padding: 12px; border-radius: 4px; font-weight: bold; }
+
+@media (max-width: 768px) { .grid { grid-template-columns: 1fr; } .poster-grid { grid-template-columns: repeat(3, 1fr); gap: 5px; } .poster-check { display: block; opacity: 0.5; } .poster-check.checked { opacity: 1; } .help-actions { flex-direction: column; } }
 </style>
 </head>
 <body>
@@ -112,24 +120,24 @@ button.sec { background: #555; } button.dl { background: var(--success); } butto
 
 <div id="browserModal" class="modal" style="z-index:2100"><div class="modal-content" style="max-width:600px; height:80vh"><h3>Select Folder</h3><span id="currentPath" style="font-family:monospace; color:var(--accent)">/storage</span><div id="browserList" style="background:var(--input); margin:10px 0; border-radius:4px; flex-grow:1; overflow-y:auto"></div><div style="text-align:right"><button class="sec" onclick="closeBrowser('browserModal')">Cancel</button> <button onclick="selectCurrentFolder()">Select</button></div></div></div>
 
-<div id="helpModal" class="modal"><div class="modal-content" style="max-width:600px; height:auto"><h3>Help & Documentation</h3>
-<div style="margin-bottom:15px">
-    <b>1. Add Remote Servers</b>
-    <p>Enter the URL and credentials (User/Pass OR API Key) of the friend's server you want to download from.</p>
+<div id="helpModal" class="modal">
+    <div class="modal-content" style="max-width:700px; height:auto">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
+            <h2 style="margin:0">JellyLooter Guide</h2>
+            <button class="sec" onclick="closeBrowser('helpModal')">Close</button>
+        </div>
+        
+        <div class="help-row"><div style="display:flex; align-items:center; margin-bottom:5px"><span class="help-num">1</span> <b>Connect Remote</b></div><p style="margin:0; font-size:0.9rem">Add your friend's server details (User/Pass or API Key).</p></div>
+        <div class="help-row"><div style="display:flex; align-items:center; margin-bottom:5px"><span class="help-num">2</span> <b>Dedupe</b></div><p style="margin:0; font-size:0.9rem">Connect Local Jellyfin & click "Refresh Library" to enable duplicate checking.</p></div>
+        <div class="help-row"><div style="display:flex; align-items:center; margin-bottom:5px"><span class="help-num">3</span> <b>Manual Download</b></div><p style="margin:0; font-size:0.9rem">Browse remotely. Select items/folders. Click Download.</p></div>
+        <div class="help-row"><div style="display:flex; align-items:center; margin-bottom:5px"><span class="help-num">4</span> <b>Auto-Sync</b></div><p style="margin:0; font-size:0.9rem">Map remote libraries to local folders. Runs daily at configured time.</p></div>
+        
+        <div class="help-actions">
+            <a href="https://github.com/jlightner86/jellylooter" target="_blank" class="btn-gh">★ Star on GitHub</a>
+            <a href="https://buymeacoffee.com/friendlymedia" target="_blank" class="btn-bmc">☕ Buy me a Coffee</a>
+        </div>
+    </div>
 </div>
-<div style="margin-bottom:15px">
-    <b>2. Connect Local Server (Deduplication)</b>
-    <p>Enter your OWN Jellyfin details. Click "Test & Save". Once saved, click <b>"Refresh Library"</b>. This scans your items into a local database (cached) so you can see "OWNED" badges on remote content and skip duplicates during sync.</p>
-</div>
-<div style="margin-bottom:15px">
-    <b>3. Manual Downloads</b>
-    <p>Use the "Remote Library Explorer" at the bottom. Browse their library visually. Click items to select them (or whole folders). Click "Download" to queue them.</p>
-</div>
-<div style="margin-bottom:15px">
-    <b>4. Auto-Sync</b>
-    <p>Map a remote library (e.g. "Their Movies") to a local folder (e.g. "/storage/Movies"). The system wakes up daily at your configured time, refreshes your local cache, and downloads any items they have that you don't.</p>
-</div>
-<div style="text-align:right"><button class="sec" onclick="closeBrowser('helpModal')">Close</button></div></div></div>
 
 <script>
 let config={}, authMode='creds', currentRemoteServer=null, currentRemoteParent='root', remoteHistory=[], isPaused=false, selectedItems=new Set(), remotePage=0, remoteLimit=25, remoteTotal=0, currentLocalPath='/storage', activeBrowserInput=null;
@@ -149,7 +157,6 @@ async function refresh() {
         document.getElementById('autoSyncToggle').checked = config.auto_sync_enabled;
         document.getElementById('syncTime').value = config.sync_time || "04:00";
         
-        // Local Server State
         if(config.local_server_url && config.local_server_key) {
             document.getElementById('localServerForm').style.display='none';
             document.getElementById('localServerSaved').style.display='block';
@@ -190,10 +197,10 @@ async function rebuildCache() {
 setInterval(async () => {
     const data = await (await fetch('/api/status')).json();
     if(data.paused !== isPaused) { isPaused=data.paused; document.getElementById('pauseBtn').innerText=isPaused?"▶ RESUME":"II PAUSE"; }
-    document.getElementById('activeList').innerHTML = Object.values(data.active).map(d => `<div style="margin-bottom:5px"><div style="display:flex;justify-content:space-between;font-size:0.9rem"><span>${d.filename}</span><div><span style="color:var(--accent);margin-right:10px">${d.status} (${d.speed})</span><button class="del sm" onclick="cancelTask('${d.id}')" style="padding:2px 6px">X</button></div></div><div class="progress-bar"><div class="fill" style="width:${d.percent}%"></div></div></div>`).join('');
+    document.getElementById('activeList').innerHTML = Object.values(data.active).map(d => 
+        `<div style="margin-bottom:5px"><div style="display:flex;justify-content:space-between;font-size:0.9rem"><span>${d.filename}</span><div><span style="color:var(--accent);margin-right:10px">${d.status} (${d.speed})</span><button class="del sm" onclick="cancelTask('${d.id}')" style="padding:2px 6px">X</button></div></div><div class="progress-bar"><div class="fill" style="width:${d.percent}%"></div></div></div>`
+    ).join('');
     document.getElementById('queueCount').innerText = data.pending.length;
-    
-    // DB & Scan
     document.getElementById('dbCount').innerText = data.cache_count;
     document.getElementById('dbTime').innerText = data.cache_time;
     
@@ -301,5 +308,4 @@ function selectCurrentFolder() { document.getElementById(activeBrowserInput).val
 refresh();
 </script>
 </body>
-
 </html>
