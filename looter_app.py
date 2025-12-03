@@ -715,7 +715,10 @@ def resume_dl():
 
 @app.route('/api/cancel', methods=['POST'])
 @login_required
+@app.route('/api/cancel', methods=['POST'])
+@login_required
 def cancel_dl():
+    global pending_display  # <--- FIXED: Moved to the top so it works everywhere
     """Cancel a specific download or all downloads"""
     data = request.json or {}
     task_id = data.get('task_id')
@@ -742,14 +745,12 @@ def cancel_dl():
     elif task_id:
         cancelled_tasks.add(task_id)
         with download_lock:
-            global pending_display
+            # global pending_display <--- REMOVED from here (it's at the top now)
             pending_display = [x for x in pending_display if x['id'] != task_id]
         log(f"Cancelled task: {task_id}")
         return jsonify({"status": "cancelled", "task_id": task_id})
     
     return jsonify({"status": "error", "message": "No task_id provided"})
-
-
 @app.route('/api/test_connection', methods=['POST'])
 @login_required
 def test_connection():
