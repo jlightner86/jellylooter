@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  jellylooter:
+    image: jlightner86/jellylooter:latest
+    container_name: jellylooter
+    ports:
+      - "5000:5000"
+    volumes:
+      # Configuration directory - stores settings, auth, and cache
+      - ./config:/config
+      # Media storage - this is where downloaded files will go
+      # Map to your media library root so you can browse to any subfolder
+      - /path/to/your/media:/storage
+    environment:
+      # Timezone for scheduled sync tasks
+      - TZ=America/New_York
+      # User/Group IDs for file permissions (run 'id' to find yours)
+      - PUID=1000
+      - PGID=1000
+      # Optional: Set a custom secret key for session encryption
+      # Leave commented to auto-generate
+      # - SECRET_KEY=your-secret-key-here
+    restart: unless-stopped
+    # Optional: Add to a specific network
+    # networks:
+    #   - media-network
+
+# Optional: Define custom network
+# networks:
+#   media-network:
+#     external: true
