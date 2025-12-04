@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JellyLooter - Login</title>
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/jlightner86/jellylooter/main/icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --jf-primary: #00a4dc;
-            --jf-primary-dark: #0086b3;
             --jf-bg-dark: #101010;
             --jf-bg-card: #1a1a1a;
             --jf-bg-input: #2a2a2a;
@@ -22,9 +22,7 @@
             --radius: 8px;
             --radius-lg: 12px;
         }
-
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
         body {
             font-family: 'Quicksand', sans-serif;
             background: var(--jf-bg-dark);
@@ -33,14 +31,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 2rem;
+            padding: 1rem;
         }
-
-        .login-container {
-            width: 100%;
-            max-width: 400px;
-        }
-
+        .login-container { width: 100%; max-width: 400px; }
         .logo {
             display: flex;
             align-items: center;
@@ -48,18 +41,7 @@
             gap: 0.75rem;
             margin-bottom: 2rem;
         }
-
-        .logo-icon {
-            width: 56px;
-            height: 56px;
-            background: var(--jf-gradient);
-            border-radius: var(--radius-lg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.75rem;
-        }
-
+        .logo-icon { width: 56px; height: 56px; border-radius: var(--radius-lg); }
         .logo-text {
             font-size: 2rem;
             font-weight: 700;
@@ -67,32 +49,15 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-
         .login-card {
             background: var(--jf-bg-card);
             border-radius: var(--radius-lg);
             border: 1px solid var(--jf-border);
             padding: 2rem;
         }
-
-        .login-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            text-align: center;
-            margin-bottom: 0.5rem;
-        }
-
-        .login-subtitle {
-            text-align: center;
-            color: var(--jf-text-muted);
-            margin-bottom: 2rem;
-            font-size: 0.9375rem;
-        }
-
-        .form-group {
-            margin-bottom: 1.25rem;
-        }
-
+        .login-title { font-size: 1.5rem; font-weight: 700; text-align: center; margin-bottom: 0.5rem; }
+        .login-subtitle { text-align: center; color: var(--jf-text-muted); margin-bottom: 2rem; font-size: 0.9375rem; }
+        .form-group { margin-bottom: 1.25rem; }
         .form-label {
             display: block;
             font-size: 0.8125rem;
@@ -102,7 +67,6 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-
         .form-input {
             width: 100%;
             padding: 0.875rem 1rem;
@@ -114,39 +78,11 @@
             font-size: 1rem;
             transition: all 0.2s;
         }
-
-        .form-input:focus {
-            outline: none;
-            border-color: var(--jf-primary);
-            box-shadow: 0 0 0 3px rgba(0, 164, 220, 0.15);
-        }
-
-        .form-input::placeholder {
-            color: #666;
-        }
-
-        .remember-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 1.5rem;
-        }
-
-        .remember-label {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            cursor: pointer;
-            font-size: 0.875rem;
-            color: var(--jf-text-muted);
-        }
-
-        .remember-label input {
-            width: 18px;
-            height: 18px;
-            accent-color: var(--jf-primary);
-        }
-
+        .form-input:focus { outline: none; border-color: var(--jf-primary); box-shadow: 0 0 0 3px rgba(0,164,220,0.15); }
+        .form-input::placeholder { color: #666; }
+        .remember-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+        .remember-label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.875rem; color: var(--jf-text-muted); }
+        .remember-label input { width: 18px; height: 18px; accent-color: var(--jf-primary); }
         .btn {
             width: 100%;
             padding: 1rem;
@@ -160,21 +96,10 @@
             cursor: pointer;
             transition: all 0.2s;
         }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(0, 164, 220, 0.4);
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,164,220,0.4); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
         .error-message {
-            background: rgba(244, 67, 54, 0.1);
+            background: rgba(244,67,54,0.1);
             border: 1px solid var(--jf-error);
             border-radius: var(--radius);
             padding: 0.75rem 1rem;
@@ -183,13 +108,9 @@
             margin-bottom: 1rem;
             display: none;
         }
-
-        .error-message.visible {
-            display: block;
-        }
-
+        .error-message.visible { display: block; }
         .success-message {
-            background: rgba(76, 175, 80, 0.1);
+            background: rgba(76,175,80,0.1);
             border: 1px solid var(--jf-success);
             border-radius: var(--radius);
             padding: 0.75rem 1rem;
@@ -198,98 +119,66 @@
             margin-bottom: 1rem;
             display: none;
         }
-
-        .success-message.visible {
-            display: block;
-        }
-
-        .footer-text {
-            text-align: center;
-            margin-top: 1.5rem;
-            font-size: 0.8125rem;
-            color: var(--jf-text-muted);
-        }
-
-        .version-badge {
-            display: inline-block;
-            padding: 0.25rem 0.5rem;
-            background: var(--jf-bg-input);
-            border-radius: 4px;
-            font-size: 0.75rem;
-        }
+        .success-message.visible { display: block; }
+        .footer-text { text-align: center; margin-top: 1.5rem; font-size: 0.8125rem; color: var(--jf-text-muted); }
+        .version-badge { display: inline-block; padding: 0.25rem 0.5rem; background: var(--jf-bg-input); border-radius: 4px; font-size: 0.75rem; }
     </style>
 </head>
 <body>
     <div class="login-container">
         <div class="logo">
-            <img src="https://raw.githubusercontent.com/jlightner86/jellylooter/main/icon.png" alt="JellyLooter" class="logo-icon" style="background: none;">
+            <img src="https://raw.githubusercontent.com/jlightner86/jellylooter/main/icon.png" alt="JellyLooter" class="logo-icon">
             <span class="logo-text">JellyLooter</span>
         </div>
-
         <div class="login-card">
             <h1 class="login-title">Sign In</h1>
             <p class="login-subtitle">Enter your credentials to continue</p>
-
             <div class="success-message" id="success-message">Account created successfully! Please sign in.</div>
             <div class="error-message" id="error-message"></div>
-
             <form id="login-form">
                 <div class="form-group">
                     <label class="form-label">Username</label>
                     <input type="text" class="form-input" id="username" placeholder="Enter username" autocomplete="username" required>
                 </div>
-
                 <div class="form-group">
                     <label class="form-label">Password</label>
                     <input type="password" class="form-input" id="password" placeholder="Enter password" autocomplete="current-password" required>
                 </div>
-
                 <div class="remember-row">
                     <label class="remember-label">
                         <input type="checkbox" id="remember-me">
                         Remember me
                     </label>
                 </div>
-
                 <button type="submit" class="btn" id="submit-btn">Sign In</button>
             </form>
-
             <div class="footer-text">
-                <span class="version-badge">v2.1.0</span>
+                <span class="version-badge">v2.3.0</span>
             </div>
         </div>
     </div>
-
     <script>
-        // Show success message if redirected from setup
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('setup') === 'success') {
             document.getElementById('success-message').classList.add('visible');
         }
-
         const form = document.getElementById('login-form');
         const errorMessage = document.getElementById('error-message');
-
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
             const remember = document.getElementById('remember-me').checked;
-
             const submitBtn = document.getElementById('submit-btn');
             submitBtn.disabled = true;
             submitBtn.textContent = 'Signing in...';
-
             try {
                 const response = await fetch('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password, remember })
                 });
-
                 const data = await response.json();
-
                 if (data.status === 'ok') {
                     window.location.href = '/';
                 } else {
@@ -303,7 +192,6 @@
                 submitBtn.textContent = 'Sign In';
             }
         });
-
         function showError(msg) {
             document.getElementById('success-message').classList.remove('visible');
             errorMessage.textContent = msg;

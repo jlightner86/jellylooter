@@ -1,748 +1,144 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JellyLooter - Help & Instructions</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <title>JellyLooter - Help</title>
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/jlightner86/jellylooter/main/icon.png">
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --jf-primary: #00a4dc;
-            --jf-primary-dark: #0086b3;
-            --jf-gradient: linear-gradient(135deg, #00a4dc 0%, #aa5cc3 100%);
-        }
-
-        [data-theme="dark"] {
-            --jf-bg-dark: #101010;
-            --jf-bg-card: #1a1a1a;
-            --jf-bg-input: #2a2a2a;
-            --jf-text: #ffffff;
-            --jf-text-muted: #888888;
-            --jf-border: #333333;
-            --jf-code-bg: #0d0d0d;
-        }
-
-        [data-theme="light"] {
-            --jf-bg-dark: #f5f5f5;
-            --jf-bg-card: #ffffff;
-            --jf-bg-input: #e8e8e8;
-            --jf-text: #1a1a1a;
-            --jf-text-muted: #666666;
-            --jf-border: #dddddd;
-            --jf-code-bg: #f0f0f0;
-        }
-
+        :root { --jf-primary: #00a4dc; --jf-bg-dark: #101010; --jf-bg-card: #1a1a1a; --jf-bg-input: #2a2a2a; --jf-text: #fff; --jf-text-muted: #888; --jf-border: #333; --jf-gradient: linear-gradient(135deg, #00a4dc 0%, #aa5cc3 100%); }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: 'Quicksand', sans-serif;
-            background: var(--jf-bg-dark);
-            color: var(--jf-text);
-            min-height: 100vh;
-            line-height: 1.7;
-            transition: background-color 0.3s, color 0.3s;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 2rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--jf-border);
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: var(--jf-gradient);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.25rem;
-        }
-
-        .logo-text {
-            font-size: 1.5rem;
-            font-weight: 700;
-            background: var(--jf-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .header-links {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .header-link {
-            padding: 0.5rem 1rem;
-            background: var(--jf-bg-card);
-            border: 1px solid var(--jf-border);
-            border-radius: 8px;
-            color: var(--jf-text);
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 0.875rem;
-            transition: all 0.2s;
-        }
-
-        .header-link:hover {
-            background: var(--jf-primary);
-            border-color: var(--jf-primary);
-            color: white;
-        }
-
-        h1 {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-        }
-
-        .intro {
-            font-size: 1.125rem;
-            color: var(--jf-text-muted);
-            margin-bottom: 2rem;
-        }
-
-        /* Table of Contents */
-        .toc {
-            background: var(--jf-bg-card);
-            border: 1px solid var(--jf-border);
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .toc-title {
-            font-size: 1rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            color: var(--jf-primary);
-        }
-
-        .toc-list {
-            list-style: none;
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 0.5rem;
-        }
-
-        .toc-list a {
-            color: var(--jf-text-muted);
-            text-decoration: none;
-            font-size: 0.9375rem;
-            transition: color 0.2s;
-        }
-
-        .toc-list a:hover {
-            color: var(--jf-primary);
-        }
-
-        /* Sections */
-        .section {
-            background: var(--jf-bg-card);
-            border: 1px solid var(--jf-border);
-            border-radius: 12px;
-            padding: 1.5rem 2rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .section-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            padding-bottom: 0.75rem;
-            border-bottom: 1px solid var(--jf-border);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .section-title span {
-            font-size: 1.5rem;
-        }
-
-        h3 {
-            font-size: 1rem;
-            font-weight: 700;
-            margin: 1.5rem 0 0.75rem 0;
-            color: var(--jf-primary);
-        }
-
-        h3:first-of-type {
-            margin-top: 0.5rem;
-        }
-
-        p {
-            margin-bottom: 1rem;
-            color: var(--jf-text-muted);
-        }
-
-        ul, ol {
-            margin-bottom: 1rem;
-            padding-left: 1.5rem;
-            color: var(--jf-text-muted);
-        }
-
-        li {
-            margin-bottom: 0.5rem;
-        }
-
-        code {
-            background: var(--jf-code-bg);
-            padding: 0.125rem 0.375rem;
-            border-radius: 4px;
-            font-family: 'Monaco', 'Consolas', monospace;
-            font-size: 0.875rem;
-            color: var(--jf-primary);
-        }
-
-        pre {
-            background: var(--jf-code-bg);
-            border: 1px solid var(--jf-border);
-            border-radius: 8px;
-            padding: 1rem;
-            overflow-x: auto;
-            margin-bottom: 1rem;
-        }
-
-        pre code {
-            background: none;
-            padding: 0;
-            color: var(--jf-text);
-        }
-
-        .tip {
-            background: rgba(0, 164, 220, 0.1);
-            border-left: 4px solid var(--jf-primary);
-            padding: 1rem;
-            border-radius: 0 8px 8px 0;
-            margin: 1rem 0;
-        }
-
-        .tip-title {
-            font-weight: 700;
-            color: var(--jf-primary);
-            margin-bottom: 0.5rem;
-        }
-
-        .warning {
-            background: rgba(255, 152, 0, 0.1);
-            border-left: 4px solid #ff9800;
-            padding: 1rem;
-            border-radius: 0 8px 8px 0;
-            margin: 1rem 0;
-        }
-
-        .warning-title {
-            font-weight: 700;
-            color: #ff9800;
-            margin-bottom: 0.5rem;
-        }
-
-        .danger {
-            background: rgba(244, 67, 54, 0.1);
-            border-left: 4px solid #f44336;
-            padding: 1rem;
-            border-radius: 0 8px 8px 0;
-            margin: 1rem 0;
-        }
-
-        .danger-title {
-            font-weight: 700;
-            color: #f44336;
-            margin-bottom: 0.5rem;
-        }
-
-        /* Keyboard shortcuts */
-        kbd {
-            background: var(--jf-bg-input);
-            border: 1px solid var(--jf-border);
-            border-radius: 4px;
-            padding: 0.125rem 0.5rem;
-            font-family: inherit;
-            font-size: 0.8125rem;
-            font-weight: 600;
-            box-shadow: 0 2px 0 var(--jf-border);
-        }
-
-        /* Steps */
-        .steps {
-            counter-reset: step;
-            list-style: none;
-            padding-left: 0;
-        }
-
-        .steps li {
-            position: relative;
-            padding-left: 3rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .steps li::before {
-            counter-increment: step;
-            content: counter(step);
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 2rem;
-            height: 2rem;
-            background: var(--jf-gradient);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 0.875rem;
-            color: white;
-        }
-
-        /* Feature grid */
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 1rem;
-            margin: 1rem 0;
-        }
-
-        .feature-card {
-            background: var(--jf-bg-input);
-            border-radius: 8px;
-            padding: 1rem;
-        }
-
-        .feature-icon {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .feature-name {
-            font-weight: 700;
-            margin-bottom: 0.25rem;
-        }
-
-        .feature-desc {
-            font-size: 0.875rem;
-            color: var(--jf-text-muted);
-            margin: 0;
-        }
-
-        /* FAQ */
-        .faq-item {
-            border-bottom: 1px solid var(--jf-border);
-            padding: 1rem 0;
-        }
-
-        .faq-item:last-child {
-            border-bottom: none;
-        }
-
-        .faq-question {
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            color: var(--jf-text);
-        }
-
-        .faq-answer {
-            color: var(--jf-text-muted);
-            margin: 0;
-        }
-
-        /* Footer */
-        .footer {
-            text-align: center;
-            padding: 2rem;
-            color: var(--jf-text-muted);
-            font-size: 0.875rem;
-        }
-
-        .footer a {
-            color: var(--jf-primary);
-            text-decoration: none;
-        }
-
-        @media (max-width: 600px) {
-            .container {
-                padding: 1rem;
-            }
-
-            .section {
-                padding: 1rem 1.25rem;
-            }
-
-            .toc-list {
-                grid-template-columns: 1fr;
-            }
-        }
+        body { font-family: 'Quicksand', sans-serif; background: var(--jf-bg-dark); color: var(--jf-text); min-height: 100vh; line-height: 1.6; }
+        .container { max-width: 900px; margin: 0 auto; padding: 1rem; }
+        @media (min-width: 768px) { .container { padding: 2rem; } }
+        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--jf-border); flex-wrap: wrap; gap: 1rem; }
+        .logo { display: flex; align-items: center; gap: 0.75rem; }
+        .logo-icon { width: 40px; height: 40px; border-radius: 8px; }
+        .logo-text { font-size: 1.5rem; font-weight: 700; background: var(--jf-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .btn { padding: 0.5rem 1rem; background: var(--jf-bg-card); border: 1px solid var(--jf-border); border-radius: 8px; color: var(--jf-text); text-decoration: none; font-weight: 600; font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.5rem; }
+        .btn:hover { background: var(--jf-primary); border-color: var(--jf-primary); }
+        .btn-coffee { background: #ffdd00; border-color: #ffdd00; color: #1a1a1a; }
+        .btn-coffee:hover { background: #ffcc00; }
+        h1 { font-size: 1.75rem; margin-bottom: 1.5rem; }
+        .support-card { background: linear-gradient(135deg, #ffdd00 0%, #ff9500 100%); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; text-align: center; color: #1a1a1a; }
+        .support-card h2 { margin-bottom: 0.5rem; }
+        .support-card p { margin-bottom: 1rem; opacity: 0.9; }
+        .coffee-btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: #1a1a1a; color: #ffdd00; border-radius: 8px; text-decoration: none; font-weight: 700; }
+        .section { background: var(--jf-bg-card); border: 1px solid var(--jf-border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+        .section-title { font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; color: var(--jf-primary); }
+        .tip { display: flex; gap: 0.75rem; padding: 1rem; background: var(--jf-bg-input); border-radius: 8px; margin-bottom: 0.75rem; }
+        .tip-icon { font-size: 1.25rem; flex-shrink: 0; }
+        .tip-title { font-weight: 600; margin-bottom: 0.25rem; }
+        .tip-text { color: var(--jf-text-muted); font-size: 0.875rem; }
+        .faq-item { padding: 1rem 0; border-bottom: 1px solid var(--jf-border); }
+        .faq-item:last-child { border-bottom: none; }
+        .faq-question { font-weight: 600; margin-bottom: 0.5rem; }
+        .faq-answer { color: var(--jf-text-muted); font-size: 0.9375rem; }
+        .faq-answer code { background: var(--jf-bg-input); padding: 0.125rem 0.375rem; border-radius: 4px; font-family: monospace; font-size: 0.875rem; }
+        .footer { text-align: center; padding-top: 2rem; color: var(--jf-text-muted); font-size: 0.875rem; }
+        .footer a { color: var(--jf-primary); text-decoration: none; }
+        .compatibility { background: var(--jf-bg-input); padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+        .compatibility-badge { background: #4caf50; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <div class="logo">
-                <img src="https://raw.githubusercontent.com/jlightner86/jellylooter/main/icon.png" alt="JellyLooter" class="logo-icon" style="background: none;">
+                <img src="https://raw.githubusercontent.com/jlightner86/jellylooter/main/icon.png" alt="JellyLooter" class="logo-icon">
                 <span class="logo-text">JellyLooter</span>
             </div>
-            <div class="header-links">
-                <a href="/" class="header-link">← Back to App</a>
-                <a href="/changelog" class="header-link">Changelog</a>
+            <div style="display:flex;gap:0.5rem;">
+                <a href="https://buymeacoffee.com/friendlymedia" target="_blank" class="btn btn-coffee">☕ Support</a>
+                <a href="/" class="btn">← Back</a>
             </div>
         </div>
 
-        <h1>Help & Instructions</h1>
-        <p class="intro">Everything you need to know to get JellyLooter up and running, from initial setup to advanced configuration.</p>
+        <h1>Help & Support</h1>
 
-        <!-- Table of Contents -->
-        <div class="toc">
-            <div class="toc-title">📑 Quick Navigation</div>
-            <ul class="toc-list">
-                <li><a href="#getting-started">Getting Started</a></li>
-                <li><a href="#adding-servers">Adding Servers</a></li>
-                <li><a href="#browsing">Browsing & Downloading</a></li>
-                <li><a href="#sync">Auto-Sync Setup</a></li>
-                <li><a href="#local-server">Local Server (Deduplication)</a></li>
-                <li><a href="#settings">Settings & Options</a></li>
-                <li><a href="#keyboard">Keyboard Shortcuts</a></li>
-                <li><a href="#troubleshooting">Troubleshooting</a></li>
-                <li><a href="#faq">FAQ</a></li>
-            </ul>
+        <div class="support-card">
+            <h2>☕ Support JellyLooter</h2>
+            <p>If this project saves you time, consider buying me a coffee!</p>
+            <a href="https://buymeacoffee.com/friendlymedia" target="_blank" class="coffee-btn">☕ Buy Me a Coffee</a>
         </div>
 
-        <!-- Getting Started -->
-        <div class="section" id="getting-started">
-            <h2 class="section-title"><span>🚀</span> Getting Started</h2>
-            
-            <h3>First-Time Setup</h3>
-            <p>When you first access JellyLooter, you'll be prompted to create an admin account. This account protects your configuration and prevents unauthorized access.</p>
-            
-            <ol class="steps">
-                <li><strong>Create your username</strong> - At least 3 characters, whatever you want</li>
-                <li><strong>Set a strong password</strong> - Must be at least 8 characters with uppercase, lowercase, and numbers</li>
-                <li><strong>Sign in</strong> - You'll be redirected to the login page after setup</li>
-            </ol>
+        <div class="compatibility">
+            <span class="compatibility-badge">✓ VERIFIED</span>
+            <span>Confirmed working on <strong>Unraid 7.2.0</strong></span>
+        </div>
 
+        <div class="section">
+            <h2 class="section-title">💡 Quick Tips</h2>
             <div class="tip">
-                <div class="tip-title">💡 Tip</div>
-                <p style="margin:0;">Check "Remember me" on the login page to stay signed in for 30 days.</p>
-            </div>
-
-            <h3>Main Features</h3>
-            <div class="feature-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">📁</div>
-                    <div class="feature-name">Browse</div>
-                    <p class="feature-desc">Explore remote Jellyfin/Emby libraries visually</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">⬇️</div>
-                    <div class="feature-name">Download</div>
-                    <p class="feature-desc">Queue movies and shows for download with speed control</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🔄</div>
-                    <div class="feature-name">Auto-Sync</div>
-                    <p class="feature-desc">Schedule automatic syncing of entire libraries</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">✓</div>
-                    <div class="feature-name">Deduplication</div>
-                    <p class="feature-desc">Skip content you already have locally</p>
+                <span class="tip-icon">🖱️</span>
+                <div>
+                    <div class="tip-title">Multi-Select Items</div>
+                    <div class="tip-text">Hold Ctrl/Cmd and click to select multiple items, or just click non-folder items to toggle selection.</div>
                 </div>
             </div>
-        </div>
-
-        <!-- Adding Servers -->
-        <div class="section" id="adding-servers">
-            <h2 class="section-title"><span>📡</span> Adding Remote Servers</h2>
-            
-            <p>Remote servers are the Jellyfin or Emby instances you want to download content from.</p>
-
-            <h3>Step-by-Step</h3>
-            <ol class="steps">
-                <li>Go to <strong>Settings</strong> tab</li>
-                <li>Click <strong>"+ Add Remote Server"</strong></li>
-                <li>Enter a friendly name (e.g., "Friend's Jellyfin")</li>
-                <li>Enter the server URL (e.g., <code>http://192.168.1.100:8096</code>)</li>
-                <li>Choose authentication method:
-                    <ul>
-                        <li><strong>API Key</strong> - Get this from the server's Dashboard → API Keys</li>
-                        <li><strong>Username/Password</strong> - Your login credentials for that server</li>
-                    </ul>
-                </li>
-                <li>Click <strong>"Test Connection"</strong> to verify</li>
-                <li>Click <strong>"Add Server"</strong> to save</li>
-            </ol>
-
-            <div class="warning">
-                <div class="warning-title">⚠️ Important</div>
-                <p style="margin:0;">You need a valid account or API key on the remote server. JellyLooter doesn't bypass authentication - it uses the server's official API.</p>
-            </div>
-
-            <h3>Getting an API Key</h3>
-            <p>If you're the admin of the remote server:</p>
-            <ol>
-                <li>Go to Dashboard → Advanced → API Keys</li>
-                <li>Click "+" to create a new key</li>
-                <li>Give it a name like "JellyLooter"</li>
-                <li>Copy the generated key</li>
-            </ol>
-        </div>
-
-        <!-- Browsing & Downloading -->
-        <div class="section" id="browsing">
-            <h2 class="section-title"><span>📂</span> Browsing & Downloading</h2>
-
-            <h3>Navigating Libraries</h3>
-            <ol>
-                <li>Select a server from the dropdown in the <strong>Browse</strong> tab</li>
-                <li>Click folders to navigate into them</li>
-                <li>Use the breadcrumb path to go back</li>
-                <li>Items with a ✓ checkmark already exist in your local library</li>
-            </ol>
-
-            <h3>Selecting Items</h3>
-            <ul>
-                <li><strong>Click</strong> - Select/deselect a single item (or open folder)</li>
-                <li><kbd>Ctrl</kbd> + <strong>Click</strong> - Add to selection without deselecting others</li>
-                <li><strong>Right-click</strong> - Toggle selection (alternative to Ctrl+click)</li>
-            </ul>
-
-            <h3>Downloading</h3>
-            <ol class="steps">
-                <li>Select items you want to download (selection bar appears at top)</li>
-                <li>Click <strong>"Download Selected"</strong></li>
-                <li>Browse to choose your destination folder</li>
-                <li>Click <strong>"Download Here"</strong> to start</li>
-            </ol>
-
-            <p>Downloads appear in the right sidebar. You can:</p>
-            <ul>
-                <li><strong>Pause/Resume</strong> all downloads</li>
-                <li><strong>Cancel</strong> individual or all downloads</li>
-                <li>Monitor speed and progress in real-time</li>
-            </ul>
-
             <div class="tip">
-                <div class="tip-title">💡 Tip</div>
-                <p style="margin:0;">Selecting a TV series or season will automatically queue all episodes within it.</p>
+                <span class="tip-icon">⚡</span>
+                <div>
+                    <div class="tip-title">Speed Limit Updates Live</div>
+                    <div class="tip-text">Change speed limit in settings and it applies to active downloads within 10 seconds.</div>
+                </div>
             </div>
-        </div>
-
-        <!-- Auto-Sync -->
-        <div class="section" id="sync">
-            <h2 class="section-title"><span>🔄</span> Auto-Sync Setup</h2>
-
-            <p>Library mappings let you automatically sync entire libraries on a schedule.</p>
-
-            <h3>Creating a Mapping</h3>
-            <ol class="steps">
-                <li>Go to the <strong>Sync</strong> tab</li>
-                <li>Click <strong>"+ Add Mapping"</strong></li>
-                <li>Select the remote server</li>
-                <li>Select which library to sync (Movies, TV Shows, etc.)</li>
-                <li>Enter the local path where files should be saved</li>
-                <li>Click <strong>"Add Mapping"</strong></li>
-            </ol>
-
-            <h3>Sync Behavior</h3>
-            <ul>
-                <li>Auto-sync runs daily at the configured time (default: 4:00 AM)</li>
-                <li>Only new content is downloaded - existing files are skipped</li>
-                <li>If you have a local server configured, content matching your library is also skipped</li>
-                <li>Click <strong>"Sync Now"</strong> to trigger manually</li>
-            </ul>
-
-            <h3>Sync Settings</h3>
-            <p>In <strong>Settings → Advanced</strong>:</p>
-            <ul>
-                <li><strong>Sync Time</strong> - When auto-sync runs daily</li>
-                <li><strong>Auto-Sync Toggle</strong> - Enable/disable scheduled syncs</li>
-            </ul>
-        </div>
-
-        <!-- Local Server -->
-        <div class="section" id="local-server">
-            <h2 class="section-title"><span>🏠</span> Local Server (Duplicate Detection)</h2>
-
-            <p>Configure your local Jellyfin/Emby server to enable smart duplicate detection. JellyLooter will skip downloading content you already have.</p>
-
-            <h3>How It Works</h3>
-            <ol>
-                <li>JellyLooter scans your local server's library</li>
-                <li>It builds a cache of IMDB and TMDB IDs for all your content</li>
-                <li>When browsing remote servers, matching content shows a ✓ badge</li>
-                <li>During sync, matching content is automatically skipped</li>
-            </ol>
-
-            <h3>Setup</h3>
-            <ol class="steps">
-                <li>Go to <strong>Settings</strong></li>
-                <li>Under "Local Server", click <strong>"Configure Local Server"</strong></li>
-                <li>Enter your local server URL and API key</li>
-                <li>Click <strong>"Save & Scan"</strong></li>
-            </ol>
-
-            <p>The cache rebuilds automatically at 3:00 AM daily. Click <strong>"🔄 Rebuild Cache"</strong> in the activity log panel to manually refresh.</p>
-
             <div class="tip">
-                <div class="tip-title">💡 Tip</div>
-                <p style="margin:0;">This works best when your media has proper metadata. Jellyfin/Emby use IMDB and TMDB IDs for matching.</p>
+                <span class="tip-icon">📋</span>
+                <div>
+                    <div class="tip-title">Download Order</div>
+                    <div class="tip-text">Choose how items are queued: complete shows first, round-robin by season/episode, or alphabetically.</div>
+                </div>
+            </div>
+            <div class="tip">
+                <span class="tip-icon">📱</span>
+                <div>
+                    <div class="tip-title">Mobile Friendly</div>
+                    <div class="tip-text">JellyLooter works on phones and tablets - browse and start downloads from anywhere.</div>
+                </div>
             </div>
         </div>
 
-        <!-- Settings -->
-        <div class="section" id="settings">
-            <h2 class="section-title"><span>⚙️</span> Settings & Options</h2>
-
-            <h3>Appearance</h3>
-            <ul>
-                <li><strong>Dark/Light Theme</strong> - Toggle between themes (also available in header)</li>
-            </ul>
-
-            <h3>Advanced Settings</h3>
-            <p>Click "Advanced Settings" in the Settings tab to reveal:</p>
-            <ul>
-                <li><strong>Speed Limit (KB/s)</strong> - Cap download speed. Set to 0 for unlimited.</li>
-                <li><strong>Sync Time</strong> - When daily auto-sync runs</li>
-                <li><strong>Max Downloads</strong> - Concurrent download threads (1-10)</li>
-                <li><strong>Connection Timeout</strong> - Seconds before giving up on slow connections</li>
-                <li><strong>Chunk Size</strong> - Download buffer size in KB (affects memory usage)</li>
-                <li><strong>Confirm before downloading</strong> - Show confirmation dialog</li>
-                <li><strong>Show notifications</strong> - Enable/disable toast messages</li>
-            </ul>
-
-            <h3>Account Settings</h3>
-            <p>Click your username in the header to:</p>
-            <ul>
-                <li><strong>Change Password</strong> - Update your login credentials</li>
-                <li><strong>Sign Out</strong> - Log out of JellyLooter</li>
-            </ul>
+        <div class="section">
+            <h2 class="section-title">❓ FAQ</h2>
+            <div class="faq-item">
+                <div class="faq-question">Why do I get "No space left on device"?</div>
+                <div class="faq-answer">Docker volume mapping issue. Check that <code>/storage</code> points to your actual media storage. Run: <code>docker exec jellylooter df -h /storage</code></div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question">Do I need to enable authentication?</div>
+                <div class="faq-answer">No! Auth is now optional (off by default). Enable it in Settings if you want login protection.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question">Why aren't all items showing?</div>
+                <div class="faq-answer">Pagination limits items per page. Increase "Items Per Page" in settings or use the page navigation.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question">How do I detect duplicates?</div>
+                <div class="faq-answer">Configure your local Jellyfin server in Settings and click "Rebuild Cache". Items you own show a green badge.</div>
+            </div>
         </div>
 
-        <!-- Keyboard Shortcuts -->
-        <div class="section" id="keyboard">
-            <h2 class="section-title"><span>⌨️</span> Keyboard Shortcuts</h2>
-
-            <table style="width: 100%; border-collapse: collapse;">
-                <tr style="border-bottom: 1px solid var(--jf-border);">
-                    <td style="padding: 0.75rem 0;"><kbd>Ctrl</kbd> / <kbd>Cmd</kbd> + Click</td>
-                    <td style="padding: 0.75rem 0; color: var(--jf-text-muted);">Multi-select items</td>
-                </tr>
-                <tr style="border-bottom: 1px solid var(--jf-border);">
-                    <td style="padding: 0.75rem 0;">Right-click</td>
-                    <td style="padding: 0.75rem 0; color: var(--jf-text-muted);">Toggle item selection</td>
-                </tr>
-            </table>
-        </div>
-
-        <!-- Troubleshooting -->
-        <div class="section" id="troubleshooting">
-            <h2 class="section-title"><span>🔧</span> Troubleshooting</h2>
-
-            <h3>"Connection Failed" when adding a server</h3>
-            <ul>
-                <li>Verify the URL is correct and includes the port (usually 8096)</li>
-                <li>Make sure the server is running and accessible from this machine</li>
-                <li>Check if there's a firewall blocking the connection</li>
-                <li>Try accessing the URL directly in your browser</li>
-            </ul>
-
-            <h3>"Invalid credentials" error</h3>
-            <ul>
-                <li>Double-check your API key or username/password</li>
-                <li>API keys may expire - try generating a new one</li>
-                <li>Make sure your user account has API access enabled</li>
-            </ul>
-
-            <h3>Downloads are slow</h3>
-            <ul>
-                <li>Check if you have a speed limit set (Settings → Advanced)</li>
-                <li>The remote server may have bandwidth limits</li>
-                <li>Try reducing Max Downloads to 1-2</li>
-                <li>Check your network connection</li>
-            </ul>
-
-            <h3>Duplicate detection not working</h3>
-            <ul>
-                <li>Make sure your local server is configured and scanned</li>
-                <li>Check that your media has proper metadata (IMDB/TMDB IDs)</li>
-                <li>Try clicking "Rebuild Cache" manually</li>
-                <li>The remote content may have different/missing metadata</li>
-            </ul>
-
-            <h3>Downloads stuck at "Resolving..."</h3>
-            <ul>
-                <li>The server may be slow to respond</li>
-                <li>Try canceling and re-queuing the download</li>
-                <li>Check the Activity Log for error messages</li>
-            </ul>
-        </div>
-
-        <!-- FAQ -->
-        <div class="section" id="faq">
-            <h2 class="section-title"><span>❓</span> Frequently Asked Questions</h2>
-
+        <div class="section">
+            <h2 class="section-title">🔧 Troubleshooting</h2>
             <div class="faq-item">
-                <div class="faq-question">Is this legal?</div>
-                <p class="faq-answer">JellyLooter is a tool. What you do with it is your responsibility. Downloading content you have rights to (your own server, shared family libraries, etc.) is fine. Pirating copyrighted content is not.</p>
+                <div class="faq-question">Check volume mappings:</div>
+                <div class="faq-answer"><code>docker inspect jellylooter | grep -A10 "Mounts"</code></div>
             </div>
-
             <div class="faq-item">
-                <div class="faq-question">Does this work with Plex?</div>
-                <p class="faq-answer">No, JellyLooter only works with Jellyfin and Emby servers. They use compatible APIs.</p>
+                <div class="faq-question">Test write permissions:</div>
+                <div class="faq-answer"><code>docker exec jellylooter touch /storage/test && docker exec jellylooter rm /storage/test</code></div>
             </div>
-
             <div class="faq-item">
-                <div class="faq-question">Can I add multiple users?</div>
-                <p class="faq-answer">Currently, JellyLooter supports a single admin account. Multi-user support may be added in a future version.</p>
-            </div>
-
-            <div class="faq-item">
-                <div class="faq-question">Where is the configuration stored?</div>
-                <p class="faq-answer">Configuration is stored in <code>/config/looter_config.json</code>. Authentication data is in <code>/config/auth.json</code>.</p>
-            </div>
-
-            <div class="faq-item">
-                <div class="faq-question">How do I reset my password?</div>
-                <p class="faq-answer">If you're locked out, delete <code>/config/auth.json</code> and restart JellyLooter. You'll be prompted to create a new account.</p>
-            </div>
-
-            <div class="faq-item">
-                <div class="faq-question">Can I run this on Docker?</div>
-                <p class="faq-answer">Yes! Mount your storage and config directories as volumes. See the GitHub repo for docker-compose examples.</p>
-            </div>
-
-            <div class="faq-item">
-                <div class="faq-question">Why "JellyLooter"?</div>
-                <p class="faq-answer">It loots content from Jellyfin servers. The name seemed fitting. 🍇</p>
+                <div class="faq-question">View logs:</div>
+                <div class="faq-answer"><code>docker logs -f jellylooter</code></div>
             </div>
         </div>
 
         <div class="footer">
-            <p>JellyLooter v2.1.0 • <a href="/changelog">View Changelog</a></p>
+            <p>JellyLooter v2.3.0 • Made with ❤️ by <a href="https://buymeacoffee.com/friendlymedia" target="_blank">FriendlyMedia</a></p>
         </div>
     </div>
-
-    <script>
-        // Match theme with main app
-        const savedTheme = localStorage.getItem('theme') || 'dark';
-        document.documentElement.setAttribute('data-theme', savedTheme);
-    </script>
 </body>
 </html>

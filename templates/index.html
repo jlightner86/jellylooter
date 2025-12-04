@@ -2,12 +2,12 @@
 <html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>JellyLooter</title>
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/jlightner86/jellylooter/main/icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Theme Variables */
         :root {
             --jf-primary: #00a4dc;
             --jf-primary-dark: #0086b3;
@@ -22,8 +22,6 @@
             --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
             --transition: all 0.2s ease;
         }
-
-        /* Dark Theme (Default) */
         [data-theme="dark"] {
             --jf-bg-dark: #101010;
             --jf-bg-card: #1a1a1a;
@@ -35,8 +33,6 @@
             --jf-border: #333333;
             --jf-header-bg: rgba(0,164,220,0.15);
         }
-
-        /* Light Theme */
         [data-theme="light"] {
             --jf-bg-dark: #f5f5f5;
             --jf-bg-card: #ffffff;
@@ -49,858 +45,277 @@
             --jf-header-bg: rgba(0,164,220,0.1);
             --shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
         }
-
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
         body {
             font-family: 'Quicksand', -apple-system, BlinkMacSystemFont, sans-serif;
             background: var(--jf-bg-dark);
             color: var(--jf-text);
             min-height: 100vh;
             line-height: 1.5;
-            transition: background-color 0.3s, color 0.3s;
         }
-
-        /* Header */
+        /* Header - Mobile First */
         .header {
             background: linear-gradient(180deg, var(--jf-header-bg) 0%, transparent 100%);
             border-bottom: 1px solid var(--jf-border);
-            padding: 1rem 2rem;
+            padding: 0.75rem 1rem;
             position: sticky;
             top: 0;
             z-index: 100;
             backdrop-filter: blur(20px);
         }
-
+        @media (min-width: 768px) { .header { padding: 1rem 2rem; } }
         .header-content {
             max-width: 1600px;
             margin: 0 auto;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 0.5rem;
         }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: var(--jf-gradient);
-            border-radius: var(--radius);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.25rem;
-        }
-
+        .logo { display: flex; align-items: center; gap: 0.5rem; }
+        .logo-icon { width: 32px; height: 32px; border-radius: var(--radius); }
+        @media (min-width: 768px) { .logo-icon { width: 40px; height: 40px; } }
         .logo-text {
-            font-size: 1.5rem;
+            font-size: 1.25rem;
             font-weight: 700;
             background: var(--jf-gradient);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
-
-        .header-actions {
+        @media (min-width: 768px) { .logo-text { font-size: 1.5rem; } }
+        .header-actions { display: flex; align-items: center; gap: 0.5rem; }
+        /* Tabs */
+        .tabs {
             display: flex;
-            gap: 0.5rem;
-            align-items: center;
-        }
-
-        /* Theme Toggle */
-        .theme-toggle {
-            width: 40px;
-            height: 40px;
-            border: 1px solid var(--jf-border);
-            background: var(--jf-bg-card);
-            border-radius: var(--radius);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.125rem;
-            transition: var(--transition);
-        }
-
-        .theme-toggle:hover {
-            background: var(--jf-bg-card-hover);
-            border-color: var(--jf-primary);
-        }
-
-        .theme-icon-light, .theme-icon-dark { display: none; }
-        [data-theme="dark"] .theme-icon-light { display: block; }
-        [data-theme="light"] .theme-icon-dark { display: block; }
-
-        /* User Menu */
-        .user-menu {
-            position: relative;
-        }
-
-        .user-btn {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+            gap: 0.25rem;
             padding: 0.5rem 1rem;
-            background: var(--jf-bg-card);
-            border: 1px solid var(--jf-border);
+            border-bottom: 1px solid var(--jf-border);
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        .tabs::-webkit-scrollbar { display: none; }
+        @media (min-width: 768px) { .tabs { padding: 0.5rem 2rem; gap: 0.5rem; } }
+        .tab {
+            padding: 0.625rem 1rem;
+            background: transparent;
+            border: none;
             border-radius: var(--radius);
-            color: var(--jf-text);
-            cursor: pointer;
+            color: var(--jf-text-muted);
             font-family: inherit;
             font-size: 0.875rem;
             font-weight: 600;
+            cursor: pointer;
             transition: var(--transition);
+            white-space: nowrap;
+            flex-shrink: 0;
         }
-
-        .user-btn:hover {
-            background: var(--jf-bg-card-hover);
-        }
-
-        .user-dropdown {
-            position: absolute;
-            top: 100%;
-            right: 0;
-            margin-top: 0.5rem;
+        .tab:hover { color: var(--jf-text); background: var(--jf-bg-card); }
+        .tab.active { color: var(--jf-primary); background: rgba(0, 164, 220, 0.1); }
+        /* Main */
+        .main { max-width: 1600px; margin: 0 auto; padding: 1rem; }
+        @media (min-width: 768px) { .main { padding: 1.5rem 2rem; } }
+        /* Cards */
+        .card {
             background: var(--jf-bg-card);
             border: 1px solid var(--jf-border);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            min-width: 180px;
-            display: none;
-            z-index: 1000;
-        }
-
-        .user-dropdown.active { display: block; }
-
-        .user-dropdown-item {
-            display: block;
-            width: 100%;
-            padding: 0.75rem 1rem;
-            background: none;
-            border: none;
-            color: var(--jf-text);
-            font-family: inherit;
-            font-size: 0.875rem;
-            text-align: left;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .user-dropdown-item:hover {
-            background: var(--jf-bg-input);
-        }
-
-        .user-dropdown-item.danger { color: var(--jf-error); }
-
-        /* Navigation Tabs */
-        .nav-tabs {
-            display: flex;
-            gap: 0.25rem;
-            background: var(--jf-bg-card);
-            padding: 0.25rem;
-            border-radius: var(--radius);
-        }
-
-        .nav-tab {
-            padding: 0.5rem 1rem;
-            border: none;
-            background: transparent;
-            color: var(--jf-text-muted);
-            cursor: pointer;
-            border-radius: calc(var(--radius) - 2px);
-            font-family: inherit;
-            font-size: 0.875rem;
-            font-weight: 500;
-            transition: var(--transition);
-        }
-
-        .nav-tab:hover {
-            color: var(--jf-text);
-            background: var(--jf-bg-input);
-        }
-
-        .nav-tab.active {
-            background: var(--jf-primary);
-            color: white;
-        }
-
-        /* Main Layout */
-        .main-container {
-            max-width: 1600px;
-            margin: 0 auto;
-            padding: 1.5rem 2rem;
-            display: grid;
-            grid-template-columns: 1fr 380px;
-            gap: 1.5rem;
-        }
-
-        @media (max-width: 1200px) {
-            .main-container { grid-template-columns: 1fr; }
-        }
-
-        /* Panels */
-        .panel {
-            background: var(--jf-bg-card);
             border-radius: var(--radius-lg);
-            border: 1px solid var(--jf-border);
-            overflow: hidden;
+            padding: 1rem;
+            margin-bottom: 1rem;
         }
-
-        .panel-header {
-            padding: 1rem 1.25rem;
-            border-bottom: 1px solid var(--jf-border);
+        @media (min-width: 768px) { .card { padding: 1.5rem; margin-bottom: 1.5rem; } }
+        .card-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, transparent 100%);
-        }
-
-        [data-theme="light"] .panel-header {
-            background: linear-gradient(180deg, rgba(0,0,0,0.02) 0%, transparent 100%);
-        }
-
-        .panel-title {
-            font-size: 1rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
             gap: 0.5rem;
         }
-
-        .panel-title-icon { color: var(--jf-primary); }
-
-        .panel-body { padding: 1.25rem; }
-
+        .card-title { font-size: 1rem; font-weight: 700; }
+        @media (min-width: 768px) { .card-title { font-size: 1.125rem; } }
         /* Buttons */
         .btn {
+            padding: 0.5rem 1rem;
+            background: var(--jf-bg-input);
+            border: 1px solid var(--jf-border);
+            border-radius: var(--radius);
+            color: var(--jf-text);
+            font-family: inherit;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
-            padding: 0.625rem 1.25rem;
-            border: none;
-            border-radius: var(--radius);
-            font-family: inherit;
-            font-size: 0.875rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
+            gap: 0.375rem;
             white-space: nowrap;
         }
-
-        .btn-primary {
-            background: var(--jf-primary);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: var(--jf-primary-dark);
-            transform: translateY(-1px);
-        }
-
-        .btn-secondary {
-            background: var(--jf-bg-input);
-            color: var(--jf-text);
-            border: 1px solid var(--jf-border);
-        }
-
-        .btn-secondary:hover {
-            background: var(--jf-bg-card-hover);
-            border-color: var(--jf-text-dim);
-        }
-
-        .btn-danger {
-            background: var(--jf-error);
-            color: white;
-        }
-
-        .btn-danger:hover { background: #d32f2f; }
-
-        .btn-success {
-            background: var(--jf-success);
-            color: white;
-        }
-
-        .btn-warning {
-            background: var(--jf-warning);
-            color: #1a1a1a;
-        }
-
-        .btn-sm {
-            padding: 0.375rem 0.75rem;
-            font-size: 0.8125rem;
-        }
-
-        .btn-icon {
-            width: 36px;
-            height: 36px;
-            padding: 0;
-            border-radius: var(--radius);
-        }
-
-        .btn-icon.btn-sm {
-            width: 28px;
-            height: 28px;
-        }
-
-        /* Form Elements */
-        .form-group { margin-bottom: 1rem; }
-
-        .form-label {
-            display: block;
-            font-size: 0.8125rem;
-            font-weight: 600;
+        .btn:hover { background: var(--jf-bg-card-hover); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-primary { background: var(--jf-gradient); border: none; color: white; }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,164,220,0.4); }
+        .btn-success { background: var(--jf-success); border-color: var(--jf-success); color: white; }
+        .btn-danger { background: var(--jf-error); border-color: var(--jf-error); color: white; }
+        .btn-warning { background: var(--jf-warning); border-color: var(--jf-warning); color: white; }
+        .btn-icon { padding: 0.5rem; min-width: 36px; min-height: 36px; }
+        .btn-sm { padding: 0.375rem 0.75rem; font-size: 0.8125rem; }
+        /* Browser Controls */
+        .browser-controls { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem; }
+        @media (min-width: 768px) { .browser-controls { flex-direction: row; align-items: center; } }
+        .server-select-group { display: flex; gap: 0.5rem; flex: 1; min-width: 0; }
+        .view-controls { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+        .view-toggle { display: flex; background: var(--jf-bg-input); border-radius: var(--radius); overflow: hidden; }
+        .view-toggle-btn {
+            padding: 0.5rem 0.75rem;
+            background: transparent;
+            border: none;
             color: var(--jf-text-muted);
-            margin-bottom: 0.375rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: var(--transition);
         }
-
-        .form-input {
-            width: 100%;
-            padding: 0.75rem 1rem;
+        .view-toggle-btn.active { background: var(--jf-primary); color: white; }
+        /* Select */
+        select {
+            padding: 0.625rem 2rem 0.625rem 0.875rem;
             background: var(--jf-bg-input);
             border: 1px solid var(--jf-border);
             border-radius: var(--radius);
             color: var(--jf-text);
             font-family: inherit;
-            font-size: 0.9375rem;
-            transition: var(--transition);
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: var(--jf-primary);
-            box-shadow: 0 0 0 3px rgba(0, 164, 220, 0.15);
-        }
-
-        .form-input::placeholder { color: var(--jf-text-dim); }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-        }
-
-        .form-hint {
-            font-size: 0.75rem;
-            color: var(--jf-text-muted);
-            margin-top: 0.375rem;
-        }
-
-        /* Toggle Switch */
-        .toggle-container {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0.75rem 0;
-        }
-
-        .toggle-label { font-size: 0.9375rem; }
-
-        .toggle {
-            position: relative;
-            width: 48px;
-            height: 26px;
-        }
-
-        .toggle input { opacity: 0; width: 0; height: 0; }
-
-        .toggle-slider {
-            position: absolute;
+            font-size: 0.875rem;
             cursor: pointer;
-            inset: 0;
-            background: var(--jf-bg-input);
-            border-radius: 26px;
-            transition: var(--transition);
-            border: 1px solid var(--jf-border);
-        }
-
-        .toggle-slider::before {
-            content: '';
-            position: absolute;
-            height: 18px;
-            width: 18px;
-            left: 3px;
-            bottom: 3px;
-            background: var(--jf-text-muted);
-            border-radius: 50%;
-            transition: var(--transition);
-        }
-
-        .toggle input:checked + .toggle-slider {
-            background: var(--jf-primary);
-            border-color: var(--jf-primary);
-        }
-
-        .toggle input:checked + .toggle-slider::before {
-            transform: translateX(22px);
-            background: white;
-        }
-
-        /* Server List */
-        .server-list {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .server-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.875rem 1rem;
-            background: var(--jf-bg-input);
-            border-radius: var(--radius);
-            cursor: pointer;
-            transition: var(--transition);
-            border: 1px solid transparent;
-        }
-
-        .server-item:hover {
-            background: var(--jf-bg-card-hover);
-            border-color: var(--jf-border);
-        }
-
-        .server-item.active {
-            border-color: var(--jf-primary);
-            background: rgba(0, 164, 220, 0.1);
-        }
-
-        .server-icon {
-            width: 40px;
-            height: 40px;
-            background: var(--jf-gradient);
-            border-radius: var(--radius);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.125rem;
-            flex-shrink: 0;
-        }
-
-        .server-info {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23888' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
             flex: 1;
             min-width: 0;
         }
-
-        .server-name {
-            font-weight: 600;
-            font-size: 0.9375rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .server-url {
-            font-size: 0.8125rem;
-            color: var(--jf-text-muted);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* Browser Grid */
-        .browser-container {
-            display: flex;
-            flex-direction: column;
-            height: 500px;
-        }
-
-        .browser-path {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.75rem 1rem;
-            background: var(--jf-bg-input);
-            border-radius: var(--radius);
-            margin-bottom: 1rem;
-            font-size: 0.875rem;
-            color: var(--jf-text-muted);
-            overflow-x: auto;
-        }
-
-        .browser-path-item {
-            color: var(--jf-primary);
-            cursor: pointer;
-            white-space: nowrap;
-        }
-
-        .browser-path-item:hover { text-decoration: underline; }
-
-        .browser-grid {
-            flex: 1;
+        /* Media Grid */
+        .media-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 1rem;
-            overflow-y: auto;
-            padding: 0.25rem;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 0.75rem;
         }
-
-        .browser-item {
-            position: relative;
-            aspect-ratio: 2/3;
+        @media (min-width: 768px) {
+            .media-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem; }
+        }
+        .media-item {
             background: var(--jf-bg-input);
             border-radius: var(--radius);
             overflow: hidden;
             cursor: pointer;
             transition: var(--transition);
-            border: 2px solid transparent;
+            position: relative;
         }
-
-        .browser-item:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow);
+        .media-item:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+        .media-item.selected { outline: 3px solid var(--jf-primary); outline-offset: -3px; }
+        .media-item.exists { opacity: 0.6; }
+        .media-poster {
+            aspect-ratio: 2/3;
+            background: var(--jf-bg-card);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: var(--jf-text-dim);
         }
-
-        .browser-item.selected { border-color: var(--jf-primary); }
-
-        .browser-item.exists { opacity: 0.5; }
-
-        .browser-item.exists::after {
-            content: '✓';
+        .media-poster img { width: 100%; height: 100%; object-fit: cover; }
+        .media-info { padding: 0.5rem; }
+        .media-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        @media (min-width: 768px) { .media-title { font-size: 0.8125rem; } }
+        .media-type { font-size: 0.6875rem; color: var(--jf-text-muted); }
+        .media-badge {
             position: absolute;
             top: 0.5rem;
             right: 0.5rem;
-            width: 24px;
-            height: 24px;
-            background: var(--jf-success);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.75rem;
-            font-weight: bold;
-            color: white;
-        }
-
-        .browser-item-poster {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .browser-item-placeholder {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2.5rem;
-            color: var(--jf-text-dim);
-            background: linear-gradient(135deg, var(--jf-bg-card) 0%, var(--jf-bg-input) 100%);
-        }
-
-        .browser-item-title {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 2rem 0.5rem 0.5rem;
-            background: linear-gradient(transparent, rgba(0,0,0,0.9));
-            font-size: 0.75rem;
-            font-weight: 600;
-            line-height: 1.3;
-            text-align: center;
-            color: white;
-        }
-
-        .browser-item.folder .browser-item-placeholder {
-            background: linear-gradient(135deg, rgba(0,164,220,0.2) 0%, rgba(170,92,195,0.2) 100%);
-        }
-
-        /* Download Queue */
-        .queue-container {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .queue-empty {
-            text-align: center;
-            padding: 3rem 1rem;
-            color: var(--jf-text-muted);
-        }
-
-        .queue-empty-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            opacity: 0.5;
-        }
-
-        .download-item {
-            padding: 1rem;
-            background: var(--jf-bg-input);
-            border-radius: var(--radius);
-            margin-bottom: 0.5rem;
-        }
-
-        .download-item:last-child { margin-bottom: 0; }
-
-        .download-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 0.5rem;
-        }
-
-        .download-name {
-            font-size: 0.875rem;
-            font-weight: 600;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            flex: 1;
-            margin-right: 0.5rem;
-        }
-
-        .download-status {
-            font-size: 0.75rem;
             padding: 0.25rem 0.5rem;
+            background: var(--jf-success);
             border-radius: 4px;
-            background: var(--jf-primary);
-            color: white;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .download-status.paused {
-            background: var(--jf-warning);
-            color: #1a1a1a;
-        }
-
-        .download-status.pending {
-            background: var(--jf-text-dim);
-        }
-
-        .download-progress {
-            height: 6px;
-            background: var(--jf-border);
-            border-radius: 3px;
-            overflow: hidden;
-            margin-bottom: 0.5rem;
-        }
-
-        .download-progress-bar {
-            height: 100%;
-            background: var(--jf-gradient);
-            transition: width 0.3s;
-        }
-
-        .download-meta {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.75rem;
-            color: var(--jf-text-muted);
-        }
-
-        /* Stats Grid */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.75rem;
-            margin-bottom: 1rem;
-        }
-
-        .stat-card {
-            background: var(--jf-bg-card);
-            border: 1px solid var(--jf-border);
-            border-radius: var(--radius);
-            padding: 1rem;
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 1.5rem;
+            font-size: 0.625rem;
             font-weight: 700;
-            color: var(--jf-primary);
+            color: white;
         }
-
-        .stat-label {
-            font-size: 0.75rem;
-            color: var(--jf-text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        /* Control Bar */
-        .control-bar {
+        /* List View */
+        .media-list { display: flex; flex-direction: column; gap: 0.5rem; }
+        .media-list-item {
             display: flex;
-            gap: 0.5rem;
-            padding-top: 1rem;
-            border-top: 1px solid var(--jf-border);
-            margin-top: 1rem;
-        }
-
-        /* Log Container */
-        .log-container {
-            font-family: 'Monaco', 'Consolas', monospace;
-            font-size: 0.8125rem;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
             background: var(--jf-bg-input);
             border-radius: var(--radius);
-            padding: 1rem;
-            max-height: 300px;
-            overflow-y: auto;
-            line-height: 1.6;
+            cursor: pointer;
+            transition: var(--transition);
         }
-
-        .log-line { padding: 0.125rem 0; }
-        .log-line .success { color: var(--jf-success); }
-        .log-line .error { color: var(--jf-error); }
-
-        /* Modal */
-        .modal {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.7);
-            display: none;
+        .media-list-item:hover { background: var(--jf-bg-card-hover); }
+        .media-list-item.selected { outline: 2px solid var(--jf-primary); }
+        .media-list-item.exists { opacity: 0.6; }
+        .media-list-thumb {
+            width: 40px;
+            height: 60px;
+            background: var(--jf-bg-card);
+            border-radius: 4px;
+            display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 1000;
-            padding: 2rem;
-        }
-
-        .modal.active { display: flex; }
-
-        .modal-content {
-            background: var(--jf-bg-card);
-            border-radius: var(--radius-lg);
-            border: 1px solid var(--jf-border);
-            width: 100%;
-            max-width: 480px;
-            max-height: 90vh;
+            flex-shrink: 0;
             overflow: hidden;
-            display: flex;
-            flex-direction: column;
         }
-
-        .modal-header {
-            padding: 1.25rem 1.5rem;
-            border-bottom: 1px solid var(--jf-border);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .modal-title {
-            font-size: 1.125rem;
+        .media-list-thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .media-list-info { flex: 1; min-width: 0; }
+        .media-list-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .media-list-meta { font-size: 0.75rem; color: var(--jf-text-muted); }
+        .media-list-badge {
+            padding: 0.25rem 0.5rem;
+            background: var(--jf-success);
+            border-radius: 4px;
+            font-size: 0.625rem;
             font-weight: 700;
+            color: white;
+            flex-shrink: 0;
         }
-
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            color: var(--jf-text-muted);
-            cursor: pointer;
-            line-height: 1;
-        }
-
-        .modal-close:hover { color: var(--jf-text); }
-
-        .modal-body {
-            padding: 1.5rem;
-            overflow-y: auto;
-        }
-
-        .modal-footer {
-            padding: 1rem 1.5rem;
-            border-top: 1px solid var(--jf-border);
-            display: flex;
-            gap: 0.75rem;
-            justify-content: flex-end;
-        }
-
-        /* Advanced Settings Toggle */
-        .advanced-toggle {
+        /* Pagination */
+        .pagination {
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 0.5rem;
-            padding: 0.75rem 0;
-            color: var(--jf-text-muted);
-            cursor: pointer;
+            padding: 1rem 0;
+            flex-wrap: wrap;
+        }
+        .pagination-info {
             font-size: 0.875rem;
-            border: none;
-            background: none;
+            color: var(--jf-text-muted);
+            text-align: center;
             width: 100%;
-            text-align: left;
+            margin-bottom: 0.5rem;
+        }
+        @media (min-width: 768px) { .pagination-info { width: auto; margin-bottom: 0; margin-right: 1rem; } }
+        .page-btn {
+            padding: 0.5rem 0.75rem;
+            background: var(--jf-bg-input);
+            border: 1px solid var(--jf-border);
+            border-radius: var(--radius);
+            color: var(--jf-text);
             font-family: inherit;
-        }
-
-        .advanced-toggle:hover { color: var(--jf-text); }
-
-        .advanced-toggle-icon { transition: transform 0.2s; }
-        .advanced-toggle.open .advanced-toggle-icon { transform: rotate(180deg); }
-
-        .advanced-content {
-            display: none;
-            padding-top: 0.5rem;
-        }
-
-        .advanced-content.open { display: block; }
-
-        /* Tab Content */
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-
-        /* Mapping List */
-        .mapping-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0.875rem 1rem;
-            background: var(--jf-bg-input);
-            border-radius: var(--radius);
-            margin-bottom: 0.5rem;
-        }
-
-        .mapping-info {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .mapping-path {
             font-size: 0.875rem;
-            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            min-width: 40px;
         }
-
-        .mapping-source {
-            font-size: 0.75rem;
-            color: var(--jf-text-muted);
-        }
-
-        /* Scan Progress */
-        .scan-progress {
-            padding: 1rem;
-            background: var(--jf-bg-input);
-            border-radius: var(--radius);
-            margin-bottom: 1rem;
-        }
-
-        .scan-progress-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.5rem;
-            font-size: 0.875rem;
-        }
-
-        .scan-progress-bar {
-            height: 6px;
-            background: var(--jf-border);
-            border-radius: 3px;
-            overflow: hidden;
-        }
-
-        .scan-progress-fill {
-            height: 100%;
-            background: var(--jf-gradient);
-            transition: width 0.3s;
-        }
-
+        .page-btn:hover:not(:disabled) { background: var(--jf-bg-card-hover); }
+        .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .page-btn.active { background: var(--jf-primary); border-color: var(--jf-primary); color: white; }
         /* Selection Bar */
         .selection-bar {
             display: none;
@@ -910,44 +325,166 @@
             background: var(--jf-primary);
             border-radius: var(--radius);
             margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
         }
-
         .selection-bar.active { display: flex; }
-
-        .selection-bar-text {
-            font-weight: 600;
-            color: white;
-        }
-
+        .selection-bar-text { font-weight: 600; color: white; }
         .selection-bar-actions { display: flex; gap: 0.5rem; }
-
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 3rem;
-            color: var(--jf-text-muted);
-        }
-
-        .empty-state-icon {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-            opacity: 0.3;
-        }
-
-        .empty-state-title {
-            font-size: 1.125rem;
-            font-weight: 600;
+        /* Downloads */
+        .download-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            background: var(--jf-bg-input);
+            border-radius: var(--radius);
             margin-bottom: 0.5rem;
-            color: var(--jf-text);
         }
-
-        /* Tooltip */
+        @media (min-width: 768px) { .download-item { flex-direction: row; align-items: center; } }
+        .download-info { flex: 1; min-width: 0; }
+        .download-name {
+            font-weight: 600;
+            font-size: 0.875rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .download-status { font-size: 0.75rem; color: var(--jf-text-muted); }
+        .download-progress {
+            height: 4px;
+            background: var(--jf-border);
+            border-radius: 2px;
+            overflow: hidden;
+            width: 100%;
+        }
+        @media (min-width: 768px) { .download-progress { width: 200px; flex-shrink: 0; } }
+        .download-progress-fill { height: 100%; background: var(--jf-gradient); transition: width 0.3s; }
+        .download-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+        /* Log */
+        .log-container {
+            background: var(--jf-bg-input);
+            border-radius: var(--radius);
+            padding: 0.75rem;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.6875rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        @media (min-width: 768px) { .log-container { font-size: 0.75rem; max-height: 300px; } }
+        .log-line { padding: 0.125rem 0; color: var(--jf-text-muted); word-break: break-all; }
+        /* Form */
+        .form-group { margin-bottom: 1rem; }
+        .form-label {
+            display: block;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: var(--jf-text-muted);
+            margin-bottom: 0.375rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .form-input {
+            width: 100%;
+            padding: 0.625rem 0.875rem;
+            background: var(--jf-bg-input);
+            border: 1px solid var(--jf-border);
+            border-radius: var(--radius);
+            color: var(--jf-text);
+            font-family: inherit;
+            font-size: 0.875rem;
+        }
+        .form-input:focus { outline: none; border-color: var(--jf-primary); box-shadow: 0 0 0 3px rgba(0,164,220,0.15); }
+        /* Toggle */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--jf-border);
+            gap: 1rem;
+        }
+        .toggle-info { flex: 1; min-width: 0; }
+        .toggle-title { font-weight: 600; font-size: 0.875rem; }
+        .toggle-desc { font-size: 0.75rem; color: var(--jf-text-muted); }
+        .toggle-switch { position: relative; width: 48px; height: 26px; flex-shrink: 0; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--jf-border);
+            border-radius: 26px;
+            transition: var(--transition);
+        }
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: var(--transition);
+        }
+        .toggle-switch input:checked + .toggle-slider { background: var(--jf-primary); }
+        .toggle-switch input:checked + .toggle-slider:before { transform: translateX(22px); }
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--jf-bg-card);
+            border: 1px solid var(--jf-border);
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            border-bottom: 1px solid var(--jf-border);
+        }
+        .modal-title { font-size: 1.125rem; font-weight: 700; }
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--jf-text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+        .modal-close:hover { color: var(--jf-text); }
+        .modal-body { padding: 1rem; overflow-y: auto; flex: 1; }
+        .modal-footer {
+            padding: 1rem;
+            border-top: 1px solid var(--jf-border);
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+        }
+        /* Tooltip - Fixed z-index */
         [data-tooltip] { position: relative; }
-
         [data-tooltip]::after {
             content: attr(data-tooltip);
             position: absolute;
-            bottom: 100%;
+            bottom: calc(100% + 8px);
             left: 50%;
             transform: translateX(-50%);
             padding: 0.375rem 0.75rem;
@@ -961,384 +498,307 @@
             visibility: hidden;
             transition: var(--transition);
             pointer-events: none;
+            z-index: 200;
+        }
+        [data-tooltip]:hover::after { opacity: 1; visibility: visible; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        /* Settings */
+        .settings-grid { display: grid; gap: 1rem; }
+        @media (min-width: 768px) { .settings-grid { grid-template-columns: repeat(2, 1fr); } }
+        .settings-section { margin-bottom: 1.5rem; }
+        .settings-section-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--jf-primary); }
+        /* Server List */
+        .server-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: var(--jf-bg-input);
+            border-radius: var(--radius);
             margin-bottom: 0.5rem;
         }
-
-        [data-tooltip]:hover::after {
-            opacity: 1;
-            visibility: visible;
+        .server-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--jf-gradient);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
         }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb {
-            background: var(--jf-border);
-            border-radius: 4px;
+        .server-info { flex: 1; min-width: 0; }
+        .server-name { font-weight: 600; font-size: 0.875rem; }
+        .server-url { font-size: 0.75rem; color: var(--jf-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        /* Breadcrumb */
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            flex-wrap: wrap;
         }
-        ::-webkit-scrollbar-thumb:hover { background: var(--jf-text-dim); }
-
-        /* Animations */
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        .pulse { animation: pulse 2s infinite; }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .spin { animation: spin 1s linear infinite; }
-
-        /* Toast Notifications */
+        .breadcrumb-item { color: var(--jf-text-muted); cursor: pointer; }
+        .breadcrumb-item:hover { color: var(--jf-primary); }
+        .breadcrumb-sep { color: var(--jf-text-dim); }
+        .breadcrumb-current { color: var(--jf-text); font-weight: 600; }
+        /* Toast */
         .toast-container {
             position: fixed;
-            bottom: 2rem;
-            right: 2rem;
+            bottom: 1rem;
+            right: 1rem;
             z-index: 2000;
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
+            max-width: calc(100vw - 2rem);
         }
-
         .toast {
-            background: var(--jf-bg-card);
-            border: 1px solid var(--jf-border);
-            border-radius: var(--radius);
-            padding: 1rem 1.25rem;
-            box-shadow: var(--shadow);
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            animation: slideIn 0.3s ease;
-        }
-
-        .toast.success { border-left: 4px solid var(--jf-success); }
-        .toast.error { border-left: 4px solid var(--jf-error); }
-        .toast.warning { border-left: 4px solid var(--jf-warning); }
-
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-
-        /* Settings Section */
-        .settings-section {
-            margin-bottom: 1.5rem;
-            padding-bottom: 1.5rem;
-            border-bottom: 1px solid var(--jf-border);
-        }
-
-        .settings-section:last-child {
-            margin-bottom: 0;
-            padding-bottom: 0;
-            border-bottom: none;
-        }
-
-        .settings-section-title {
-            font-size: 0.9375rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            background: var(--jf-bg-card);
+            border: 1px solid var(--jf-border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            font-size: 0.875rem;
+            animation: slideIn 0.3s ease;
         }
-
-        .settings-section-title span { color: var(--jf-primary); }
+        .toast.success { border-left: 3px solid var(--jf-success); }
+        .toast.error { border-left: 3px solid var(--jf-error); }
+        .toast.warning { border-left: 3px solid var(--jf-warning); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        /* Empty State */
+        .empty-state { text-align: center; padding: 2rem; color: var(--jf-text-muted); }
+        .empty-state-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.3; }
+        .empty-state-title { font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--jf-text); }
+        /* Folder Browser */
+        .folder-list { max-height: 300px; overflow-y: auto; }
+        .folder-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.625rem 0.75rem;
+            cursor: pointer;
+            border-radius: var(--radius);
+            transition: var(--transition);
+        }
+        .folder-item:hover { background: var(--jf-bg-input); }
+        .folder-item.selected { background: rgba(0,164,220,0.2); }
+        .space-info {
+            padding: 0.75rem;
+            background: var(--jf-bg-input);
+            border-radius: var(--radius);
+            margin-top: 1rem;
+            font-size: 0.875rem;
+        }
+        /* Scan Progress */
+        .scan-progress { padding: 1rem; background: var(--jf-bg-input); border-radius: var(--radius); margin-bottom: 1rem; }
+        .scan-progress-header { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.875rem; }
+        .scan-progress-bar { height: 6px; background: var(--jf-border); border-radius: 3px; overflow: hidden; }
+        .scan-progress-fill { height: 100%; background: var(--jf-gradient); transition: width 0.3s; }
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--jf-border); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--jf-text-dim); }
+        /* Hide on mobile */
+        .hide-mobile { display: none; }
+        @media (min-width: 768px) { .hide-mobile { display: flex; } }
+        .show-mobile { display: flex; }
+        @media (min-width: 768px) { .show-mobile { display: none; } }
     </style>
 </head>
 <body>
-    <!-- Header -->
     <header class="header">
         <div class="header-content">
             <div class="logo">
-                <img src="https://raw.githubusercontent.com/jlightner86/jellylooter/main/icon.png" alt="JellyLooter" class="logo-icon" style="background: none;">
+                <img src="https://raw.githubusercontent.com/jlightner86/jellylooter/main/icon.png" alt="JellyLooter" class="logo-icon">
                 <span class="logo-text">JellyLooter</span>
             </div>
             <div class="header-actions">
-                <nav class="nav-tabs">
-                    <button class="nav-tab active" data-tab="browse">Browse</button>
-                    <button class="nav-tab" data-tab="sync">Sync</button>
-                    <button class="nav-tab" data-tab="settings">Settings</button>
-                </nav>
-                
-                <button class="theme-toggle" id="theme-toggle" data-tooltip="Toggle Theme">
-                    <span class="theme-icon-light">☀️</span>
-                    <span class="theme-icon-dark">🌙</span>
-                </button>
-                
-                <a href="/changelog" class="btn btn-secondary btn-sm">Changelog</a>
-                <a href="/help" class="btn btn-secondary btn-sm">Help</a>
-                
-                <div class="user-menu">
-                    <button class="user-btn" id="user-btn">
-                        <span>👤</span>
-                        <span id="username-display">User</span>
-                        <span>▼</span>
-                    </button>
-                    <div class="user-dropdown" id="user-dropdown">
-                        <button class="user-dropdown-item" onclick="openModal('password-modal')">Change Password</button>
-                        <button class="user-dropdown-item danger" onclick="window.location.href='/logout'">Sign Out</button>
-                    </div>
-                </div>
+                <button class="btn btn-icon" onclick="toggleTheme()" data-tooltip="Toggle Theme">🌙</button>
+                <a href="/help" class="btn btn-sm hide-mobile">Help</a>
+                <a href="/logout" class="btn btn-sm">Logout</a>
             </div>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="main-container">
-        <!-- Left Column -->
-        <div class="left-column">
-            <!-- Browse Tab -->
-            <div class="tab-content active" id="tab-browse">
-                <div class="panel">
-                    <div class="panel-header">
-                        <h2 class="panel-title">
-                            <span class="panel-title-icon">📁</span>
-                            Remote Browser
-                        </h2>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <select id="server-select" class="form-input" style="width: auto; min-width: 180px; padding: 0.5rem 1rem;">
-                                <option value="">Select Server...</option>
-                            </select>
-                            <button class="btn btn-secondary btn-sm" id="refresh-btn" data-tooltip="Refresh">🔄</button>
-                        </div>
+    <nav class="tabs">
+        <button class="tab active" data-tab="browse">📁 Browse</button>
+        <button class="tab" data-tab="downloads">⬇️ Downloads</button>
+        <button class="tab" data-tab="settings">⚙️ Settings</button>
+    </nav>
+
+    <main class="main">
+        <!-- Browse Tab -->
+        <div id="tab-browse" class="tab-content active">
+            <div class="card">
+                <div class="browser-controls">
+                    <div class="server-select-group">
+                        <select id="server-select" onchange="onServerChange()">
+                            <option value="">Select Server...</option>
+                        </select>
+                        <button class="btn btn-icon" onclick="refreshLibrary()" data-tooltip="Refresh">🔄</button>
                     </div>
-                    <div class="panel-body">
-                        <div class="selection-bar" id="selection-bar">
-                            <span class="selection-bar-text"><span id="selection-count">0</span> items selected</span>
-                            <div class="selection-bar-actions">
-                                <button class="btn btn-sm" style="background: white; color: var(--jf-primary);" id="download-selected-btn">Download Selected</button>
-                                <button class="btn btn-secondary btn-sm" id="clear-selection-btn">Clear</button>
-                            </div>
+                    <div class="view-controls">
+                        <div class="view-toggle">
+                            <button class="view-toggle-btn active" data-view="grid" onclick="setViewMode('grid')">▦</button>
+                            <button class="view-toggle-btn" data-view="list" onclick="setViewMode('list')">☰</button>
                         </div>
-                        
-                        <div class="browser-path" id="browser-path">
-                            <span class="browser-path-item" data-id="root">🏠 Home</span>
-                        </div>
-                        
-                        <div class="browser-container">
-                            <div class="browser-grid" id="browser-grid">
-                                <div class="empty-state">
-                                    <div class="empty-state-icon">📡</div>
-                                    <div class="empty-state-title">Select a Server</div>
-                                    <p>Choose a remote server from the dropdown to browse its library.</p>
-                                </div>
-                            </div>
-                        </div>
+                        <select id="items-per-page" onchange="onItemsPerPageChange()">
+                            <option value="25">25</option>
+                            <option value="50" selected>50</option>
+                            <option value="100">100</option>
+                        </select>
                     </div>
                 </div>
-            </div>
 
-            <!-- Sync Tab -->
-            <div class="tab-content" id="tab-sync">
-                <div class="panel">
-                    <div class="panel-header">
-                        <h2 class="panel-title">
-                            <span class="panel-title-icon">🔄</span>
-                            Library Mappings
-                        </h2>
-                        <button class="btn btn-primary btn-sm" id="add-mapping-btn">+ Add Mapping</button>
-                    </div>
-                    <div class="panel-body">
-                        <div id="mappings-list">
-                            <div class="empty-state">
-                                <div class="empty-state-icon">🗺️</div>
-                                <div class="empty-state-title">No Mappings</div>
-                                <p>Create a mapping to automatically sync content from remote libraries.</p>
-                            </div>
-                        </div>
-                        
-                        <div class="control-bar">
-                            <button class="btn btn-primary" id="sync-now-btn">
-                                <span>🔄</span> Sync Now
-                            </button>
-                            <div class="toggle-container" style="flex: 1; justify-content: flex-end;">
-                                <span class="toggle-label">Auto-Sync</span>
-                                <label class="toggle" style="margin-left: 0.75rem;">
-                                    <input type="checkbox" id="auto-sync-toggle" checked>
-                                    <span class="toggle-slider"></span>
-                                </label>
-                            </div>
-                        </div>
+                <div class="breadcrumb" id="breadcrumb"></div>
+
+                <div class="selection-bar" id="selection-bar">
+                    <span class="selection-bar-text"><span id="selection-count">0</span> items selected</span>
+                    <div class="selection-bar-actions">
+                        <button class="btn btn-sm" onclick="clearSelection()">Clear</button>
+                        <button class="btn btn-sm btn-primary" onclick="downloadSelected()">Download</button>
                     </div>
                 </div>
-            </div>
 
-            <!-- Settings Tab -->
-            <div class="tab-content" id="tab-settings">
-                <div class="panel">
-                    <div class="panel-header">
-                        <h2 class="panel-title">
-                            <span class="panel-title-icon">⚙️</span>
-                            Configuration
-                        </h2>
-                    </div>
-                    <div class="panel-body">
-                        <!-- Appearance Section -->
-                        <div class="settings-section">
-                            <div class="settings-section-title"><span>🎨</span> Appearance</div>
-                            <div class="toggle-container">
-                                <span class="toggle-label">Dark Theme</span>
-                                <label class="toggle">
-                                    <input type="checkbox" id="theme-toggle-settings" checked>
-                                    <span class="toggle-slider"></span>
-                                </label>
-                            </div>
-                            <div class="form-hint">Switch between dark and light themes</div>
-                        </div>
+                <div id="media-container"></div>
 
-                        <!-- Remote Servers Section -->
-                        <div class="settings-section">
-                            <div class="settings-section-title"><span>📡</span> Remote Servers</div>
-                            <div class="server-list" id="settings-server-list"></div>
-                            <button class="btn btn-primary" style="width: 100%; margin-top: 0.75rem;" id="add-server-btn">
-                                + Add Remote Server
-                            </button>
-                        </div>
-
-                        <!-- Local Server Section -->
-                        <div class="settings-section">
-                            <div class="settings-section-title"><span>🏠</span> Local Server (Duplicate Detection)</div>
-                            <div id="local-server-info">
-                                <div class="empty-state" style="padding: 1.5rem;">
-                                    <p>No local server configured. Add one to detect existing content.</p>
-                                    <button class="btn btn-secondary btn-sm" style="margin-top: 0.75rem;" id="add-local-btn">Configure Local Server</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Advanced Settings -->
-                        <button class="advanced-toggle" id="advanced-toggle">
-                            <span class="advanced-toggle-icon">▼</span>
-                            Advanced Settings
-                        </button>
-                        <div class="advanced-content" id="advanced-content">
-                            <div class="form-group">
-                                <label class="form-label">Speed Limit (KB/s)</label>
-                                <input type="number" class="form-input" id="speed-limit" min="0" placeholder="0 = unlimited">
-                                <div class="form-hint">Set to 0 for unlimited speed</div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label class="form-label">Sync Time</label>
-                                    <input type="time" class="form-input" id="sync-time" value="04:00">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Max Downloads</label>
-                                    <input type="number" class="form-input" id="max-downloads" min="1" max="10" value="2">
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label class="form-label">Connection Timeout (s)</label>
-                                    <input type="number" class="form-input" id="connection-timeout" min="5" max="120" value="30">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Chunk Size (KB)</label>
-                                    <input type="number" class="form-input" id="chunk-size" min="16" max="1024" value="64">
-                                </div>
-                            </div>
-                            <div class="toggle-container">
-                                <span class="toggle-label">Confirm before downloading</span>
-                                <label class="toggle">
-                                    <input type="checkbox" id="confirm-downloads">
-                                    <span class="toggle-slider"></span>
-                                </label>
-                            </div>
-                            <div class="toggle-container">
-                                <span class="toggle-label">Show notifications</span>
-                                <label class="toggle">
-                                    <input type="checkbox" id="show-notifications" checked>
-                                    <span class="toggle-slider"></span>
-                                </label>
-                            </div>
-                            <button class="btn btn-primary" style="width: 100%; margin-top: 1rem;" id="save-settings-btn">Save Settings</button>
-                        </div>
-                    </div>
-                </div>
+                <div class="pagination" id="pagination"></div>
             </div>
         </div>
 
-        <!-- Right Column -->
-        <div class="right-column">
-            <!-- Stats -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value" id="stat-active">0</div>
-                    <div class="stat-label">Active</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="stat-pending">0</div>
-                    <div class="stat-label">Pending</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="stat-cached">0</div>
-                    <div class="stat-label">Cached</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="stat-cache-time">Never</div>
-                    <div class="stat-label">Last Scan</div>
-                </div>
-            </div>
-
-            <!-- Scan Progress -->
-            <div class="scan-progress" id="scan-progress" style="display: none;">
-                <div class="scan-progress-header">
-                    <span>Scanning local library...</span>
-                    <span id="scan-percent">0%</span>
-                </div>
-                <div class="scan-progress-bar">
-                    <div class="scan-progress-fill" id="scan-fill" style="width: 0%"></div>
-                </div>
-            </div>
-
-            <!-- Download Queue -->
-            <div class="panel">
-                <div class="panel-header">
-                    <h2 class="panel-title">
-                        <span class="panel-title-icon">⬇️</span>
-                        Downloads
-                    </h2>
+        <!-- Downloads Tab -->
+        <div id="tab-downloads" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Active Downloads</h2>
                     <div style="display: flex; gap: 0.5rem;">
-                        <button class="btn btn-secondary btn-sm" id="pause-btn" data-tooltip="Pause All">⏸️</button>
-                        <button class="btn btn-secondary btn-sm" id="resume-btn" style="display: none;" data-tooltip="Resume All">▶️</button>
-                        <button class="btn btn-danger btn-sm" id="cancel-all-btn" data-tooltip="Cancel All">⏹️</button>
+                        <button class="btn btn-sm" id="pause-btn" onclick="togglePause()">⏸️ Pause</button>
+                        <button class="btn btn-sm btn-danger" onclick="cancelAll()">✗ Cancel All</button>
                     </div>
                 </div>
-                <div class="panel-body">
-                    <div class="queue-container" id="download-queue">
-                        <div class="queue-empty">
-                            <div class="queue-empty-icon">📭</div>
-                            <p>No active downloads</p>
-                        </div>
-                    </div>
-                </div>
+                <div id="active-downloads"></div>
             </div>
 
-            <!-- Log Panel -->
-            <div class="panel" style="margin-top: 1rem;">
-                <div class="panel-header">
-                    <h2 class="panel-title">
-                        <span class="panel-title-icon">📋</span>
-                        Activity Log
-                    </h2>
-                    <button class="btn btn-secondary btn-sm" id="rebuild-cache-btn">🔄 Rebuild Cache</button>
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Queue</h2>
+                    <span class="badge" id="queue-count">0 pending</span>
                 </div>
-                <div class="panel-body" style="padding: 0;">
-                    <div class="log-container" id="log-container">
-                        <div class="log-line">Waiting for activity...</div>
+                <div id="pending-downloads"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Activity Log</h2>
+                </div>
+                <div class="log-container" id="log-container"></div>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="tab-settings" class="tab-content">
+            <div class="settings-grid">
+                <div class="card">
+                    <h3 class="settings-section-title">Remote Servers</h3>
+                    <div id="settings-server-list"></div>
+                    <button class="btn btn-primary" style="margin-top: 1rem;" onclick="openModal('server-modal')">+ Add Server</button>
+                </div>
+
+                <div class="card">
+                    <h3 class="settings-section-title">Local Server (Duplicate Detection)</h3>
+                    <div id="local-server-info"></div>
+                    <div id="cache-info" style="margin-top: 1rem;"></div>
+                </div>
+
+                <div class="card">
+                    <h3 class="settings-section-title">General</h3>
+                    <div class="toggle-row">
+                        <div class="toggle-info">
+                            <div class="toggle-title">Enable Authentication</div>
+                            <div class="toggle-desc">Require login to access JellyLooter</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="auth-enabled" onchange="saveSettings()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label class="form-label">Language</label>
+                        <select id="language-select" class="form-input" onchange="saveSettings()">
+                            <option value="en">English</option>
+                            <option value="es">Español</option>
+                            <option value="de">Deutsch</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Items Per Page</label>
+                        <select id="settings-items-per-page" class="form-input" onchange="saveSettings()">
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Default View Mode</label>
+                        <select id="settings-view-mode" class="form-input" onchange="saveSettings()">
+                            <option value="grid">Grid</option>
+                            <option value="list">List</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="settings-section-title">Downloads</h3>
+                    <div class="form-group">
+                        <label class="form-label">Speed Limit (KB/s, 0 = unlimited)</label>
+                        <input type="number" id="speed-limit" class="form-input" value="0" min="0" onchange="saveSettings()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Max Concurrent Downloads</label>
+                        <select id="max-downloads" class="form-input" onchange="saveSettings()">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="5">5</option>
+                            <option value="10">10</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Download Order</label>
+                        <select id="download-order" class="form-input" onchange="saveSettings()">
+                            <option value="library">Library Order</option>
+                            <option value="show_complete">Complete Shows First</option>
+                            <option value="season_round">Season Round Robin</option>
+                            <option value="episode_round">Episode Round Robin</option>
+                            <option value="alphabetical">Alphabetical</option>
+                            <option value="random">Random</option>
+                        </select>
+                    </div>
+                    <div class="toggle-row">
+                        <div class="toggle-info">
+                            <div class="toggle-title">Dark Theme</div>
+                            <div class="toggle-desc">Use dark color scheme</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="theme-toggle-settings" checked onchange="toggleTheme()">
+                            <span class="toggle-slider"></span>
+                        </label>
                     </div>
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- Toast Container -->
-    <div class="toast-container" id="toast-container"></div>
-
     <!-- Modals -->
-    <!-- Server Modal -->
-    <div class="modal" id="server-modal">
-        <div class="modal-content">
+    <div class="modal-overlay" id="server-modal">
+        <div class="modal">
             <div class="modal-header">
                 <h3 class="modal-title">Add Remote Server</h3>
                 <button class="modal-close" onclick="closeModal('server-modal')">&times;</button>
@@ -1346,166 +806,109 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label class="form-label">Server Name</label>
-                    <input type="text" class="form-input" id="server-name" placeholder="My Jellyfin Server">
+                    <input type="text" id="new-server-name" class="form-input" placeholder="My Jellyfin Server">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Server URL</label>
-                    <input type="text" class="form-input" id="server-url" placeholder="http://192.168.1.100:8096">
+                    <input type="text" id="new-server-url" class="form-input" placeholder="http://192.168.1.100:8096">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Authentication Method</label>
-                    <select class="form-input" id="auth-method">
-                        <option value="key">API Key</option>
-                        <option value="creds">Username/Password</option>
-                    </select>
+                    <label class="form-label">API Key (or leave blank for username/password)</label>
+                    <input type="text" id="new-server-key" class="form-input" placeholder="API Key">
                 </div>
-                <div id="auth-key-fields">
-                    <div class="form-group">
-                        <label class="form-label">API Key</label>
-                        <input type="text" class="form-input" id="server-key" placeholder="Enter API key">
-                    </div>
+                <div class="form-group">
+                    <label class="form-label">Username (optional)</label>
+                    <input type="text" id="new-server-user" class="form-input" placeholder="Username">
                 </div>
-                <div id="auth-creds-fields" style="display: none;">
-                    <div class="form-group">
-                        <label class="form-label">Username</label>
-                        <input type="text" class="form-input" id="server-username" placeholder="Username">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Password</label>
-                        <input type="password" class="form-input" id="server-password" placeholder="Password">
-                    </div>
+                <div class="form-group">
+                    <label class="form-label">Password (optional)</label>
+                    <input type="password" id="new-server-pass" class="form-input" placeholder="Password">
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('server-modal')">Cancel</button>
-                <button class="btn btn-secondary" onclick="testServerConnection()">Test Connection</button>
-                <button class="btn btn-primary" onclick="saveServer()">Add Server</button>
+                <button class="btn" onclick="closeModal('server-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="testAndAddServer()">Test & Add</button>
             </div>
         </div>
     </div>
 
-    <!-- Local Server Modal -->
-    <div class="modal" id="local-modal">
-        <div class="modal-content">
+    <div class="modal-overlay" id="local-modal">
+        <div class="modal">
             <div class="modal-header">
                 <h3 class="modal-title">Configure Local Server</h3>
                 <button class="modal-close" onclick="closeModal('local-modal')">&times;</button>
             </div>
             <div class="modal-body">
+                <p style="margin-bottom: 1rem; color: var(--jf-text-muted); font-size: 0.875rem;">
+                    Configure your local Jellyfin/Emby server to enable duplicate detection.
+                </p>
                 <div class="form-group">
                     <label class="form-label">Server URL</label>
-                    <input type="text" class="form-input" id="local-server-url" placeholder="http://localhost:8096">
+                    <input type="text" id="local-server-url" class="form-input" placeholder="http://192.168.1.100:8096">
                 </div>
                 <div class="form-group">
                     <label class="form-label">API Key</label>
-                    <input type="text" class="form-input" id="local-server-key" placeholder="Enter API key">
+                    <input type="text" id="local-server-key" class="form-input" placeholder="API Key">
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('local-modal')">Cancel</button>
+                <button class="btn" onclick="closeModal('local-modal')">Cancel</button>
                 <button class="btn btn-primary" onclick="saveLocalServer()">Save & Scan</button>
             </div>
         </div>
     </div>
 
-    <!-- Download Path Modal -->
-    <div class="modal" id="path-modal">
-        <div class="modal-content">
+    <div class="modal-overlay" id="download-modal">
+        <div class="modal">
             <div class="modal-header">
                 <h3 class="modal-title">Select Download Location</h3>
-                <button class="modal-close" onclick="closeModal('path-modal')">&times;</button>
+                <button class="modal-close" onclick="closeModal('download-modal')">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="browser-path" id="local-path-display">/storage</div>
-                <div id="local-folder-list" style="max-height: 300px; overflow-y: auto;"></div>
+                <div id="current-path" style="margin-bottom: 0.75rem; font-weight: 600;"></div>
+                <div class="folder-list" id="folder-list"></div>
+                <div class="space-info" id="space-info"></div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('path-modal')">Cancel</button>
-                <button class="btn btn-primary" onclick="confirmDownloadPath()">Download Here</button>
+                <button class="btn" onclick="closeModal('download-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmDownload()">Download Here</button>
             </div>
         </div>
     </div>
 
-    <!-- Mapping Modal -->
-    <div class="modal" id="mapping-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">Add Library Mapping</h3>
-                <button class="modal-close" onclick="closeModal('mapping-modal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label class="form-label">Remote Server</label>
-                    <select class="form-input" id="mapping-server"></select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Remote Library</label>
-                    <select class="form-input" id="mapping-library"></select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Local Path</label>
-                    <input type="text" class="form-input" id="mapping-path" placeholder="/storage/media">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('mapping-modal')">Cancel</button>
-                <button class="btn btn-primary" onclick="saveMapping()">Add Mapping</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Password Change Modal -->
-    <div class="modal" id="password-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">Change Password</h3>
-                <button class="modal-close" onclick="closeModal('password-modal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label class="form-label">Current Password</label>
-                    <input type="password" class="form-input" id="current-password" placeholder="Enter current password">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">New Password</label>
-                    <input type="password" class="form-input" id="new-password" placeholder="Enter new password">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Confirm New Password</label>
-                    <input type="password" class="form-input" id="confirm-new-password" placeholder="Confirm new password">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('password-modal')">Cancel</button>
-                <button class="btn btn-primary" onclick="changePassword()">Change Password</button>
-            </div>
-        </div>
-    </div>
+    <div class="toast-container" id="toast-container"></div>
 
     <script>
         // State
         let config = {};
-        let currentServerId = null;
-        let currentParentId = 'root';
-        let browserPath = [{ id: 'root', name: '🏠 Home' }];
+        let currentServer = null;
+        let currentParent = 'root';
+        let currentPage = 1;
+        let totalPages = 1;
         let selectedItems = new Set();
-        let pendingDownloadPath = '/storage';
-        let baseUrl = '';
+        let breadcrumbPath = [];
+        let viewMode = 'grid';
+        let itemsPerPage = 50;
+        let isPaused = false;
+        let downloadPath = '/storage';
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            loadConfig();
-            loadUser();
+        // Init
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadConfig();
             initTheme();
-            setupEventListeners();
+            setupTabs();
             startStatusPolling();
             startLogPolling();
         });
 
-        // Theme Management
+        // Theme
         function initTheme() {
-            const savedTheme = localStorage.getItem('theme') || config.theme || 'dark';
-            setTheme(savedTheme);
+            const theme = localStorage.getItem('theme') || config.theme || 'dark';
+            setTheme(theme);
+            viewMode = config.view_mode || 'grid';
+            itemsPerPage = config.items_per_page || 50;
+            updateViewToggle();
+            document.getElementById('items-per-page').value = itemsPerPage;
         }
 
         function setTheme(theme) {
@@ -1522,128 +925,135 @@
             api('config', 'POST', config);
         }
 
-        // API Helper
+        // API
         async function api(endpoint, method = 'GET', body = null) {
-            const options = {
-                method,
-                headers: { 'Content-Type': 'application/json' }
-            };
+            const options = { method, headers: { 'Content-Type': 'application/json' } };
             if (body) options.body = JSON.stringify(body);
-            
             const res = await fetch(`/api/${endpoint}`, options);
-            if (res.status === 401) {
-                window.location.href = '/login';
-                return;
-            }
-            
-            const contentType = res.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                return res.json();
-            }
-            return res.text();
+            if (res.status === 401) { window.location.href = '/login'; return; }
+            const ct = res.headers.get('content-type');
+            return ct && ct.includes('application/json') ? res.json() : res.text();
         }
 
-        // Toast Notifications
-        function showToast(message, type = 'success') {
-            if (!config.show_notifications) return;
-            
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.innerHTML = `
-                <span>${type === 'success' ? '✓' : type === 'error' ? '✗' : '⚠'}</span>
-                <span>${message}</span>
-            `;
-            container.appendChild(toast);
-            
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                setTimeout(() => toast.remove(), 300);
-            }, 4000);
-        }
-
-        // User Management
-        async function loadUser() {
-            const user = await api('user');
-            if (user && user.username) {
-                document.getElementById('username-display').textContent = user.username;
-            }
-        }
-
-        async function changePassword() {
-            const current = document.getElementById('current-password').value;
-            const newPwd = document.getElementById('new-password').value;
-            const confirm = document.getElementById('confirm-new-password').value;
-            
-            if (newPwd !== confirm) {
-                showToast('Passwords do not match', 'error');
-                return;
-            }
-            
-            if (newPwd.length < 8) {
-                showToast('Password must be at least 8 characters', 'error');
-                return;
-            }
-            
-            const result = await api('change_password', 'POST', {
-                current_password: current,
-                new_password: newPwd
+        // Tabs
+        function setupTabs() {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+                });
             });
-            
-            if (result.status === 'ok') {
-                showToast('Password changed successfully');
-                closeModal('password-modal');
-                document.getElementById('current-password').value = '';
-                document.getElementById('new-password').value = '';
-                document.getElementById('confirm-new-password').value = '';
-            } else {
-                showToast(result.message || 'Failed to change password', 'error');
-            }
         }
 
-        // Config Management
+        // Config
         async function loadConfig() {
             config = await api('config');
             updateServerSelect();
             updateSettingsForm();
             updateServerList();
             updateLocalServerInfo();
-            updateMappingsList();
         }
 
         function updateServerSelect() {
             const select = document.getElementById('server-select');
             select.innerHTML = '<option value="">Select Server...</option>';
-            
-            (config.servers || []).forEach(server => {
+            (config.servers || []).forEach(s => {
                 const opt = document.createElement('option');
-                opt.value = server.id;
-                opt.textContent = server.name;
+                opt.value = s.id;
+                opt.textContent = s.name;
                 select.appendChild(opt);
             });
+        }
+
+        function updateSettingsForm() {
+            document.getElementById('auth-enabled').checked = config.auth_enabled || false;
+            document.getElementById('language-select').value = config.language || 'en';
+            document.getElementById('settings-items-per-page').value = config.items_per_page || 50;
+            document.getElementById('settings-view-mode').value = config.view_mode || 'grid';
+            document.getElementById('speed-limit').value = config.speed_limit_kbs || 0;
+            document.getElementById('max-downloads').value = config.max_concurrent_downloads || 2;
+            document.getElementById('download-order').value = config.download_order || 'library';
         }
 
         function updateServerList() {
             const container = document.getElementById('settings-server-list');
             if (!config.servers || config.servers.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state" style="padding: 1.5rem;">
-                        <p>No remote servers configured yet.</p>
-                    </div>
-                `;
+                container.innerHTML = '<div class="empty-state" style="padding:1rem;"><p>No remote servers configured.</p></div>';
                 return;
             }
-
-            container.innerHTML = config.servers.map(server => `
+            container.innerHTML = config.servers.map(s => `
                 <div class="server-item">
                     <div class="server-icon">📡</div>
                     <div class="server-info">
-                        <div class="server-name">${escapeHtml(server.name)}</div>
-                        <div class="server-url">${escapeHtml(server.url)}</div>
+                        <div class="server-name">${escapeHtml(s.name)}</div>
+                        <div class="server-url">${escapeHtml(s.url)}</div>
                     </div>
-                    <button class="btn btn-icon btn-sm btn-danger" onclick="removeServer('${server.id}')" data-tooltip="Remove">🗑️</button>
+                    <button class="btn btn-icon btn-sm btn-danger" onclick="removeServer('${s.id}')" data-tooltip="Remove">🗑️</button>
                 </div>
             `).join('');
+        }
+
+        function updateLocalServerInfo() {
+            const container = document.getElementById('local-server-info');
+            if (config.local_server_url) {
+                container.innerHTML = `
+                    <div class="server-item">
+                        <div class="server-icon" style="background:var(--jf-success);">✓</div>
+                        <div class="server-info">
+                            <div class="server-name">Local Server</div>
+                            <div class="server-url">${escapeHtml(config.local_server_url)}</div>
+                        </div>
+                        <button class="btn btn-icon btn-sm btn-danger" onclick="removeLocalServer()" data-tooltip="Remove">🗑️</button>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="empty-state" style="padding:1rem;">
+                        <p>No local server configured.</p>
+                        <button class="btn btn-sm" style="margin-top:0.5rem;" onclick="openModal('local-modal')">Configure</button>
+                    </div>
+                `;
+            }
+        }
+
+        async function saveSettings() {
+            config.auth_enabled = document.getElementById('auth-enabled').checked;
+            config.language = document.getElementById('language-select').value;
+            config.items_per_page = parseInt(document.getElementById('settings-items-per-page').value);
+            config.view_mode = document.getElementById('settings-view-mode').value;
+            config.speed_limit_kbs = parseInt(document.getElementById('speed-limit').value) || 0;
+            config.max_concurrent_downloads = parseInt(document.getElementById('max-downloads').value);
+            config.download_order = document.getElementById('download-order').value;
+            await api('config', 'POST', config);
+            showToast('Settings saved');
+        }
+
+        // Servers
+        async function testAndAddServer() {
+            const name = document.getElementById('new-server-name').value.trim();
+            const url = document.getElementById('new-server-url').value.trim().replace(/\/$/, '');
+            const key = document.getElementById('new-server-key').value.trim();
+            const user = document.getElementById('new-server-user').value.trim();
+            const pass = document.getElementById('new-server-pass').value;
+
+            if (!name || !url) { showToast('Name and URL required', 'error'); return; }
+
+            const testData = { url };
+            if (key) testData.key = key;
+            else if (user) { testData.username = user; testData.password = pass; }
+            else { showToast('API key or credentials required', 'error'); return; }
+
+            const result = await api('test_connection', 'POST', testData);
+            if (result.status !== 'ok') { showToast(result.error || 'Connection failed', 'error'); return; }
+
+            config.servers = config.servers || [];
+            config.servers.push({ id: Date.now().toString(), name, url, key: result.key });
+            await api('config', 'POST', config);
+            closeModal('server-modal');
+            loadConfig();
+            showToast('Server added');
         }
 
         async function removeServer(id) {
@@ -1654,282 +1064,115 @@
             showToast('Server removed');
         }
 
-        function updateLocalServerInfo() {
-            const container = document.getElementById('local-server-info');
-            if (config.local_server_url) {
-                container.innerHTML = `
-                    <div class="server-item">
-                        <div class="server-icon" style="background: var(--jf-success);">✓</div>
-                        <div class="server-info">
-                            <div class="server-name">Local Server</div>
-                            <div class="server-url">${escapeHtml(config.local_server_url)}</div>
-                        </div>
-                        <button class="btn btn-icon btn-sm btn-danger" id="remove-local-btn" data-tooltip="Remove">🗑️</button>
-                    </div>
-                `;
-                document.getElementById('remove-local-btn').addEventListener('click', async () => {
-                    if (confirm('Remove local server?')) {
-                        await api('remove_local', 'POST');
-                        loadConfig();
-                        showToast('Local server removed');
-                    }
-                });
-            } else {
-                container.innerHTML = `
-                    <div class="empty-state" style="padding: 1.5rem;">
-                        <p>No local server configured.</p>
-                        <button class="btn btn-secondary btn-sm" style="margin-top: 0.75rem;" id="add-local-btn">Configure Local Server</button>
-                    </div>
-                `;
-                document.getElementById('add-local-btn').addEventListener('click', () => openModal('local-modal'));
-            }
-        }
-
         async function saveLocalServer() {
-            const url = document.getElementById('local-server-url').value;
-            const key = document.getElementById('local-server-key').value;
-
-            if (!url || !key) {
-                showToast('Please fill in all fields', 'error');
-                return;
-            }
-
+            const url = document.getElementById('local-server-url').value.trim().replace(/\/$/, '');
+            const key = document.getElementById('local-server-key').value.trim();
+            if (!url || !key) { showToast('URL and API key required', 'error'); return; }
             config.local_server_url = url;
             config.local_server_key = key;
             await api('config', 'POST', config);
             await api('rebuild_cache', 'POST');
             closeModal('local-modal');
             loadConfig();
-            showToast('Local server configured, scanning...');
+            showToast('Local server saved, scanning...');
         }
 
-        function updateSettingsForm() {
-            document.getElementById('speed-limit').value = config.speed_limit_kbs || 0;
-            document.getElementById('sync-time').value = config.sync_time || '04:00';
-            document.getElementById('max-downloads').value = config.max_concurrent_downloads || 2;
-            document.getElementById('auto-sync-toggle').checked = config.auto_sync_enabled !== false;
-            document.getElementById('connection-timeout').value = config.connection_timeout || 30;
-            document.getElementById('chunk-size').value = config.chunk_size_kb || 64;
-            document.getElementById('confirm-downloads').checked = config.confirm_downloads || false;
-            document.getElementById('show-notifications').checked = config.show_notifications !== false;
-            document.getElementById('theme-toggle-settings').checked = (config.theme || 'dark') === 'dark';
-        }
-
-        async function saveSettings() {
-            config.speed_limit_kbs = parseInt(document.getElementById('speed-limit').value) || 0;
-            config.sync_time = document.getElementById('sync-time').value || '04:00';
-            config.max_concurrent_downloads = parseInt(document.getElementById('max-downloads').value) || 2;
-            config.connection_timeout = parseInt(document.getElementById('connection-timeout').value) || 30;
-            config.chunk_size_kb = parseInt(document.getElementById('chunk-size').value) || 64;
-            config.confirm_downloads = document.getElementById('confirm-downloads').checked;
-            config.show_notifications = document.getElementById('show-notifications').checked;
-            await api('config', 'POST', config);
-            showToast('Settings saved');
-        }
-
-        // Mappings
-        function updateMappingsList() {
-            const container = document.getElementById('mappings-list');
-            if (!config.mappings || config.mappings.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">🗺️</div>
-                        <div class="empty-state-title">No Mappings</div>
-                        <p>Create a mapping to automatically sync content.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = config.mappings.map(m => {
-                const server = config.servers.find(s => s.id === m.server_id);
-                return `
-                    <div class="mapping-item">
-                        <div class="mapping-info">
-                            <div class="mapping-path">${escapeHtml(m.local_path)}</div>
-                            <div class="mapping-source">${server ? escapeHtml(server.name) : 'Unknown'} → ${m.lib_name || 'Library'}</div>
-                        </div>
-                        <button class="btn btn-icon btn-sm btn-danger" onclick="removeMapping('${m.id}')" data-tooltip="Remove">🗑️</button>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        async function removeMapping(id) {
-            if (!confirm('Remove this mapping?')) return;
-            config.mappings = config.mappings.filter(m => m.id !== id);
-            await api('config', 'POST', config);
+        async function removeLocalServer() {
+            if (!confirm('Remove local server?')) return;
+            await api('remove_local', 'POST');
             loadConfig();
-            showToast('Mapping removed');
+            showToast('Local server removed');
         }
 
-        // Event Listeners
-        function setupEventListeners() {
-            // Theme toggle
-            document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
-            document.getElementById('theme-toggle-settings').addEventListener('change', (e) => {
-                setTheme(e.target.checked ? 'dark' : 'light');
-                config.theme = e.target.checked ? 'dark' : 'light';
-                api('config', 'POST', config);
-            });
-
-            // User dropdown
-            document.getElementById('user-btn').addEventListener('click', () => {
-                document.getElementById('user-dropdown').classList.toggle('active');
-            });
-
-            document.addEventListener('click', (e) => {
-                if (!e.target.closest('.user-menu')) {
-                    document.getElementById('user-dropdown').classList.remove('active');
-                }
-            });
-
-            // Navigation tabs
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                tab.addEventListener('click', () => {
-                    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                    tab.classList.add('active');
-                    document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
-                });
-            });
-
-            // Server select
-            document.getElementById('server-select').addEventListener('change', (e) => {
-                currentServerId = e.target.value;
-                if (currentServerId) {
-                    currentParentId = 'root';
-                    browserPath = [{ id: 'root', name: '🏠 Home' }];
-                    browseRemote();
-                }
-            });
-
-            // Refresh button
-            document.getElementById('refresh-btn').addEventListener('click', browseRemote);
-
-            // Download controls
-            document.getElementById('pause-btn').addEventListener('click', () => api('pause', 'POST'));
-            document.getElementById('resume-btn').addEventListener('click', () => api('resume', 'POST'));
-            document.getElementById('cancel-all-btn').addEventListener('click', () => {
-                if (confirm('Cancel all downloads?')) api('cancel', 'POST', { all: true });
-            });
-
-            // Selection controls
-            document.getElementById('download-selected-btn').addEventListener('click', () => {
-                if (selectedItems.size > 0) {
-                    openPathModal();
-                }
-            });
-            document.getElementById('clear-selection-btn').addEventListener('click', clearSelection);
-
-            // Add server button
-            document.getElementById('add-server-btn').addEventListener('click', () => openModal('server-modal'));
-
-            // Auth method toggle
-            document.getElementById('auth-method').addEventListener('change', (e) => {
-                document.getElementById('auth-key-fields').style.display = e.target.value === 'key' ? 'block' : 'none';
-                document.getElementById('auth-creds-fields').style.display = e.target.value === 'creds' ? 'block' : 'none';
-            });
-
-            // Save settings
-            document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
-
-            // Advanced toggle
-            document.getElementById('advanced-toggle').addEventListener('click', () => {
-                document.getElementById('advanced-toggle').classList.toggle('open');
-                document.getElementById('advanced-content').classList.toggle('open');
-            });
-
-            // Sync controls
-            document.getElementById('sync-now-btn').addEventListener('click', () => {
-                api('sync', 'POST');
-                showToast('Sync started');
-            });
-
-            document.getElementById('auto-sync-toggle').addEventListener('change', async (e) => {
-                config.auto_sync_enabled = e.target.checked;
-                await api('config', 'POST', config);
-            });
-
-            // Add mapping button
-            document.getElementById('add-mapping-btn').addEventListener('click', openMappingModal);
-
-            // Rebuild cache
-            document.getElementById('rebuild-cache-btn').addEventListener('click', () => {
-                api('rebuild_cache', 'POST');
-                showToast('Cache rebuild started');
-            });
+        // Browse
+        function onServerChange() {
+            const serverId = document.getElementById('server-select').value;
+            if (!serverId) return;
+            currentServer = config.servers.find(s => s.id === serverId);
+            currentParent = 'root';
+            currentPage = 1;
+            breadcrumbPath = [{ id: 'root', name: 'Home' }];
+            selectedItems.clear();
+            updateSelectionBar();
+            browseRemote();
         }
 
-        // Remote Browser
         async function browseRemote() {
-            if (!currentServerId) return;
-
-            const grid = document.getElementById('browser-grid');
-            grid.innerHTML = '<div class="empty-state"><div class="spin">🔄</div><p>Loading...</p></div>';
+            if (!currentServer) return;
+            const container = document.getElementById('media-container');
+            container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><p>Loading...</p></div>';
 
             const data = await api('browse_remote', 'POST', {
-                server_id: currentServerId,
-                parent_id: currentParentId
+                server_id: currentServer.id,
+                parent_id: currentParent,
+                page: currentPage,
+                items_per_page: itemsPerPage
             });
 
-            baseUrl = data.base_url;
-            renderBrowserItems(data.items);
-            renderBrowserPath();
+            totalPages = data.total_pages || 1;
+            renderMedia(data.items, data.base_url);
+            renderBreadcrumb();
+            renderPagination();
         }
 
-        function renderBrowserItems(items) {
-            const grid = document.getElementById('browser-grid');
-            
+        function renderMedia(items, baseUrl) {
+            const container = document.getElementById('media-container');
             if (!items || items.length === 0) {
-                grid.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">📂</div>
-                        <div class="empty-state-title">Empty Folder</div>
-                        <p>No items found in this location.</p>
-                    </div>
-                `;
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📂</div><p>No items found</p></div>';
                 return;
             }
 
-            grid.innerHTML = items.map(item => {
-                const icon = item.IsFolder ? '📁' : (item.Type === 'Movie' ? '🎬' : '📺');
-                const imgSrc = item.HasImage ? `${baseUrl}/Items/${item.Id}/Images/Primary?maxHeight=300` : '';
-                const classes = ['browser-item'];
-                if (item.IsFolder) classes.push('folder');
-                if (item.ExistsLocally) classes.push('exists');
-                if (selectedItems.has(item.Id)) classes.push('selected');
-
-                return `
-                    <div class="${classes.join(' ')}" 
-                         data-id="${item.Id}" 
-                         data-name="${escapeHtml(item.Name)}"
-                         data-folder="${item.IsFolder}"
-                         onclick="handleItemClick(event, '${item.Id}', ${item.IsFolder}, '${escapeHtml(item.Name)}')"
-                         oncontextmenu="handleItemContext(event, '${item.Id}')">
-                        ${imgSrc ? 
-                            `<img class="browser-item-poster" src="${imgSrc}" loading="lazy" alt="">` :
-                            `<div class="browser-item-placeholder">${icon}</div>`
-                        }
-                        <div class="browser-item-title">${escapeHtml(item.Name)}</div>
-                    </div>
-                `;
-            }).join('');
+            if (viewMode === 'grid') {
+                container.innerHTML = `<div class="media-grid">${items.map(item => renderGridItem(item, baseUrl)).join('')}</div>`;
+            } else {
+                container.innerHTML = `<div class="media-list">${items.map(item => renderListItem(item, baseUrl)).join('')}</div>`;
+            }
         }
 
-        function handleItemClick(e, id, isFolder, name) {
-            if (e.ctrlKey || e.metaKey) {
+        function renderGridItem(item, baseUrl) {
+            const imgUrl = item.HasImage ? `${baseUrl}/Items/${item.Id}/Images/Primary?maxWidth=200` : '';
+            const selected = selectedItems.has(item.Id) ? 'selected' : '';
+            const exists = item.ExistsLocally ? 'exists' : '';
+            return `
+                <div class="media-item ${selected} ${exists}" data-id="${item.Id}" data-folder="${item.IsFolder}" onclick="onItemClick(event, '${item.Id}', ${item.IsFolder}, '${escapeHtml(item.Name)}')">
+                    ${item.ExistsLocally ? '<div class="media-badge">✓ Owned</div>' : ''}
+                    <div class="media-poster">
+                        ${imgUrl ? `<img src="${imgUrl}" loading="lazy" alt="">` : '📁'}
+                    </div>
+                    <div class="media-info">
+                        <div class="media-title" title="${escapeHtml(item.Name)}">${escapeHtml(item.Name)}</div>
+                        <div class="media-type">${item.Type || 'Folder'}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderListItem(item, baseUrl) {
+            const imgUrl = item.HasImage ? `${baseUrl}/Items/${item.Id}/Images/Primary?maxWidth=80` : '';
+            const selected = selectedItems.has(item.Id) ? 'selected' : '';
+            const exists = item.ExistsLocally ? 'exists' : '';
+            return `
+                <div class="media-list-item ${selected} ${exists}" data-id="${item.Id}" data-folder="${item.IsFolder}" onclick="onItemClick(event, '${item.Id}', ${item.IsFolder}, '${escapeHtml(item.Name)}')">
+                    <div class="media-list-thumb">
+                        ${imgUrl ? `<img src="${imgUrl}" loading="lazy" alt="">` : '📁'}
+                    </div>
+                    <div class="media-list-info">
+                        <div class="media-list-title">${escapeHtml(item.Name)}</div>
+                        <div class="media-list-meta">${item.Type || 'Folder'}</div>
+                    </div>
+                    ${item.ExistsLocally ? '<div class="media-list-badge">✓ Owned</div>' : ''}
+                </div>
+            `;
+        }
+
+        function onItemClick(event, id, isFolder, name) {
+            if (event.ctrlKey || event.metaKey) {
                 toggleSelection(id);
             } else if (isFolder) {
                 navigateTo(id, name);
             } else {
                 toggleSelection(id);
             }
-        }
-
-        function handleItemContext(e, id) {
-            e.preventDefault();
-            toggleSelection(id);
         }
 
         function toggleSelection(id) {
@@ -1942,19 +1185,17 @@
         }
 
         function updateSelectionUI() {
-            document.querySelectorAll('.browser-item').forEach(el => {
+            document.querySelectorAll('.media-item, .media-list-item').forEach(el => {
                 el.classList.toggle('selected', selectedItems.has(el.dataset.id));
             });
+            updateSelectionBar();
+        }
 
+        function updateSelectionBar() {
             const bar = document.getElementById('selection-bar');
             const count = document.getElementById('selection-count');
-            
-            if (selectedItems.size > 0) {
-                bar.classList.add('active');
-                count.textContent = selectedItems.size;
-            } else {
-                bar.classList.remove('active');
-            }
+            count.textContent = selectedItems.size;
+            bar.classList.toggle('active', selectedItems.size > 0);
         }
 
         function clearSelection() {
@@ -1963,282 +1204,221 @@
         }
 
         function navigateTo(id, name) {
-            currentParentId = id;
-            browserPath.push({ id, name });
-            clearSelection();
+            breadcrumbPath.push({ id, name });
+            currentParent = id;
+            currentPage = 1;
+            selectedItems.clear();
+            updateSelectionBar();
             browseRemote();
         }
 
-        function navigateToPath(index) {
-            browserPath = browserPath.slice(0, index + 1);
-            currentParentId = browserPath[browserPath.length - 1].id;
-            clearSelection();
+        function navigateToBreadcrumb(index) {
+            breadcrumbPath = breadcrumbPath.slice(0, index + 1);
+            currentParent = breadcrumbPath[index].id;
+            currentPage = 1;
+            selectedItems.clear();
+            updateSelectionBar();
             browseRemote();
         }
 
-        function renderBrowserPath() {
-            const container = document.getElementById('browser-path');
-            container.innerHTML = browserPath.map((item, i) => 
-                `<span class="browser-path-item" onclick="navigateToPath(${i})">${escapeHtml(item.name)}</span>` +
-                (i < browserPath.length - 1 ? '<span>/</span>' : '')
-            ).join('');
+        function renderBreadcrumb() {
+            const container = document.getElementById('breadcrumb');
+            container.innerHTML = breadcrumbPath.map((item, i) => {
+                if (i === breadcrumbPath.length - 1) {
+                    return `<span class="breadcrumb-current">${escapeHtml(item.name)}</span>`;
+                }
+                return `<span class="breadcrumb-item" onclick="navigateToBreadcrumb(${i})">${escapeHtml(item.name)}</span><span class="breadcrumb-sep">›</span>`;
+            }).join('');
         }
 
-        // Download Path Selection
-        async function openPathModal() {
-            openModal('path-modal');
-            pendingDownloadPath = '/storage';
-            browseLocalPath('/storage');
+        function renderPagination() {
+            const container = document.getElementById('pagination');
+            if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+            let html = `<div class="pagination-info">Page ${currentPage} of ${totalPages}</div>`;
+            html += `<button class="page-btn" onclick="goToPage(1)" ${currentPage === 1 ? 'disabled' : ''}>«</button>`;
+            html += `<button class="page-btn" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>‹</button>`;
+
+            const start = Math.max(1, currentPage - 2);
+            const end = Math.min(totalPages, currentPage + 2);
+            for (let i = start; i <= end; i++) {
+                html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+            }
+
+            html += `<button class="page-btn" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>›</button>`;
+            html += `<button class="page-btn" onclick="goToPage(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>»</button>`;
+            container.innerHTML = html;
         }
 
-        async function browseLocalPath(path) {
-            const data = await api('browse_local', 'POST', { path });
-            pendingDownloadPath = data.current;
-            document.getElementById('local-path-display').textContent = data.current;
+        function goToPage(page) {
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            browseRemote();
+        }
 
-            const list = document.getElementById('local-folder-list');
+        function refreshLibrary() {
+            if (currentServer) browseRemote();
+        }
+
+        // View Mode
+        function setViewMode(mode) {
+            viewMode = mode;
+            updateViewToggle();
+            if (currentServer) browseRemote();
+        }
+
+        function updateViewToggle() {
+            document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.view === viewMode);
+            });
+        }
+
+        function onItemsPerPageChange() {
+            itemsPerPage = parseInt(document.getElementById('items-per-page').value);
+            currentPage = 1;
+            if (currentServer) browseRemote();
+        }
+
+        // Downloads
+        function downloadSelected() {
+            if (selectedItems.size === 0) return;
+            downloadPath = '/storage';
+            browseFolders();
+            openModal('download-modal');
+        }
+
+        async function browseFolders() {
+            const data = await api('browse_local', 'POST', { path: downloadPath });
+            document.getElementById('current-path').textContent = data.current;
+            downloadPath = data.current;
+
             let html = '';
-
             if (data.parent) {
-                html += `<div class="server-item" onclick="browseLocalPath('${data.parent}')">
-                    <div class="server-icon">⬆️</div>
-                    <div class="server-info"><div class="server-name">..</div></div>
-                </div>`;
+                html += `<div class="folder-item" onclick="goToFolder('${data.parent}')">📁 ..</div>`;
             }
+            html += data.folders.map(f => `<div class="folder-item" onclick="goToFolder('${downloadPath}/${f}')">📁 ${escapeHtml(f)}</div>`).join('');
+            document.getElementById('folder-list').innerHTML = html || '<p style="padding:1rem;color:var(--jf-text-muted);">No subfolders</p>';
 
-            data.folders.forEach(folder => {
-                html += `<div class="server-item" onclick="browseLocalPath('${data.current}/${folder}')">
-                    <div class="server-icon">📁</div>
-                    <div class="server-info"><div class="server-name">${escapeHtml(folder)}</div></div>
-                </div>`;
-            });
-
-            list.innerHTML = html || '<div class="empty-state" style="padding: 1rem;"><p>No subfolders</p></div>';
+            if (data.space) {
+                document.getElementById('space-info').innerHTML = `
+                    <strong>Free:</strong> ${data.space.free} / ${data.space.total} (${data.space.percent_used}% used)
+                `;
+            }
         }
 
-        async function confirmDownloadPath() {
-            if (config.confirm_downloads) {
-                if (!confirm(`Download ${selectedItems.size} item(s) to ${pendingDownloadPath}?`)) {
-                    return;
-                }
-            }
+        function goToFolder(path) {
+            downloadPath = path;
+            browseFolders();
+        }
 
-            await api('batch_download', 'POST', {
-                server_id: currentServerId,
+        async function confirmDownload() {
+            if (selectedItems.size === 0) return;
+            closeModal('download-modal');
+
+            const result = await api('batch_download', 'POST', {
+                server_id: currentServer.id,
                 item_ids: Array.from(selectedItems),
-                path: pendingDownloadPath
+                path: downloadPath
             });
 
-            closeModal('path-modal');
-            clearSelection();
-            showToast(`Queued ${selectedItems.size} item(s) for download`);
-        }
-
-        // Server Management
-        async function testServerConnection() {
-            const url = document.getElementById('server-url').value;
-            const method = document.getElementById('auth-method').value;
-            
-            let payload = { url };
-            if (method === 'key') {
-                payload.key = document.getElementById('server-key').value;
+            if (result.status === 'queued') {
+                showToast(`Queued ${result.count} item(s)`);
+                selectedItems.clear();
+                updateSelectionUI();
+                document.querySelector('[data-tab="downloads"]').click();
             } else {
-                payload.username = document.getElementById('server-username').value;
-                payload.password = document.getElementById('server-password').value;
+                showToast(result.message || 'Error', 'error');
             }
-
-            const result = await api('test_connection', 'POST', payload);
-            if (result.status === 'ok') {
-                showToast('Connection successful!');
-                if (result.key) {
-                    document.getElementById('server-key').value = result.key;
-                    document.getElementById('auth-method').value = 'key';
-                    document.getElementById('auth-key-fields').style.display = 'block';
-                    document.getElementById('auth-creds-fields').style.display = 'none';
-                }
-            } else {
-                showToast(result.error || 'Connection failed', 'error');
-            }
-        }
-
-        async function saveServer() {
-            const name = document.getElementById('server-name').value;
-            const url = document.getElementById('server-url').value;
-            const key = document.getElementById('server-key').value;
-
-            if (!name || !url || !key) {
-                showToast('Please fill in all fields', 'error');
-                return;
-            }
-
-            const server = {
-                id: Date.now().toString(36),
-                name,
-                url: url.replace(/\/$/, ''),
-                key
-            };
-
-            if (!config.servers) config.servers = [];
-            config.servers.push(server);
-            await api('config', 'POST', config);
-            closeModal('server-modal');
-            loadConfig();
-            showToast('Server added');
-            
-            // Clear form
-            document.getElementById('server-name').value = '';
-            document.getElementById('server-url').value = '';
-            document.getElementById('server-key').value = '';
-        }
-
-        // Mapping Management
-        async function openMappingModal() {
-            const serverSelect = document.getElementById('mapping-server');
-            serverSelect.innerHTML = '<option value="">Select Server...</option>' +
-                (config.servers || []).map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
-
-            serverSelect.onchange = async () => {
-                const libs = await api('scan_libs');
-                const serverLibs = libs.find(l => l.server_id === serverSelect.value);
-                const libSelect = document.getElementById('mapping-library');
-                
-                if (serverLibs) {
-                    libSelect.innerHTML = serverLibs.libs.map(l => 
-                        `<option value="${l.Id}" data-name="${escapeHtml(l.Name)}">${escapeHtml(l.Name)}</option>`
-                    ).join('');
-                }
-            };
-
-            openModal('mapping-modal');
-        }
-
-        async function saveMapping() {
-            const serverId = document.getElementById('mapping-server').value;
-            const libSelect = document.getElementById('mapping-library');
-            const libId = libSelect.value;
-            const libName = libSelect.options[libSelect.selectedIndex]?.dataset.name;
-            const path = document.getElementById('mapping-path').value;
-
-            if (!serverId || !libId || !path) {
-                showToast('Please fill in all fields', 'error');
-                return;
-            }
-
-            const mapping = {
-                id: Date.now().toString(36),
-                server_id: serverId,
-                lib_id: libId,
-                lib_name: libName,
-                local_path: path
-            };
-
-            if (!config.mappings) config.mappings = [];
-            config.mappings.push(mapping);
-            await api('config', 'POST', config);
-            closeModal('mapping-modal');
-            loadConfig();
-            showToast('Mapping added');
         }
 
         // Status Polling
-        function startStatusPolling() {
-            async function poll() {
-                try {
-                    const status = await api('status');
-                    updateDownloadQueue(status);
-                    updateStats(status);
-                    updateScanProgress(status.scan_progress);
+        async function startStatusPolling() {
+            setInterval(async () => {
+                const status = await api('status');
+                if (!status) return;
 
-                    document.getElementById('pause-btn').style.display = status.paused ? 'none' : 'flex';
-                    document.getElementById('resume-btn').style.display = status.paused ? 'flex' : 'none';
-                } catch (err) {
-                    console.error('Status poll error:', err);
+                isPaused = status.paused;
+                document.getElementById('pause-btn').innerHTML = isPaused ? '▶️ Resume' : '⏸️ Pause';
+
+                // Active downloads
+                const activeContainer = document.getElementById('active-downloads');
+                const activeItems = Object.values(status.active);
+                if (activeItems.length === 0) {
+                    activeContainer.innerHTML = '<div class="empty-state" style="padding:1rem;"><p>No active downloads</p></div>';
+                } else {
+                    activeContainer.innerHTML = activeItems.map(d => `
+                        <div class="download-item">
+                            <div class="download-info">
+                                <div class="download-name">${escapeHtml(d.filename)}</div>
+                                <div class="download-status">${d.status} • ${d.speed} • ${d.percent}%</div>
+                            </div>
+                            <div class="download-progress">
+                                <div class="download-progress-fill" style="width:${d.percent}%"></div>
+                            </div>
+                            <div class="download-actions">
+                                <button class="btn btn-icon btn-sm btn-danger" onclick="cancelDownload('${d.id}')">✗</button>
+                            </div>
+                        </div>
+                    `).join('');
                 }
-            }
-            poll();
-            setInterval(poll, 1000);
-        }
 
-        function updateDownloadQueue(status) {
-            const container = document.getElementById('download-queue');
-            const active = Object.values(status.active || {});
-            const pending = status.pending || [];
+                // Pending
+                const pendingContainer = document.getElementById('pending-downloads');
+                document.getElementById('queue-count').textContent = `${status.pending.length} pending`;
+                if (status.pending.length === 0) {
+                    pendingContainer.innerHTML = '<div class="empty-state" style="padding:1rem;"><p>Queue empty</p></div>';
+                } else {
+                    pendingContainer.innerHTML = status.pending.slice(0, 20).map(p => `
+                        <div class="download-item">
+                            <div class="download-info">
+                                <div class="download-name">${escapeHtml(p.name)}</div>
+                                <div class="download-status">Queued</div>
+                            </div>
+                            <button class="btn btn-icon btn-sm" onclick="cancelDownload('${p.id}')">✗</button>
+                        </div>
+                    `).join('');
+                }
 
-            if (active.length === 0 && pending.length === 0) {
-                container.innerHTML = '<div class="queue-empty"><div class="queue-empty-icon">📭</div><p>No active downloads</p></div>';
-                return;
-            }
-
-            container.innerHTML = [
-                ...active.map(d => `
-                    <div class="download-item">
-                        <div class="download-header">
-                            <span class="download-name" title="${escapeHtml(d.filename)}">${escapeHtml(d.filename)}</span>
-                            <span class="download-status ${d.status === 'Paused' ? 'paused' : ''}">${d.status}</span>
-                        </div>
-                        <div class="download-progress">
-                            <div class="download-progress-bar" style="width: ${d.percent}%"></div>
-                        </div>
-                        <div class="download-meta">
-                            <span>${d.speed}</span>
-                            <span>${d.percent}%</span>
-                        </div>
+                // Cache info
+                document.getElementById('cache-info').innerHTML = `
+                    <div style="font-size:0.875rem;color:var(--jf-text-muted);">
+                        <strong>Cache:</strong> ${status.cache_count} items • Last scan: ${status.cache_time}
+                        <button class="btn btn-sm" style="margin-left:0.5rem;" onclick="rebuildCache()">Rebuild</button>
                     </div>
-                `),
-                ...pending.map(p => `
-                    <div class="download-item">
-                        <div class="download-header">
-                            <span class="download-name" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</span>
-                            <span class="download-status pending">Pending</span>
-                        </div>
-                    </div>
-                `)
-            ].join('');
+                `;
+
+            }, 2000);
         }
 
-        function updateStats(status) {
-            document.getElementById('stat-active').textContent = Object.keys(status.active || {}).length;
-            document.getElementById('stat-pending').textContent = (status.pending || []).length + (status.queue_size || 0);
-            document.getElementById('stat-cached').textContent = status.cache_count || 0;
-            document.getElementById('stat-cache-time').textContent = status.cache_time || 'Never';
+        async function togglePause() {
+            await api(isPaused ? 'resume' : 'pause', 'POST');
         }
 
-        function updateScanProgress(scan) {
-            const container = document.getElementById('scan-progress');
-            if (scan && scan.running) {
-                container.style.display = 'block';
-                document.getElementById('scan-percent').textContent = `${scan.percent}%`;
-                document.getElementById('scan-fill').style.width = `${scan.percent}%`;
-            } else {
-                container.style.display = 'none';
-            }
+        async function cancelDownload(id) {
+            await api('cancel', 'POST', { task_id: id });
+        }
+
+        async function cancelAll() {
+            if (!confirm('Cancel all downloads?')) return;
+            await api('cancel', 'POST', { all: true });
+        }
+
+        async function rebuildCache() {
+            await api('rebuild_cache', 'POST');
+            showToast('Cache rebuild started');
         }
 
         // Log Polling
-        function startLogPolling() {
-            async function poll() {
-                try {
-                    const res = await fetch('/api/logs');
-                    const text = await res.text();
-                    const container = document.getElementById('log-container');
-                    
-                    if (text.trim()) {
-                        container.innerHTML = text.split('\n').map(line => {
-                            let cls = '';
-                            if (line.includes('✓') || line.includes('Complete')) cls = 'success';
-                            if (line.includes('✗') || line.includes('Error') || line.includes('Failed')) cls = 'error';
-                            return `<div class="log-line"><span class="${cls}">${escapeHtml(line)}</span></div>`;
-                        }).join('');
-                    }
-                } catch (err) {
-                    console.error('Log poll error:', err);
-                }
-            }
-            poll();
-            setInterval(poll, 2000);
+        async function startLogPolling() {
+            setInterval(async () => {
+                const logs = await api('logs');
+                if (!logs) return;
+                const container = document.getElementById('log-container');
+                container.innerHTML = logs.split('\n').slice(0, 50).map(line => `<div class="log-line">${escapeHtml(line)}</div>`).join('');
+            }, 3000);
         }
 
-        // Modal Helpers
+        // Modals
         function openModal(id) {
             document.getElementById(id).classList.add('active');
         }
@@ -2247,13 +1427,26 @@
             document.getElementById(id).classList.remove('active');
         }
 
-        // Utility
+        // Toast
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<span>${type === 'success' ? '✓' : type === 'error' ? '✗' : '⚠'}</span><span>${escapeHtml(message)}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 4000);
+        }
+
+        // Utils
         function escapeHtml(str) {
             if (!str) return '';
-            const div = document.createElement('div');
-            div.textContent = str;
-            return div.innerHTML;
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
+
+        // Close modals on overlay click
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('active'); });
+        });
     </script>
 </body>
 </html>
