@@ -991,7 +991,7 @@ def sort_download_queue(items, order='library'):
 # --- API Authentication ---
 
 def login_with_creds(url, username, password):
-    """Authenticate with username/password and return token"""
+    """Authenticate with username/password and return token and user_id"""
     try:
         response = requests.post(
             f"{url}/Users/AuthenticateByName",
@@ -1008,13 +1008,14 @@ def login_with_creds(url, username, password):
             # Try different token field names used by different Jellyfin versions
             token = data.get("AccessToken") or data.get("access_token") or data.get("Token")
             
-            # If token is in nested object
-            if not token and "User" in data:
-                token = data.get("AccessToken")
+            # Get user ID from the response
+            user_id = None
+            if "User" in data and isinstance(data["User"], dict):
+                user_id = data["User"].get("Id")
             
             if token:
-                log(f"Got access token: {token[:20]}...")
-                return token
+                log(f"Got access token: {token[:20]}... for user: {user_id}")
+                return {"token": token, "user_id": user_id}
             else:
                 log(f"No token found in response. Full response: {str(data)[:500]}")
                 return None
@@ -1277,20 +1278,23 @@ def test_connection():
     try:
         if data.get('username'):
             # Username/password auth
-            token = login_with_creds(
+            auth_result = login_with_creds(
                 url,
                 data.get('username'),
                 data.get('password')
             )
-            if token:
-                # Verify the token works
+            if auth_result and auth_result.get('token'):
+                token = auth_result['token']
+                user_id = auth_result.get('user_id')
+                
+                # Verify the token works by accessing the user's own data
                 verify_response = requests.get(
-                    f"{url}/Users",
+                    f"{url}/Users/{user_id}" if user_id else f"{url}/Users",
                     headers=get_auth_header(token),
                     timeout=10
                 )
-                if verify_response.ok and verify_response.json():
-                    return jsonify({"status": "ok", "key": token})
+                if verify_response.ok:
+                    return jsonify({"status": "ok", "key": token, "user_id": user_id})
                 else:
                     return jsonify({"status": "error", "error": "Token verification failed"})
             return jsonify({"status": "error", "error": "Invalid credentials"})
@@ -1346,14 +1350,21 @@ def scan_libs():
     for server in cfg['servers']:
         try:
             headers = get_auth_header(server['key'])
-            user_id = requests.get(
-                f"{server['url']}/Users",
-                headers=headers
-            ).json()[0]['Id']
+            
+            # Use stored user_id if available (for username/password auth)
+            user_id = server.get('user_id')
+            
+            if not user_id:
+                user_id = requests.get(
+                    f"{server['url']}/Users",
+                    headers=headers,
+                    timeout=10
+                ).json()[0]['Id']
             
             libs = requests.get(
                 f"{server['url']}/Users/{user_id}/Views",
-                headers=headers
+                headers=headers,
+                timeout=10
             ).json().get('Items', [])
             
             results.append({
@@ -1361,8 +1372,8 @@ def scan_libs():
                 "server_name": server['name'],
                 "libs": libs
             })
-        except Exception:
-            pass
+        except Exception as e:
+            log(f"Scan libs error for {server.get('name', 'unknown')}: {e}")
     
     return jsonify(results)
 
@@ -1385,24 +1396,30 @@ def browse_remote():
         headers = get_auth_header(server['key'])
         log(f"Using headers: {list(headers.keys())}")
         
-        users_response = requests.get(
-            f"{server['url']}/Users",
-            headers=headers,
-            timeout=10
-        )
+        # Use stored user_id if available (for username/password auth)
+        # Otherwise, query /Users to get a user ID (for API key auth)
+        user_id = server.get('user_id')
         
-        log(f"Users response: {users_response.status_code}")
+        if not user_id:
+            users_response = requests.get(
+                f"{server['url']}/Users",
+                headers=headers,
+                timeout=10
+            )
+            
+            log(f"Users response: {users_response.status_code}")
+            
+            if not users_response.ok:
+                log(f"Browse Error: Server returned {users_response.status_code} - {users_response.text[:200]}")
+                return jsonify({"items": [], "total": 0, "error": f"Auth failed: {users_response.status_code}"})
+            
+            users_data = users_response.json()
+            if not users_data or len(users_data) == 0:
+                log("Browse Error: No users returned from server")
+                return jsonify({"items": [], "total": 0, "error": "No users found - check API key"})
+            
+            user_id = users_data[0]['Id']
         
-        if not users_response.ok:
-            log(f"Browse Error: Server returned {users_response.status_code} - {users_response.text[:200]}")
-            return jsonify({"items": [], "total": 0, "error": f"Auth failed: {users_response.status_code}"})
-        
-        users_data = users_response.json()
-        if not users_data or len(users_data) == 0:
-            log("Browse Error: No users returned from server")
-            return jsonify({"items": [], "total": 0, "error": "No users found - check API key"})
-        
-        user_id = users_data[0]['Id']
         log(f"Using user ID: {user_id}")
         
         local_ids = get_existing_ids()
