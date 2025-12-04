@@ -2256,10 +2256,12 @@
             const result = await api('test_connection', 'POST', payload);
             if (result.status === 'ok') {
                 showToast('Connection successful!');
-                // Store the token in a hidden field but don't change the UI
+                // Store the token and user_id
                 document.getElementById('server-key').value = result.key;
-                // Mark as tested
                 document.getElementById('server-key').dataset.tested = 'true';
+                if (result.user_id) {
+                    document.getElementById('server-key').dataset.userId = result.user_id;
+                }
             } else {
                 showToast(result.error || 'Connection failed', 'error');
             }
@@ -2269,6 +2271,7 @@
             const name = document.getElementById('server-name').value;
             const url = document.getElementById('server-url').value;
             const key = document.getElementById('server-key').value;
+            const userId = document.getElementById('server-key').dataset.userId || null;
 
             if (!name || !url) {
                 showToast('Please fill in server name and URL', 'error');
@@ -2284,7 +2287,8 @@
                 id: Date.now().toString(36),
                 name,
                 url: url.replace(/\/$/, ''),
-                key
+                key,
+                user_id: userId  // Store user_id for username/password auth
             };
 
             if (!config.servers) config.servers = [];
@@ -2298,6 +2302,7 @@
             document.getElementById('server-name').value = '';
             document.getElementById('server-url').value = '';
             document.getElementById('server-key').value = '';
+            document.getElementById('server-key').dataset.userId = '';
         }
 
         // Mapping Management
