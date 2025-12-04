@@ -437,9 +437,14 @@ def format_bytes(size):
 
 def get_auth_header(token=None):
     """Generate Jellyfin/Emby auth header"""
-    return {
-        'X-Emby-Authorization': f'MediaBrowser Client="JellyLooter", Device="Unraid", DeviceId="JellyLooterId", Version="{VERSION}", Token="{token or ""}"'
+    headers = {
+        'X-Emby-Authorization': f'MediaBrowser Client="JellyLooter", Device="Unraid", DeviceId="JellyLooterId", Version="{VERSION}"'
     }
+    if token:
+        headers['X-Emby-Authorization'] += f', Token="{token}"'
+        headers['X-Emby-Token'] = token
+        headers['X-MediaBrowser-Token'] = token
+    return headers
 
 
 def check_disk_space(path, required_bytes=0):
