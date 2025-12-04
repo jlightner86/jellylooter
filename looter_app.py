@@ -444,6 +444,7 @@ def get_auth_header(token=None):
         headers['X-Emby-Authorization'] += f', Token="{token}"'
         headers['X-Emby-Token'] = token
         headers['X-MediaBrowser-Token'] = token
+        headers['Authorization'] = f'MediaBrowser Token="{token}"'
     return headers
 
 
@@ -998,9 +999,25 @@ def login_with_creds(url, username, password):
             headers=get_auth_header(),
             timeout=10
         )
+        log(f"Auth response status: {response.status_code}")
+        
         if response.status_code == 200:
             data = response.json()
-            return data.get("AccessToken")
+            log(f"Auth response keys: {list(data.keys())}")
+            
+            # Try different token field names used by different Jellyfin versions
+            token = data.get("AccessToken") or data.get("access_token") or data.get("Token")
+            
+            # If token is in nested object
+            if not token and "User" in data:
+                token = data.get("AccessToken")
+            
+            if token:
+                log(f"Got access token: {token[:20]}...")
+                return token
+            else:
+                log(f"No token found in response. Full response: {str(data)[:500]}")
+                return None
         else:
             log(f"Auth failed: {response.status_code} - {response.text[:200]}")
             return None
@@ -1364,15 +1381,20 @@ def browse_remote():
         return jsonify({"items": [], "total": 0, "error": "Server not found"})
     
     try:
+        log(f"Browsing server: {server['name']} with key: {server['key'][:20] if server.get('key') else 'None'}...")
         headers = get_auth_header(server['key'])
+        log(f"Using headers: {list(headers.keys())}")
+        
         users_response = requests.get(
             f"{server['url']}/Users",
             headers=headers,
             timeout=10
         )
         
+        log(f"Users response: {users_response.status_code}")
+        
         if not users_response.ok:
-            log(f"Browse Error: Server returned {users_response.status_code}")
+            log(f"Browse Error: Server returned {users_response.status_code} - {users_response.text[:200]}")
             return jsonify({"items": [], "total": 0, "error": f"Auth failed: {users_response.status_code}"})
         
         users_data = users_response.json()
@@ -1381,6 +1403,7 @@ def browse_remote():
             return jsonify({"items": [], "total": 0, "error": "No users found - check API key"})
         
         user_id = users_data[0]['Id']
+        log(f"Using user ID: {user_id}")
         
         local_ids = get_existing_ids()
         
