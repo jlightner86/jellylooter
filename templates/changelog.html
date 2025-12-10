@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ lang }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JellyLooter - Changelog</title>
+    <title>JellyLooter - {{ t.get('changelog', 'Changelog') }}</title>
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/jlightner86/jellylooter/main/icon.png">
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -18,7 +18,7 @@
         .logo-text { font-size: 1.5rem; font-weight: 700; background: var(--jf-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .btn { padding: 0.5rem 1rem; background: var(--jf-bg-card); border: 1px solid var(--jf-border); border-radius: 8px; color: var(--jf-text); text-decoration: none; font-weight: 600; font-size: 0.875rem; }
         .btn:hover { background: var(--jf-primary); border-color: var(--jf-primary); }
-        .btn-coffee { background: #ffdd00; border-color: #ffdd00; color: #1a1a1a; }
+        .btn-coffee { background: #ff5e5b; border-color: #ff5e5b; color: white; }
         h1 { font-size: 1.75rem; margin-bottom: 2rem; }
         .version { background: var(--jf-bg-card); border: 1px solid var(--jf-border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
         .version-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
@@ -34,10 +34,10 @@
         .change-type.improve { background: rgba(0,164,220,0.2); color: #00a4dc; }
         .footer { text-align: center; padding-top: 2rem; color: var(--jf-text-muted); font-size: 0.875rem; }
         .footer a { color: var(--jf-primary); text-decoration: none; }
-        .support-banner { background: linear-gradient(135deg, #ffdd00 0%, #ff9500 100%); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; text-align: center; color: #1a1a1a; }
+        .support-banner { background: linear-gradient(135deg, #ff5e5b 0%, #ff9500 100%); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; text-align: center; color: white; }
         .support-banner h3 { margin-bottom: 0.5rem; }
         .support-banner p { margin-bottom: 1rem; opacity: 0.9; }
-        .support-banner .btn { background: #1a1a1a; color: #ffdd00; border-color: #1a1a1a; }
+        .support-banner .btn { background: #1a1a1a; color: #ff5e5b; border-color: white; }
     </style>
 </head>
 <body>
@@ -48,91 +48,68 @@
                 <span class="logo-text">JellyLooter</span>
             </div>
             <div style="display:flex;gap:0.5rem;">
-                <a href="https://buymeacoffee.com/friendlymedia" target="_blank" class="btn btn-coffee">☕ Support</a>
-                <a href="/" class="btn">← Back</a>
+                <a href="https://ko-fi.com/jellyloot" target="_blank" class="btn btn-coffee">❤️ {{ t.get('support_btn', 'Support') }}</a>
+                <a href="/" class="btn">← {{ t.get('back', 'Back') }}</a>
             </div>
         </div>
-        <h1>Changelog</h1>
+        <h1>{{ t.get('changelog', 'Changelog') }}</h1>
         <div class="support-banner">
-            <h3>☕ Enjoying JellyLooter?</h3>
-            <p>If this project saves you time, consider buying me a coffee!</p>
-            <a href="https://buymeacoffee.com/friendlymedia" target="_blank" class="btn">Buy Me a Coffee</a>
+            <h3>❤️ {{ t.get('enjoying_jellylooter', 'Enjoying JellyLooter?') }}</h3>
+            <p>{{ t.get('support_message', 'If this project saves you time, consider supporting on Ko-fi!') }}</p>
+            <a href="https://ko-fi.com/jellyloot" target="_blank" class="btn">Ko-fi</a>
+        </div>
+
+        <div class="version">
+            <div class="version-header">
+                <span class="version-number">v2.4.1</span>
+                <span class="version-date">{{ t.get('december', 'December') }} 2024</span>
+                <span class="version-tag">{{ t.get('latest', 'Latest') }}</span>
+            </div>
+            <ul class="changes">
+                <li><span class="change-type fix">{{ t.get('fix', 'Fix') }}</span> {{ t.get('ch_mobile_view', 'Mobile view now works correctly with hamburger menu') }}</li>
+                <li><span class="change-type fix">{{ t.get('fix', 'Fix') }}</span> {{ t.get('ch_download_error', 'Fixed download errors with username/password auth') }}</li>
+                <li><span class="change-type fix">{{ t.get('fix', 'Fix') }}</span> {{ t.get('ch_poster_aspect', 'Fixed poster image aspect ratio') }}</li>
+                <li><span class="change-type new">{{ t.get('new', 'New') }}</span> {{ t.get('ch_language_selector', 'Language selector in settings with full UI translations') }}</li>
+                <li><span class="change-type new">{{ t.get('new', 'New') }}</span> {{ t.get('ch_title_downloads', 'Download count shown in browser tab title') }}</li>
+                <li><span class="change-type new">{{ t.get('new', 'New') }}</span> {{ t.get('ch_select_all', 'Select All / Deselect All button for bulk selection') }}</li>
+                <li><span class="change-type new">{{ t.get('new', 'New') }}</span> {{ t.get('ch_filter', 'Filter/search box to find items in current view') }}</li>
+                <li><span class="change-type new">{{ t.get('new', 'New') }}</span> {{ t.get('ch_history', 'Download history panel with timestamps') }}</li>
+                <li><span class="change-type new">{{ t.get('new', 'New') }}</span> {{ t.get('ch_eta', 'Estimated time remaining on active downloads') }}</li>
+                <li><span class="change-type new">{{ t.get('new', 'New') }}</span> {{ t.get('ch_quick_paths', 'Quick path selection from library mappings when downloading') }}</li>
+            </ul>
         </div>
 
         <div class="version">
             <div class="version-header">
                 <span class="version-number">v2.3.0</span>
-                <span class="version-date">December 2024</span>
-                <span class="version-tag">Latest</span>
+                <span class="version-date">{{ t.get('december', 'December') }} 2024</span>
             </div>
             <ul class="changes">
-                <li><span class="change-type fix">Fix</span> Authentication now optional (off by default) - no more secret key errors!</li>
-                <li><span class="change-type fix">Fix</span> Tooltip z-index - refresh button tooltip no longer hidden behind header</li>
-                <li><span class="change-type fix">Fix</span> All items now display with server-side pagination</li>
-                <li><span class="change-type new">New</span> Mobile-friendly responsive design</li>
-                <li><span class="change-type new">New</span> Grid/List view toggle</li>
-                <li><span class="change-type new">New</span> Pagination with configurable items per page (25/50/100)</li>
-                <li><span class="change-type new">New</span> Download queue ordering options (library order, complete shows, round-robin, alphabetical)</li>
-                <li><span class="change-type new">New</span> Multi-language support (English, Spanish, German)</li>
-                <li><span class="change-type new">New</span> Proper favicon using GitHub-hosted icon</li>
-                <li><span class="change-type improve">Improve</span> Performance optimizations for large libraries</li>
-                <li><span class="change-type improve">Improve</span> Help page updated with Unraid 7.2.0 compatibility note</li>
+                <li><span class="change-type fix">{{ t.get('fix', 'Fix') }}</span> {{ t.get('ch_auth_optional', 'Authentication now optional (off by default)') }}</li>
+                <li><span class="change-type fix">{{ t.get('fix', 'Fix') }}</span> {{ t.get('ch_tooltip', 'Tooltip z-index fixed') }}</li>
+                <li><span class="change-type fix">{{ t.get('fix', 'Fix') }}</span> {{ t.get('ch_pagination', 'All items now display with server-side pagination') }}</li>
+                <li><span class="change-type new">{{ t.get('new', 'New') }}</span> {{ t.get('ch_responsive', 'Mobile-friendly responsive design') }}</li>
+                <li><span class="change-type new">{{ t.get('new', 'New') }}</span> {{ t.get('ch_grid_list', 'Grid/List view toggle') }}</li>
+                <li><span class="change-type new">{{ t.get('new', 'New') }}</span> {{ t.get('ch_items_page', 'Pagination with configurable items per page') }}</li>
+                <li><span class="change-type new">{{ t.get('new', 'New') }}</span> {{ t.get('ch_queue_order', 'Download queue ordering options') }}</li>
+                <li><span class="change-type new">{{ t.get('new', 'New') }}</span> {{ t.get('ch_multilang', 'Multi-language support (English, Spanish, German)') }}</li>
             </ul>
         </div>
 
         <div class="version">
             <div class="version-header">
                 <span class="version-number">v2.2.1</span>
-                <span class="version-date">December 2024</span>
+                <span class="version-date">{{ t.get('december', 'December') }} 2024</span>
             </div>
             <ul class="changes">
-                <li><span class="change-type fix">Fix</span> Python syntax errors with global declarations</li>
-                <li><span class="change-type new">New</span> Added favicon (grape emoji)</li>
-                <li><span class="change-type new">New</span> Buy Me a Coffee support links</li>
-            </ul>
-        </div>
-
-        <div class="version">
-            <div class="version-header">
-                <span class="version-number">v2.2.0</span>
-                <span class="version-date">December 2024</span>
-            </div>
-            <ul class="changes">
-                <li><span class="change-type fix">Fix</span> Speed limiter now applies to active downloads within 10 seconds</li>
-                <li><span class="change-type fix">Fix</span> Max concurrent downloads adjusts dynamically without restart</li>
-                <li><span class="change-type fix">Fix</span> Better disk space error detection and messages</li>
-                <li><span class="change-type new">New</span> Help page with FAQ and troubleshooting</li>
-                <li><span class="change-type new">New</span> Disk space shown when selecting download folder</li>
-            </ul>
-        </div>
-
-        <div class="version">
-            <div class="version-header">
-                <span class="version-number">v2.1.0</span>
-                <span class="version-date">December 2024</span>
-            </div>
-            <ul class="changes">
-                <li><span class="change-type new">New</span> User authentication with login/setup</li>
-                <li><span class="change-type new">New</span> Remember me functionality</li>
-                <li><span class="change-type new">New</span> Advanced settings panel</li>
-            </ul>
-        </div>
-
-        <div class="version">
-            <div class="version-header">
-                <span class="version-number">v2.0.0</span>
-                <span class="version-date">December 2024</span>
-            </div>
-            <ul class="changes">
-                <li><span class="change-type new">New</span> Complete UI redesign with Jellyfin-inspired theme</li>
-                <li><span class="change-type new">New</span> Multi-select with Ctrl+click</li>
-                <li><span class="change-type new">New</span> Working stop/cancel button for downloads</li>
-                <li><span class="change-type improve">Improve</span> Better download progress tracking</li>
+                <li><span class="change-type fix">{{ t.get('fix', 'Fix') }}</span> {{ t.get('ch_syntax', 'Python syntax errors fixed') }}</li>
+                <li><span class="change-type new">{{ t.get('new', 'New') }}</span> {{ t.get('ch_favicon', 'Added favicon') }}</li>
+                <li><span class="change-type new">{{ t.get('new', 'New') }}</span> {{ t.get('ch_kofi', 'Ko-fi support links') }}</li>
             </ul>
         </div>
 
         <div class="footer">
-            <p>JellyLooter v2.3.0 • Made with ❤️ by <a href="https://buymeacoffee.com/friendlymedia" target="_blank">FriendlyMedia</a></p>
+            <p>JellyLooter v{{ version }} • <a href="https://github.com/jlightner86/jellylooter" target="_blank">GitHub</a> • <a href="https://ko-fi.com/jellyloot" target="_blank">{{ t.get('support_btn', 'Support') }}</a></p>
         </div>
     </div>
 </body>

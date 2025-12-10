@@ -245,24 +245,139 @@
         
         /* Mobile Responsiveness */
         @media (max-width: 768px) {
-            .header { padding: 0.75rem 1rem; }
-            .header-content { flex-wrap: wrap; gap: 0.5rem; }
-            .logo-text { font-size: 1.25rem; }
-            .header-actions { 
-                width: 100%; 
-                justify-content: space-between;
-                flex-wrap: wrap;
+            .header { padding: 0.5rem 1rem; }
+            .header-content { 
+                flex-wrap: wrap; 
+                gap: 0.5rem;
+                position: relative;
             }
-            .nav-tabs { 
-                order: 3; 
-                width: 100%; 
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-            }
-            .nav-tab { padding: 0.5rem 0.75rem; font-size: 0.8125rem; }
+            .logo { flex: 1; }
+            .logo-icon { width: 28px; height: 28px; }
+            .logo-text { font-size: 1.1rem; }
             
-            .main { padding: 0.75rem; }
-            .panel-header { padding: 0.75rem 1rem; flex-wrap: wrap; gap: 0.5rem; }
+            /* Hide desktop header items on mobile */
+            .header-actions > .btn,
+            .header-actions > a.btn,
+            .header-actions > .theme-toggle {
+                display: none;
+            }
+            
+            .header-actions { 
+                width: auto;
+                gap: 0.5rem;
+            }
+            
+            /* Mobile hamburger menu button */
+            .mobile-menu-btn {
+                display: flex !important;
+                background: var(--jf-bg-input);
+                border: 1px solid var(--jf-border);
+                border-radius: var(--radius);
+                padding: 0.5rem;
+                font-size: 1.25rem;
+                cursor: pointer;
+            }
+            
+            /* Nav tabs on mobile */
+            .nav-tabs { 
+                order: 10;
+                width: 100%;
+                display: flex;
+                justify-content: center;
+                background: var(--jf-bg-card);
+                border-radius: var(--radius);
+                padding: 0.25rem;
+                margin-top: 0.5rem;
+            }
+            .nav-tab { 
+                flex: 1;
+                padding: 0.5rem 0.5rem; 
+                font-size: 0.75rem;
+                text-align: center;
+            }
+            
+            /* User menu on mobile */
+            .user-menu { order: 5; }
+            .user-btn span:nth-child(2) { display: none; } /* Hide username */
+            
+            /* Mobile slide-out menu */
+            .mobile-menu {
+                display: block !important;
+                position: fixed;
+                top: 0;
+                right: -280px;
+                width: 280px;
+                height: 100vh;
+                background: var(--jf-bg-card);
+                border-left: 1px solid var(--jf-border);
+                z-index: 2000;
+                transition: right 0.3s ease;
+                padding: 1rem;
+                overflow-y: auto;
+            }
+            .mobile-menu.open { right: 0; }
+            .mobile-menu-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 1999;
+            }
+            .mobile-menu-overlay.open { display: block; }
+            .mobile-menu-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 1rem;
+                padding-bottom: 1rem;
+                border-bottom: 1px solid var(--jf-border);
+            }
+            .mobile-menu-close {
+                background: none;
+                border: none;
+                font-size: 1.5rem;
+                cursor: pointer;
+                color: var(--jf-text);
+            }
+            .mobile-menu-items {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            .mobile-menu-items a,
+            .mobile-menu-items button {
+                display: block;
+                width: 100%;
+                padding: 0.75rem 1rem;
+                text-align: left;
+                background: var(--jf-bg-input);
+                border: 1px solid var(--jf-border);
+                border-radius: var(--radius);
+                color: var(--jf-text);
+                text-decoration: none;
+                cursor: pointer;
+            }
+            .mobile-menu-items a:hover,
+            .mobile-menu-items button:hover {
+                background: var(--jf-bg-card-hover);
+            }
+            
+            /* Main content mobile */
+            .main-container { 
+                padding: 0.75rem;
+                gap: 0.75rem;
+            }
+            
+            .panel-header { 
+                padding: 0.75rem; 
+                flex-wrap: wrap; 
+                gap: 0.5rem; 
+            }
+            .panel-header h2 { font-size: 0.9rem; }
+            .panel-header .form-input { min-width: 120px !important; }
             .panel-body { padding: 0.75rem; }
             
             .browser-grid {
@@ -272,23 +387,80 @@
             
             .browser-item-title { font-size: 0.6875rem; padding: 0.375rem; }
             
-            .selection-bar { flex-direction: column; text-align: center; }
+            .selection-bar { 
+                flex-direction: column; 
+                text-align: center;
+                padding: 0.5rem;
+                gap: 0.5rem;
+            }
             .selection-bar-actions { width: 100%; justify-content: center; }
             
-            .pagination-controls { flex-direction: column; text-align: center; }
-            .pagination-info { margin-bottom: 0.5rem; flex-wrap: wrap; justify-content: center; }
+            .pagination-controls { 
+                flex-direction: column; 
+                text-align: center;
+                gap: 0.5rem;
+                padding: 0.75rem 0;
+            }
+            .pagination-info { 
+                flex-wrap: wrap; 
+                justify-content: center;
+                font-size: 0.8rem;
+            }
+            .pagination-buttons { flex-wrap: wrap; justify-content: center; }
             
-            .sidebar { position: fixed; right: -100%; top: 0; height: 100%; z-index: 1000; transition: right 0.3s; }
-            .sidebar.open { right: 0; }
+            /* Sidebar becomes bottom sheet on mobile */
+            .right-column {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                max-height: 50vh;
+                overflow-y: auto;
+                background: var(--jf-bg);
+                border-top: 1px solid var(--jf-border);
+                z-index: 100;
+                transform: translateY(calc(100% - 60px));
+                transition: transform 0.3s ease;
+            }
+            .right-column.expanded { transform: translateY(0); }
+            .right-column-toggle {
+                display: flex !important;
+                justify-content: center;
+                padding: 0.5rem;
+                background: var(--jf-bg-card);
+                border-bottom: 1px solid var(--jf-border);
+                cursor: pointer;
+            }
+            .right-column-toggle::before {
+                content: '⬆️ Downloads & Stats';
+                font-size: 0.875rem;
+            }
+            .right-column.expanded .right-column-toggle::before {
+                content: '⬇️ Collapse';
+            }
+            
+            /* Add padding to main content for bottom bar */
+            .left-column { padding-bottom: 70px; }
             
             .download-item { flex-direction: column; align-items: flex-start; }
             .download-item-actions { width: 100%; justify-content: flex-end; margin-top: 0.5rem; }
             
-            .modal-content { width: 95%; max-width: none; margin: 1rem; }
+            .modal-content { 
+                width: 95%; 
+                max-width: none; 
+                margin: 0.5rem;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
             .form-input { font-size: 16px; } /* Prevent zoom on iOS */
             
             .btn { padding: 0.625rem 1rem; }
             .btn-sm { padding: 0.5rem 0.75rem; }
+            
+            /* Stats grid mobile */
+            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+            .stat-item { padding: 0.75rem; }
+            .stat-value { font-size: 1.25rem; }
         }
         
         @media (max-width: 480px) {
@@ -297,8 +469,14 @@
                 gap: 0.375rem;
             }
             .browser-item-title { font-size: 0.625rem; }
-            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .nav-tab { font-size: 0.7rem; padding: 0.5rem 0.25rem; }
         }
+        
+        /* Hide mobile elements on desktop */
+        .mobile-menu-btn { display: none; }
+        .mobile-menu { display: none; }
+        .mobile-menu-overlay { display: none; }
+        .right-column-toggle { display: none; }
 
         /* Panels */
         .panel {
@@ -564,9 +742,8 @@
 
         /* Browser Grid */
         .browser-container {
-            display: flex;
-            flex-direction: column;
-            height: 500px;
+            max-height: 70vh;
+            overflow-y: auto;
         }
 
         .browser-path {
@@ -591,12 +768,11 @@
         .browser-path-item:hover { text-decoration: underline; }
 
         .browser-grid {
-            flex: 1;
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             gap: 1rem;
-            overflow-y: auto;
             padding: 0.25rem;
+            align-content: start;
         }
 
         .pagination-controls {
@@ -657,8 +833,6 @@
             cursor: pointer;
             transition: var(--transition);
             border: 2px solid transparent;
-            display: flex;
-            flex-direction: column;
         }
 
         .browser-item:hover {
@@ -692,11 +866,12 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            object-position: center top;
+            object-position: center center;
         }
 
         .browser-item-placeholder {
-            flex: 1;
+            width: 100%;
+            height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -706,17 +881,7 @@
         }
 
         .browser-item-title {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 2rem 0.5rem 0.5rem;
-            background: linear-gradient(transparent, rgba(0,0,0,0.9));
-            font-size: 0.75rem;
-            font-weight: 600;
-            line-height: 1.3;
-            text-align: center;
-            color: white;
+            display: none;
         }
 
         .browser-item.folder .browser-item-placeholder {
@@ -846,7 +1011,7 @@
         }
 
         /* Log Container */
-        .log-container {
+        .log-container, .history-container {
             font-family: 'Monaco', 'Consolas', monospace;
             font-size: 0.8125rem;
             background: var(--jf-bg-input);
@@ -860,6 +1025,26 @@
         .log-line { padding: 0.125rem 0; }
         .log-line .success { color: var(--jf-success); }
         .log-line .error { color: var(--jf-error); }
+        
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            border-bottom: 1px solid var(--jf-border);
+        }
+        .history-item:last-child { border-bottom: none; }
+        .history-item-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .history-item-meta {
+            font-size: 0.75rem;
+            color: var(--jf-text-muted);
+            text-align: right;
+        }
 
         /* Modal */
         .modal {
@@ -1163,10 +1348,13 @@
                 <span class="logo-text">JellyLooter</span>
             </div>
             <div class="header-actions">
+                <!-- Mobile menu button -->
+                <button class="mobile-menu-btn" id="mobile-menu-btn">☰</button>
+                
                 <nav class="nav-tabs">
-                    <button class="nav-tab active" data-tab="browse">Browse</button>
-                    <button class="nav-tab" data-tab="sync">Sync</button>
-                    <button class="nav-tab" data-tab="settings">Settings</button>
+                    <button class="nav-tab active" data-tab="browse" data-i18n="browse">Browse</button>
+                    <button class="nav-tab" data-tab="sync" data-i18n="sync">Sync</button>
+                    <button class="nav-tab" data-tab="settings" data-i18n="settings">Settings</button>
                 </nav>
                 
                 <button class="theme-toggle" id="theme-toggle" data-tooltip="Toggle Theme">
@@ -1174,9 +1362,9 @@
                     <span class="theme-icon-dark">🌙</span>
                 </button>
                 
-                <a href="https://buymeacoffee.com/friendlymedia" target="_blank" class="btn btn-sm" style="background: #ffdd00; color: #1a1a1a; border-color: #ffdd00;">☕ Support</a>
-                <a href="/changelog" class="btn btn-secondary btn-sm">Changelog</a>
-                <a href="/help" class="btn btn-secondary btn-sm">Help</a>
+                <a href="https://ko-fi.com/jellyloot" target="_blank" class="btn btn-sm" style="background: #ff5e5b; color: white; border-color: #ff5e5b;">❤️ Support</a>
+                <a href="/changelog" class="btn btn-secondary btn-sm" data-i18n="changelog">Changelog</a>
+                <a href="/help" class="btn btn-secondary btn-sm" data-i18n="help">Help</a>
                 
                 <div class="user-menu">
                     <button class="user-btn" id="user-btn">
@@ -1192,6 +1380,25 @@
             </div>
         </div>
     </header>
+    
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-menu-overlay" id="mobile-menu-overlay"></div>
+    
+    <!-- Mobile Slide-out Menu -->
+    <div class="mobile-menu" id="mobile-menu">
+        <div class="mobile-menu-header">
+            <span style="font-weight: 600;">Menu</span>
+            <button class="mobile-menu-close" id="mobile-menu-close">×</button>
+        </div>
+        <div class="mobile-menu-items">
+            <button onclick="toggleTheme(); closeMobileMenu();">🌙 Toggle Theme</button>
+            <a href="https://ko-fi.com/jellyloot" target="_blank">❤️ Support on Ko-fi</a>
+            <a href="/changelog">📋 Changelog</a>
+            <a href="/help">❓ Help</a>
+            <button onclick="openModal('password-modal'); closeMobileMenu();">🔑 Change Password</button>
+            <a href="/logout" style="color: var(--jf-danger);">🚪 Sign Out</a>
+        </div>
+    </div>
 
     <!-- Main Content -->
     <main class="main-container">
@@ -1203,34 +1410,40 @@
                     <div class="panel-header">
                         <h2 class="panel-title">
                             <span class="panel-title-icon">📁</span>
-                            Remote Browser
+                            <span data-i18n="remote_browser">Remote Browser</span>
                         </h2>
                         <div style="display: flex; gap: 0.5rem;">
                             <select id="server-select" class="form-input" style="width: auto; min-width: 180px; padding: 0.5rem 1rem;">
-                                <option value="">Select Server...</option>
+                                <option value="" data-i18n="select_server">Select Server...</option>
                             </select>
                             <button class="btn btn-secondary btn-sm" id="refresh-btn" data-tooltip="Refresh">🔄</button>
                         </div>
                     </div>
                     <div class="panel-body">
                         <div class="selection-bar" id="selection-bar">
-                            <span class="selection-bar-text"><span id="selection-count">0</span> items selected</span>
+                            <span class="selection-bar-text"><span id="selection-count">0</span> <span data-i18n="items_selected">items selected</span></span>
                             <div class="selection-bar-actions">
-                                <button class="btn btn-sm" style="background: white; color: var(--jf-primary);" id="download-selected-btn">Download Selected</button>
-                                <button class="btn btn-secondary btn-sm" id="clear-selection-btn">Clear</button>
+                                <button class="btn btn-secondary btn-sm" id="select-all-btn" data-i18n="select_all">Select All</button>
+                                <button class="btn btn-sm" style="background: white; color: var(--jf-primary);" id="download-selected-btn" data-i18n="download_selected">Download Selected</button>
+                                <button class="btn btn-secondary btn-sm" id="clear-selection-btn" data-i18n="clear">Clear</button>
                             </div>
                         </div>
                         
                         <div class="browser-path" id="browser-path">
-                            <span class="browser-path-item" data-id="root">🏠 Home</span>
+                            <span class="browser-path-item" data-id="root">🏠 <span data-i18n="home">Home</span></span>
+                        </div>
+                        
+                        <!-- Search/Filter Box -->
+                        <div class="search-box" style="margin-bottom: 0.75rem;">
+                            <input type="text" class="form-input" id="library-search" data-i18n-placeholder="filter_items" placeholder="🔍 Filter items..." style="width: 100%;">
                         </div>
                         
                         <div class="browser-container">
                             <div class="browser-grid" id="browser-grid">
                                 <div class="empty-state">
                                     <div class="empty-state-icon">📡</div>
-                                    <div class="empty-state-title">Select a Server</div>
-                                    <p>Choose a remote server from the dropdown to browse its library.</p>
+                                    <div class="empty-state-title" data-i18n="select_a_server">Select a Server</div>
+                                    <p data-i18n="select_server_desc">Choose a remote server from the dropdown to browse its library.</p>
                                 </div>
                             </div>
                         </div>
@@ -1264,25 +1477,25 @@
                     <div class="panel-header">
                         <h2 class="panel-title">
                             <span class="panel-title-icon">🔄</span>
-                            Library Mappings
+                            <span data-i18n="library_mappings">Library Mappings</span>
                         </h2>
-                        <button class="btn btn-primary btn-sm" id="add-mapping-btn">+ Add Mapping</button>
+                        <button class="btn btn-primary btn-sm" id="add-mapping-btn">+ <span data-i18n="add_mapping">Add Mapping</span></button>
                     </div>
                     <div class="panel-body">
                         <div id="mappings-list">
                             <div class="empty-state">
                                 <div class="empty-state-icon">🗺️</div>
-                                <div class="empty-state-title">No Mappings</div>
-                                <p>Create a mapping to automatically sync content from remote libraries.</p>
+                                <div class="empty-state-title" data-i18n="no_mappings">No Mappings</div>
+                                <p data-i18n="no_mappings_desc">Create a mapping to automatically sync content from remote libraries.</p>
                             </div>
                         </div>
                         
                         <div class="control-bar">
                             <button class="btn btn-primary" id="sync-now-btn">
-                                <span>🔄</span> Sync Now
+                                <span>🔄</span> <span data-i18n="sync_now">Sync Now</span>
                             </button>
                             <div class="toggle-container" style="flex: 1; justify-content: flex-end;">
-                                <span class="toggle-label">Auto-Sync</span>
+                                <span class="toggle-label" data-i18n="auto_sync">Auto-Sync</span>
                                 <label class="toggle" style="margin-left: 0.75rem;">
                                     <input type="checkbox" id="auto-sync-toggle" checked>
                                     <span class="toggle-slider"></span>
@@ -1299,39 +1512,52 @@
                     <div class="panel-header">
                         <h2 class="panel-title">
                             <span class="panel-title-icon">⚙️</span>
-                            Configuration
+                            <span data-i18n="configuration">Configuration</span>
                         </h2>
                     </div>
                     <div class="panel-body">
                         <!-- Appearance Section -->
                         <div class="settings-section">
-                            <div class="settings-section-title"><span>🎨</span> Appearance</div>
+                            <div class="settings-section-title"><span>🎨</span> <span data-i18n="appearance">Appearance</span></div>
                             <div class="toggle-container">
-                                <span class="toggle-label">Dark Theme</span>
+                                <span class="toggle-label" data-i18n="dark_theme">Dark Theme</span>
                                 <label class="toggle">
                                     <input type="checkbox" id="theme-toggle-settings" checked>
                                     <span class="toggle-slider"></span>
                                 </label>
                             </div>
-                            <div class="form-hint">Switch between dark and light themes</div>
+                            <div class="form-hint" data-i18n="theme_hint">Switch between dark and light themes</div>
+                            
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label class="form-label">🌐 <span data-i18n="language">Language</span></label>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <select class="form-input" id="language-select" style="flex: 1;">
+                                        <option value="en">English</option>
+                                        <option value="es">Español</option>
+                                        <option value="de">Deutsch</option>
+                                    </select>
+                                    <button class="btn btn-primary" id="save-language-btn" data-i18n="save">Save</button>
+                                </div>
+                                <div class="form-hint" data-i18n="language_hint">Interface language (page will refresh)</div>
+                            </div>
                         </div>
 
                         <!-- Remote Servers Section -->
                         <div class="settings-section">
-                            <div class="settings-section-title"><span>📡</span> Remote Servers</div>
+                            <div class="settings-section-title"><span>📡</span> <span data-i18n="remote_servers">Remote Servers</span></div>
                             <div class="server-list" id="settings-server-list"></div>
                             <button class="btn btn-primary" style="width: 100%; margin-top: 0.75rem;" id="add-server-btn">
-                                + Add Remote Server
+                                + <span data-i18n="add_remote_server">Add Remote Server</span>
                             </button>
                         </div>
 
                         <!-- Local Server Section -->
                         <div class="settings-section">
-                            <div class="settings-section-title"><span>🏠</span> Local Server (Duplicate Detection)</div>
+                            <div class="settings-section-title"><span>🏠</span> <span data-i18n="local_server">Local Server</span> (<span data-i18n="duplicate_detection">Duplicate Detection</span>)</div>
                             <div id="local-server-info">
                                 <div class="empty-state" style="padding: 1.5rem;">
-                                    <p>No local server configured. Add one to detect existing content.</p>
-                                    <button class="btn btn-secondary btn-sm" style="margin-top: 0.75rem;" id="add-local-btn">Configure Local Server</button>
+                                    <p data-i18n="no_local_server">No local server configured. Add one to detect existing content.</p>
+                                    <button class="btn btn-secondary btn-sm" style="margin-top: 0.75rem;" id="add-local-btn" data-i18n="configure_local">Configure Local Server</button>
                                 </div>
                             </div>
                         </div>
@@ -1339,49 +1565,49 @@
                         <!-- Advanced Settings -->
                         <button class="advanced-toggle" id="advanced-toggle">
                             <span class="advanced-toggle-icon">▼</span>
-                            Advanced Settings
+                            <span data-i18n="advanced_settings">Advanced Settings</span>
                         </button>
                         <div class="advanced-content" id="advanced-content">
                             <div class="form-group">
-                                <label class="form-label">Speed Limit (KB/s)</label>
+                                <label class="form-label" data-i18n="speed_limit">Speed Limit (KB/s)</label>
                                 <input type="number" class="form-input" id="speed-limit" min="0" placeholder="0 = unlimited">
-                                <div class="form-hint">Set to 0 for unlimited speed</div>
+                                <div class="form-hint" data-i18n="speed_limit_hint">Set to 0 for unlimited speed</div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label class="form-label">Sync Time</label>
+                                    <label class="form-label" data-i18n="sync_time">Sync Time</label>
                                     <input type="time" class="form-input" id="sync-time" value="04:00">
                                 </div>
                                 <div class="form-group">
-                                    <label class="form-label">Max Downloads</label>
+                                    <label class="form-label" data-i18n="max_downloads">Max Downloads</label>
                                     <input type="number" class="form-input" id="max-downloads" min="1" max="10" value="2">
                                 </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label class="form-label">Connection Timeout (s)</label>
+                                    <label class="form-label" data-i18n="connection_timeout">Connection Timeout (s)</label>
                                     <input type="number" class="form-input" id="connection-timeout" min="5" max="120" value="30">
                                 </div>
                                 <div class="form-group">
-                                    <label class="form-label">Chunk Size (KB)</label>
+                                    <label class="form-label" data-i18n="chunk_size">Chunk Size (KB)</label>
                                     <input type="number" class="form-input" id="chunk-size" min="16" max="1024" value="64">
                                 </div>
                             </div>
                             <div class="toggle-container">
-                                <span class="toggle-label">Confirm before downloading</span>
+                                <span class="toggle-label" data-i18n="confirm_downloads">Confirm before downloading</span>
                                 <label class="toggle">
                                     <input type="checkbox" id="confirm-downloads">
                                     <span class="toggle-slider"></span>
                                 </label>
                             </div>
                             <div class="toggle-container">
-                                <span class="toggle-label">Show notifications</span>
+                                <span class="toggle-label" data-i18n="show_notifications">Show notifications</span>
                                 <label class="toggle">
                                     <input type="checkbox" id="show-notifications" checked>
                                     <span class="toggle-slider"></span>
                                 </label>
                             </div>
-                            <button class="btn btn-primary" style="width: 100%; margin-top: 1rem;" id="save-settings-btn">Save Settings</button>
+                            <button class="btn btn-primary" style="width: 100%; margin-top: 1rem;" id="save-settings-btn" data-i18n="save_settings">Save Settings</button>
                         </div>
                     </div>
                 </div>
@@ -1389,31 +1615,34 @@
         </div>
 
         <!-- Right Column -->
-        <div class="right-column">
+        <div class="right-column" id="right-column">
+            <!-- Mobile toggle bar -->
+            <div class="right-column-toggle" id="right-column-toggle"></div>
+            
             <!-- Stats -->
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-value" id="stat-active">0</div>
-                    <div class="stat-label">Active</div>
+                    <div class="stat-label" data-i18n="active">Active</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value" id="stat-pending">0</div>
-                    <div class="stat-label">Pending</div>
+                    <div class="stat-label" data-i18n="pending">Pending</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value" id="stat-cached">0</div>
-                    <div class="stat-label">Cached</div>
+                    <div class="stat-label" data-i18n="cached">Cached</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value" id="stat-cache-time">Never</div>
-                    <div class="stat-label">Last Scan</div>
+                    <div class="stat-label" data-i18n="last_scan">Last Scan</div>
                 </div>
             </div>
 
             <!-- Scan Progress -->
             <div class="scan-progress" id="scan-progress" style="display: none;">
                 <div class="scan-progress-header">
-                    <span>Scanning local library...</span>
+                    <span data-i18n="scanning">Scanning local library...</span>
                     <span id="scan-percent">0%</span>
                 </div>
                 <div class="scan-progress-bar">
@@ -1426,7 +1655,7 @@
                 <div class="panel-header">
                     <h2 class="panel-title">
                         <span class="panel-title-icon">⬇️</span>
-                        Downloads
+                        <span data-i18n="downloads">Downloads</span>
                     </h2>
                     <div style="display: flex; gap: 0.5rem;">
                         <button class="btn btn-secondary btn-sm" id="pause-btn" data-tooltip="Pause All">⏸️</button>
@@ -1438,7 +1667,7 @@
                     <div class="queue-container" id="download-queue">
                         <div class="queue-empty">
                             <div class="queue-empty-icon">📭</div>
-                            <p>No active downloads</p>
+                            <p data-i18n="no_active_downloads">No active downloads</p>
                         </div>
                     </div>
                 </div>
@@ -1449,13 +1678,19 @@
                 <div class="panel-header">
                     <h2 class="panel-title">
                         <span class="panel-title-icon">📋</span>
-                        Activity Log
+                        <span data-i18n="activity_log">Activity Log</span>
                     </h2>
-                    <button class="btn btn-secondary btn-sm" id="rebuild-cache-btn">🔄 Rebuild Cache</button>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-secondary btn-sm" id="toggle-history-btn">📜 <span data-i18n="history">History</span></button>
+                        <button class="btn btn-secondary btn-sm" id="rebuild-cache-btn">🔄 <span data-i18n="rebuild_cache">Rebuild Cache</span></button>
+                    </div>
                 </div>
                 <div class="panel-body" style="padding: 0;">
                     <div class="log-container" id="log-container">
                         <div class="log-line">Waiting for activity...</div>
+                    </div>
+                    <div class="history-container" id="history-container" style="display: none;">
+                        <div class="log-line">No download history yet...</div>
                     </div>
                 </div>
             </div>
@@ -1470,46 +1705,47 @@
     <div class="modal" id="server-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title">Add Remote Server</h3>
+                <h3 class="modal-title" data-i18n="add_remote_server">Add Remote Server</h3>
                 <button class="modal-close" onclick="closeModal('server-modal')">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label class="form-label">Server Name</label>
+                    <label class="form-label" data-i18n="server_name">Server Name</label>
                     <input type="text" class="form-input" id="server-name" placeholder="My Jellyfin Server">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Server URL</label>
+                    <label class="form-label" data-i18n="server_url">Server URL</label>
                     <input type="text" class="form-input" id="server-url" placeholder="http://192.168.1.100:8096">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Authentication Method</label>
+                    <label class="form-label" data-i18n="auth_method">Authentication Method</label>
                     <select class="form-input" id="auth-method">
-                        <option value="key">API Key</option>
-                        <option value="creds">Username/Password</option>
+                        <option value="key" data-i18n="api_key">API Key</option>
+                        <option value="creds" data-i18n="username_password">Username/Password</option>
                     </select>
                 </div>
                 <div id="auth-key-fields">
                     <div class="form-group">
-                        <label class="form-label">API Key</label>
+                        <label class="form-label" data-i18n="api_key">API Key</label>
                         <input type="text" class="form-input" id="server-key" placeholder="Enter API key">
                     </div>
                 </div>
                 <div id="auth-creds-fields" style="display: none;">
                     <div class="form-group">
-                        <label class="form-label">Username</label>
+                        <label class="form-label" data-i18n="username">Username</label>
                         <input type="text" class="form-input" id="server-username" placeholder="Username">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Password</label>
+                        <label class="form-label" data-i18n="password">Password</label>
                         <input type="password" class="form-input" id="server-password" placeholder="Password">
                     </div>
                 </div>
+                <div class="form-hint" style="margin-top: 1rem; text-align: center;" data-i18n="test_before_adding">⚠️ Test the connection before adding the server</div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('server-modal')">Cancel</button>
-                <button class="btn btn-secondary" onclick="testServerConnection()">Test Connection</button>
-                <button class="btn btn-primary" onclick="saveServer()">Add Server</button>
+                <button class="btn btn-secondary" onclick="closeModal('server-modal')" data-i18n="cancel">Cancel</button>
+                <button class="btn btn-secondary" onclick="testServerConnection()" data-i18n="test_connection">Test Connection</button>
+                <button class="btn btn-primary" onclick="saveServer()" data-i18n="add_server">Add Server</button>
             </div>
         </div>
     </div>
@@ -1518,22 +1754,22 @@
     <div class="modal" id="local-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title">Configure Local Server</h3>
+                <h3 class="modal-title" data-i18n="configure_local">Configure Local Server</h3>
                 <button class="modal-close" onclick="closeModal('local-modal')">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label class="form-label">Server URL</label>
+                    <label class="form-label" data-i18n="server_url">Server URL</label>
                     <input type="text" class="form-input" id="local-server-url" placeholder="http://localhost:8096">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">API Key</label>
+                    <label class="form-label" data-i18n="api_key">API Key</label>
                     <input type="text" class="form-input" id="local-server-key" placeholder="Enter API key">
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('local-modal')">Cancel</button>
-                <button class="btn btn-primary" onclick="saveLocalServer()">Save & Scan</button>
+                <button class="btn btn-secondary" onclick="closeModal('local-modal')" data-i18n="cancel">Cancel</button>
+                <button class="btn btn-primary" onclick="saveLocalServer()" data-i18n="save_and_scan">Save & Scan</button>
             </div>
         </div>
     </div>
@@ -1542,16 +1778,20 @@
     <div class="modal" id="path-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title">Select Download Location</h3>
+                <h3 class="modal-title" data-i18n="select_download_location">Select Download Location</h3>
                 <button class="modal-close" onclick="closeModal('path-modal')">&times;</button>
             </div>
             <div class="modal-body">
+                <!-- Quick paths from mappings -->
+                <div id="quick-paths" style="margin-bottom: 1rem;"></div>
+                
+                <div class="form-hint" style="margin-bottom: 0.5rem;" data-i18n="or_browse">Or browse to a folder:</div>
                 <div class="browser-path" id="local-path-display">/storage</div>
-                <div id="local-folder-list" style="max-height: 300px; overflow-y: auto;"></div>
+                <div id="local-folder-list" style="max-height: 250px; overflow-y: auto;"></div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('path-modal')">Cancel</button>
-                <button class="btn btn-primary" onclick="confirmDownloadPath()">Download Here</button>
+                <button class="btn btn-secondary" onclick="closeModal('path-modal')" data-i18n="cancel">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmDownloadPath()" data-i18n="download_here">Download Here</button>
             </div>
         </div>
     </div>
@@ -1633,6 +1873,10 @@
         let totalPages = 1;
         let itemsPerPage = 50;
         let totalItems = 0;
+        
+        // Store current items for filtering
+        let currentItems = [];
+        let filterText = '';
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -1642,7 +1886,34 @@
             setupEventListeners();
             startStatusPolling();
             startLogPolling();
+            setupSearch();
         });
+        
+        // Search/Filter
+        function setupSearch() {
+            const searchInput = document.getElementById('library-search');
+            let debounceTimer;
+            
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    filterText = e.target.value.toLowerCase();
+                    filterCurrentItems();
+                }, 200);
+            });
+        }
+        
+        function filterCurrentItems() {
+            if (!filterText) {
+                renderBrowserItems(currentItems);
+                return;
+            }
+            
+            const filtered = currentItems.filter(item => 
+                item.Name.toLowerCase().includes(filterText)
+            );
+            renderBrowserItems(filtered);
+        }
 
         // Theme Management
         function initTheme() {
@@ -1662,6 +1933,19 @@
             setTheme(newTheme);
             config.theme = newTheme;
             api('config', 'POST', config);
+        }
+
+        // Mobile Menu
+        function openMobileMenu() {
+            document.getElementById('mobile-menu').classList.add('open');
+            document.getElementById('mobile-menu-overlay').classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeMobileMenu() {
+            document.getElementById('mobile-menu').classList.remove('open');
+            document.getElementById('mobile-menu-overlay').classList.remove('open');
+            document.body.style.overflow = '';
         }
 
         // API Helper
@@ -1744,6 +2028,8 @@
         }
 
         // Config Management
+        let translations = {};
+        
         async function loadConfig() {
             config = await api('config');
             updateServerSelect();
@@ -1751,11 +2037,51 @@
             updateServerList();
             updateLocalServerInfo();
             updateMappingsList();
+            
+            // Load and apply translations
+            await loadTranslations(config.language || 'en');
+        }
+        
+        async function loadTranslations(lang) {
+            try {
+                console.log('Loading translations for:', lang);
+                // Direct fetch since translations don't require auth
+                const res = await fetch(`/api/translations?lang=${lang}`);
+                translations = await res.json();
+                console.log('Translations loaded:', Object.keys(translations).length, 'keys');
+                applyTranslations();
+            } catch (e) {
+                console.error('Failed to load translations:', e);
+            }
+        }
+        
+        function applyTranslations() {
+            console.log('Applying translations, keys:', Object.keys(translations).length);
+            // Apply translations to elements with data-i18n attribute
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[key]) {
+                    console.log('Translating:', key, '->', translations[key]);
+                    el.textContent = translations[key];
+                }
+            });
+            
+            // Apply to placeholders
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-i18n-placeholder');
+                if (translations[key]) {
+                    el.placeholder = translations[key];
+                }
+            });
+        }
+        
+        function t(key) {
+            return translations[key] || key;
         }
 
         function updateServerSelect() {
             const select = document.getElementById('server-select');
-            select.innerHTML = '<option value="">Select Server...</option>';
+            select.innerHTML = `<option value="">${t('select_server')}</option>`;
             
             (config.servers || []).forEach(server => {
                 const opt = document.createElement('option');
@@ -1770,7 +2096,7 @@
             if (!config.servers || config.servers.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state" style="padding: 1.5rem;">
-                        <p>No remote servers configured yet.</p>
+                        <p>${t('no_remote_servers')}</p>
                     </div>
                 `;
                 return;
@@ -1783,7 +2109,7 @@
                         <div class="server-name">${escapeHtml(server.name)}</div>
                         <div class="server-url">${escapeHtml(server.url)}</div>
                     </div>
-                    <button class="btn btn-icon btn-sm btn-danger" onclick="removeServer('${server.id}')" data-tooltip="Remove">🗑️</button>
+                    <button class="btn btn-icon btn-sm btn-danger" onclick="removeServer('${server.id}')" data-tooltip="${t('remove')}">🗑️</button>
                 </div>
             `).join('');
         }
@@ -1803,24 +2129,24 @@
                     <div class="server-item">
                         <div class="server-icon" style="background: var(--jf-success);">✓</div>
                         <div class="server-info">
-                            <div class="server-name">Local Server</div>
+                            <div class="server-name">${t('local_server')}</div>
                             <div class="server-url">${escapeHtml(config.local_server_url)}</div>
                         </div>
-                        <button class="btn btn-icon btn-sm btn-danger" id="remove-local-btn" data-tooltip="Remove">🗑️</button>
+                        <button class="btn btn-icon btn-sm btn-danger" id="remove-local-btn" data-tooltip="${t('remove')}">🗑️</button>
                     </div>
                 `;
                 document.getElementById('remove-local-btn').addEventListener('click', async () => {
-                    if (confirm('Remove local server?')) {
+                    if (confirm(t('confirm_remove_local'))) {
                         await api('remove_local', 'POST');
                         loadConfig();
-                        showToast('Local server removed');
+                        showToast(t('local_server_removed'));
                     }
                 });
             } else {
                 container.innerHTML = `
                     <div class="empty-state" style="padding: 1.5rem;">
-                        <p>No local server configured.</p>
-                        <button class="btn btn-secondary btn-sm" style="margin-top: 0.75rem;" id="add-local-btn">Configure Local Server</button>
+                        <p>${t('no_local_server')}</p>
+                        <button class="btn btn-secondary btn-sm" style="margin-top: 0.75rem;" id="add-local-btn">${t('configure_local')}</button>
                     </div>
                 `;
                 document.getElementById('add-local-btn').addEventListener('click', () => openModal('local-modal'));
@@ -1855,6 +2181,7 @@
             document.getElementById('confirm-downloads').checked = config.confirm_downloads || false;
             document.getElementById('show-notifications').checked = config.show_notifications !== false;
             document.getElementById('theme-toggle-settings').checked = (config.theme || 'dark') === 'dark';
+            document.getElementById('language-select').value = config.language || 'en';
         }
 
         async function saveSettings() {
@@ -1865,8 +2192,18 @@
             config.chunk_size_kb = parseInt(document.getElementById('chunk-size').value) || 64;
             config.confirm_downloads = document.getElementById('confirm-downloads').checked;
             config.show_notifications = document.getElementById('show-notifications').checked;
+            
             await api('config', 'POST', config);
             showToast('Settings saved');
+        }
+        
+        async function saveLanguage() {
+            const newLang = document.getElementById('language-select').value;
+            config.language = newLang;
+            
+            await api('config', 'POST', config);
+            showToast('Language saved - refreshing...');
+            setTimeout(() => location.reload(), 500);
         }
 
         // Mappings
@@ -1876,8 +2213,8 @@
                 container.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">🗺️</div>
-                        <div class="empty-state-title">No Mappings</div>
-                        <p>Create a mapping to automatically sync content.</p>
+                        <div class="empty-state-title">${t('no_mappings')}</div>
+                        <p>${t('no_mappings_desc')}</p>
                     </div>
                 `;
                 return;
@@ -1889,9 +2226,9 @@
                     <div class="mapping-item">
                         <div class="mapping-info">
                             <div class="mapping-path">${escapeHtml(m.local_path)}</div>
-                            <div class="mapping-source">${server ? escapeHtml(server.name) : 'Unknown'} → ${m.lib_name || 'Library'}</div>
+                            <div class="mapping-source">${server ? escapeHtml(server.name) : t('unknown')} → ${m.lib_name || t('library')}</div>
                         </div>
-                        <button class="btn btn-icon btn-sm btn-danger" onclick="removeMapping('${m.id}')" data-tooltip="Remove">🗑️</button>
+                        <button class="btn btn-icon btn-sm btn-danger" onclick="removeMapping('${m.id}')" data-tooltip="${t('remove')}">🗑️</button>
                     </div>
                 `;
             }).join('');
@@ -1907,6 +2244,16 @@
 
         // Event Listeners
         function setupEventListeners() {
+            // Mobile menu
+            document.getElementById('mobile-menu-btn')?.addEventListener('click', openMobileMenu);
+            document.getElementById('mobile-menu-close')?.addEventListener('click', closeMobileMenu);
+            document.getElementById('mobile-menu-overlay')?.addEventListener('click', closeMobileMenu);
+            
+            // Right column toggle (mobile)
+            document.getElementById('right-column-toggle')?.addEventListener('click', () => {
+                document.getElementById('right-column').classList.toggle('expanded');
+            });
+            
             // Theme toggle
             document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
             document.getElementById('theme-toggle-settings').addEventListener('change', (e) => {
@@ -1967,6 +2314,7 @@
                 }
             });
             document.getElementById('clear-selection-btn').addEventListener('click', clearSelection);
+            document.getElementById('select-all-btn').addEventListener('click', selectAllOnPage);
 
             // Add server button
             document.getElementById('add-server-btn').addEventListener('click', () => openModal('server-modal'));
@@ -1979,6 +2327,9 @@
 
             // Save settings
             document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
+            
+            // Save language button
+            document.getElementById('save-language-btn').addEventListener('click', saveLanguage);
 
             // Advanced toggle
             document.getElementById('advanced-toggle').addEventListener('click', () => {
@@ -2005,6 +2356,60 @@
                 api('rebuild_cache', 'POST');
                 showToast('Cache rebuild started');
             });
+            
+            // History toggle
+            document.getElementById('toggle-history-btn').addEventListener('click', toggleHistoryView);
+        }
+        
+        let showingHistory = false;
+        
+        function toggleHistoryView() {
+            showingHistory = !showingHistory;
+            const logContainer = document.getElementById('log-container');
+            const historyContainer = document.getElementById('history-container');
+            const btn = document.getElementById('toggle-history-btn');
+            
+            if (showingHistory) {
+                logContainer.style.display = 'none';
+                historyContainer.style.display = 'block';
+                btn.textContent = '📋 Activity';
+                loadHistory();
+            } else {
+                logContainer.style.display = 'block';
+                historyContainer.style.display = 'none';
+                btn.textContent = '📜 History';
+            }
+        }
+        
+        async function loadHistory() {
+            const history = await api('history');
+            const container = document.getElementById('history-container');
+            
+            if (!history || history.length === 0) {
+                container.innerHTML = '<div class="log-line">No download history yet...</div>';
+                return;
+            }
+            
+            container.innerHTML = history.map(item => `
+                <div class="history-item">
+                    <div class="history-item-name">✓ ${escapeHtml(item.filename)}</div>
+                    <div class="history-item-meta">
+                        ${formatBytes(item.size)}<br>
+                        ${item.timestamp}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function formatBytes(bytes) {
+            if (!bytes) return '0 B';
+            const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+            let i = 0;
+            while (bytes >= 1024 && i < units.length - 1) {
+                bytes /= 1024;
+                i++;
+            }
+            return bytes.toFixed(2) + ' ' + units[i];
         }
 
         // Remote Browser
@@ -2013,6 +2418,10 @@
 
             const grid = document.getElementById('browser-grid');
             grid.innerHTML = '<div class="empty-state"><div class="spin">🔄</div><p>Loading...</p></div>';
+            
+            // Clear search when browsing new folder
+            document.getElementById('library-search').value = '';
+            filterText = '';
 
             const data = await api('browse_remote', 'POST', {
                 server_id: currentServerId,
@@ -2025,7 +2434,10 @@
             totalItems = data.total || 0;
             totalPages = data.total_pages || 1;
             
-            renderBrowserItems(data.items);
+            // Store items for filtering
+            currentItems = data.items || [];
+            
+            renderBrowserItems(currentItems);
             renderBrowserPath();
             renderPagination();
         }
@@ -2107,9 +2519,8 @@
             grid.innerHTML = items.map(item => {
                 const icon = item.IsFolder ? '📁' : (item.Type === 'Movie' ? '🎬' : '📺');
                 
-                // Use the image type returned by the server, defaulting to Primary
-                const imageType = item.ImageType || 'Primary';
-                const imgSrc = item.HasImage ? `${baseUrl}/Items/${item.Id}/Images/${imageType}?fillWidth=200&fillHeight=300&quality=90` : '';
+                // Get Primary poster image at reasonable size
+                const imgSrc = item.HasPrimary ? `${baseUrl}/Items/${item.Id}/Images/Primary?maxWidth=300&quality=90` : '';
                 
                 const classes = ['browser-item'];
                 if (item.IsFolder) classes.push('folder');
@@ -2158,6 +2569,22 @@
             updateSelectionUI();
         }
 
+        function selectAllOnPage() {
+            const items = document.querySelectorAll('.browser-item:not(.folder)');
+            const allSelected = Array.from(items).every(el => selectedItems.has(el.dataset.id));
+            
+            if (allSelected) {
+                // Deselect all
+                items.forEach(el => selectedItems.delete(el.dataset.id));
+                document.getElementById('select-all-btn').textContent = 'Select All';
+            } else {
+                // Select all non-folder items
+                items.forEach(el => selectedItems.add(el.dataset.id));
+                document.getElementById('select-all-btn').textContent = 'Deselect All';
+            }
+            updateSelectionUI();
+        }
+
         function updateSelectionUI() {
             document.querySelectorAll('.browser-item').forEach(el => {
                 el.classList.toggle('selected', selectedItems.has(el.dataset.id));
@@ -2171,12 +2598,14 @@
                 count.textContent = selectedItems.size;
             } else {
                 bar.classList.remove('active');
+                document.getElementById('select-all-btn').textContent = 'Select All';
             }
         }
 
         function clearSelection() {
             selectedItems.clear();
             updateSelectionUI();
+            document.getElementById('select-all-btn').textContent = 'Select All';
         }
 
         function navigateTo(id, name) {
@@ -2207,7 +2636,31 @@
         async function openPathModal() {
             openModal('path-modal');
             pendingDownloadPath = '/storage';
+            
+            // Show quick paths from library mappings
+            const quickPaths = document.getElementById('quick-paths');
+            const serverMappings = (config.mappings || []).filter(m => m.server_id === currentServerId);
+            
+            if (serverMappings.length > 0) {
+                quickPaths.innerHTML = `
+                    <div class="form-label" style="margin-bottom: 0.5rem;">📁 Quick Paths (from mappings):</div>
+                    ${serverMappings.map(m => `
+                        <button class="btn btn-secondary btn-sm" style="margin: 0.25rem;" onclick="selectQuickPath('${m.local_path}')">
+                            ${escapeHtml(m.lib_name)} → ${escapeHtml(m.local_path)}
+                        </button>
+                    `).join('')}
+                `;
+            } else {
+                quickPaths.innerHTML = '<div class="form-hint">No library mappings for this server. Add mappings in Sync tab for quick access.</div>';
+            }
+            
             browseLocalPath('/storage');
+        }
+        
+        function selectQuickPath(path) {
+            pendingDownloadPath = path;
+            document.getElementById('local-path-display').textContent = path;
+            browseLocalPath(path);
         }
 
         async function browseLocalPath(path) {
@@ -2226,7 +2679,8 @@
             }
 
             data.folders.forEach(folder => {
-                html += `<div class="server-item" onclick="browseLocalPath('${data.current}/${folder}')">
+                const fullPath = data.current === '/' ? `/${folder}` : `${data.current}/${folder}`;
+                html += `<div class="server-item" onclick="browseLocalPath('${fullPath}')">
                     <div class="server-icon">📁</div>
                     <div class="server-info"><div class="server-name">${escapeHtml(folder)}</div></div>
                 </div>`;
@@ -2440,12 +2894,14 @@
             const pending = status.pending || [];
 
             if (active.length === 0 && pending.length === 0) {
-                container.innerHTML = '<div class="queue-empty"><div class="queue-empty-icon">📭</div><p>No active downloads</p></div>';
+                container.innerHTML = `<div class="queue-empty"><div class="queue-empty-icon">📭</div><p>${t('no_active_downloads')}</p></div>`;
                 return;
             }
 
             container.innerHTML = [
-                ...active.map(d => `
+                ...active.map(d => {
+                    const eta = calculateETA(d);
+                    return `
                     <div class="download-item">
                         <div class="download-header">
                             <span class="download-name" title="${escapeHtml(d.filename)}">${escapeHtml(d.filename)}</span>
@@ -2455,11 +2911,11 @@
                             <div class="download-progress-bar" style="width: ${d.percent}%"></div>
                         </div>
                         <div class="download-meta">
-                            <span>${d.speed}</span>
+                            <span>${d.speed}${eta ? ' • ' + eta : ''}</span>
                             <span>${d.percent}%</span>
                         </div>
                     </div>
-                `),
+                `}),
                 ...pending.map(p => `
                     <div class="download-item">
                         <div class="download-header">
@@ -2470,12 +2926,38 @@
                 `)
             ].join('');
         }
+        
+        function calculateETA(download) {
+            if (!download.speed_raw || download.speed_raw <= 0) return null;
+            if (!download.total || download.total <= 0) return null;
+            
+            const remaining = download.total - download.current;
+            if (remaining <= 0) return null;
+            
+            const seconds = Math.round(remaining / download.speed_raw);
+            
+            if (seconds < 60) return `~${seconds}s`;
+            if (seconds < 3600) return `~${Math.round(seconds / 60)}m`;
+            return `~${Math.round(seconds / 3600)}h ${Math.round((seconds % 3600) / 60)}m`;
+        }
 
         function updateStats(status) {
-            document.getElementById('stat-active').textContent = Object.keys(status.active || {}).length;
-            document.getElementById('stat-pending').textContent = (status.pending || []).length + (status.queue_size || 0);
+            const activeCount = Object.keys(status.active || {}).length;
+            const pendingCount = (status.pending || []).length + (status.queue_size || 0);
+            
+            document.getElementById('stat-active').textContent = activeCount;
+            document.getElementById('stat-pending').textContent = pendingCount;
             document.getElementById('stat-cached').textContent = status.cache_count || 0;
             document.getElementById('stat-cache-time').textContent = status.cache_time || 'Never';
+            
+            // Update title bar with download count
+            if (activeCount > 0) {
+                document.title = `JellyLooter (${activeCount} ⬇)`;
+            } else if (pendingCount > 0) {
+                document.title = `JellyLooter (${pendingCount} pending)`;
+            } else {
+                document.title = 'JellyLooter';
+            }
         }
 
         function updateScanProgress(scan) {

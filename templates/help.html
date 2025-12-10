@@ -1,45 +1,39 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ lang }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JellyLooter - Help</title>
+    <title>JellyLooter - {{ t.get('help', 'Help') }}</title>
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/jlightner86/jellylooter/main/icon.png">
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --jf-primary: #00a4dc; --jf-bg-dark: #101010; --jf-bg-card: #1a1a1a; --jf-bg-input: #2a2a2a; --jf-text: #fff; --jf-text-muted: #888; --jf-border: #333; --jf-gradient: linear-gradient(135deg, #00a4dc 0%, #aa5cc3 100%); }
+        :root { --jf-primary: #00a4dc; --jf-bg-dark: #101010; --jf-bg-card: #1a1a1a; --jf-bg-input: #2a2a2a; --jf-text: #fff; --jf-text-muted: #888; --jf-border: #333; --jf-success: #4caf50; --jf-gradient: linear-gradient(135deg, #00a4dc 0%, #aa5cc3 100%); }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Quicksand', sans-serif; background: var(--jf-bg-dark); color: var(--jf-text); min-height: 100vh; line-height: 1.6; }
-        .container { max-width: 900px; margin: 0 auto; padding: 1rem; }
+        .container { max-width: 800px; margin: 0 auto; padding: 1rem; }
         @media (min-width: 768px) { .container { padding: 2rem; } }
         .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--jf-border); flex-wrap: wrap; gap: 1rem; }
         .logo { display: flex; align-items: center; gap: 0.75rem; }
         .logo-icon { width: 40px; height: 40px; border-radius: 8px; }
         .logo-text { font-size: 1.5rem; font-weight: 700; background: var(--jf-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .btn { padding: 0.5rem 1rem; background: var(--jf-bg-card); border: 1px solid var(--jf-border); border-radius: 8px; color: var(--jf-text); text-decoration: none; font-weight: 600; font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.5rem; }
+        .btn { padding: 0.5rem 1rem; background: var(--jf-bg-card); border: 1px solid var(--jf-border); border-radius: 8px; color: var(--jf-text); text-decoration: none; font-weight: 600; font-size: 0.875rem; }
         .btn:hover { background: var(--jf-primary); border-color: var(--jf-primary); }
-        .btn-coffee { background: #ffdd00; border-color: #ffdd00; color: #1a1a1a; }
-        .btn-coffee:hover { background: #ffcc00; }
-        h1 { font-size: 1.75rem; margin-bottom: 1.5rem; }
-        .support-card { background: linear-gradient(135deg, #ffdd00 0%, #ff9500 100%); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; text-align: center; color: #1a1a1a; }
-        .support-card h2 { margin-bottom: 0.5rem; }
-        .support-card p { margin-bottom: 1rem; opacity: 0.9; }
-        .coffee-btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: #1a1a1a; color: #ffdd00; border-radius: 8px; text-decoration: none; font-weight: 700; }
-        .section { background: var(--jf-bg-card); border: 1px solid var(--jf-border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
-        .section-title { font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; color: var(--jf-primary); }
-        .tip { display: flex; gap: 0.75rem; padding: 1rem; background: var(--jf-bg-input); border-radius: 8px; margin-bottom: 0.75rem; }
-        .tip-icon { font-size: 1.25rem; flex-shrink: 0; }
-        .tip-title { font-weight: 600; margin-bottom: 0.25rem; }
-        .tip-text { color: var(--jf-text-muted); font-size: 0.875rem; }
-        .faq-item { padding: 1rem 0; border-bottom: 1px solid var(--jf-border); }
-        .faq-item:last-child { border-bottom: none; }
-        .faq-question { font-weight: 600; margin-bottom: 0.5rem; }
-        .faq-answer { color: var(--jf-text-muted); font-size: 0.9375rem; }
-        .faq-answer code { background: var(--jf-bg-input); padding: 0.125rem 0.375rem; border-radius: 4px; font-family: monospace; font-size: 0.875rem; }
+        .btn-coffee { background: #ff5e5b; border-color: #ff5e5b; color: white; }
+        h1 { font-size: 1.75rem; margin-bottom: 2rem; }
+        h2 { font-size: 1.25rem; color: var(--jf-primary); margin-bottom: 1rem; }
+        .card { background: var(--jf-bg-card); border: 1px solid var(--jf-border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+        .tip { display: flex; gap: 1rem; align-items: flex-start; background: var(--jf-bg-input); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+        .tip-icon { font-size: 1.5rem; }
+        .tip-content h3 { font-size: 1rem; margin-bottom: 0.25rem; }
+        .tip-content p { color: var(--jf-text-muted); font-size: 0.875rem; }
         .footer { text-align: center; padding-top: 2rem; color: var(--jf-text-muted); font-size: 0.875rem; }
         .footer a { color: var(--jf-primary); text-decoration: none; }
-        .compatibility { background: var(--jf-bg-input); padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
-        .compatibility-badge { background: #4caf50; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; }
+        .support-banner { background: linear-gradient(135deg, #ff5e5b 0%, #ff9500 100%); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; text-align: center; color: white; }
+        .support-banner h3 { margin-bottom: 0.5rem; }
+        .support-banner p { margin-bottom: 1rem; opacity: 0.9; }
+        .support-banner .btn { background: #1a1a1a; color: white; border-color: white; }
+        .verified { display: inline-flex; align-items: center; gap: 0.5rem; background: var(--jf-bg-card); border: 1px solid var(--jf-border); padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 2rem; }
+        .verified-badge { background: var(--jf-success); color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -50,94 +44,98 @@
                 <span class="logo-text">JellyLooter</span>
             </div>
             <div style="display:flex;gap:0.5rem;">
-                <a href="https://buymeacoffee.com/friendlymedia" target="_blank" class="btn btn-coffee">☕ Support</a>
-                <a href="/" class="btn">← Back</a>
+                <a href="https://ko-fi.com/jellyloot" target="_blank" class="btn btn-coffee">❤️ {{ t.get('support_btn', 'Support') }}</a>
+                <a href="/" class="btn">← {{ t.get('back', 'Back') }}</a>
             </div>
         </div>
-
-        <h1>Help & Support</h1>
-
-        <div class="support-card">
-            <h2>☕ Support JellyLooter</h2>
-            <p>If this project saves you time, consider buying me a coffee!</p>
-            <a href="https://buymeacoffee.com/friendlymedia" target="_blank" class="coffee-btn">☕ Buy Me a Coffee</a>
+        
+        <h1>{{ t.get('help_support', 'Help & Support') }}</h1>
+        
+        <div class="support-banner">
+            <h3>❤️ {{ t.get('support_jellylooter', 'Support JellyLooter') }}</h3>
+            <p>{{ t.get('support_message', 'If this project saves you time, consider supporting on Ko-fi!') }}</p>
+            <a href="https://ko-fi.com/jellyloot" target="_blank" class="btn">❤️ Ko-fi</a>
         </div>
-
-        <div class="compatibility">
-            <span class="compatibility-badge">✓ VERIFIED</span>
-            <span>Confirmed working on <strong>Unraid 7.2.0</strong></span>
+        
+        <div class="verified">
+            <span class="verified-badge">✓ {{ t.get('verified', 'VERIFIED') }}</span>
+            <span>{{ t.get('confirmed_working', 'Confirmed working on') }} <strong>Unraid 7.2.0 / 7.2.2</strong></span>
         </div>
-
-        <div class="section">
-            <h2 class="section-title">💡 Quick Tips</h2>
-            <div class="tip">
-                <span class="tip-icon">🖱️</span>
-                <div>
-                    <div class="tip-title">Multi-Select Items</div>
-                    <div class="tip-text">Hold Ctrl/Cmd and click to select multiple items, or just click non-folder items to toggle selection.</div>
-                </div>
-            </div>
-            <div class="tip">
-                <span class="tip-icon">⚡</span>
-                <div>
-                    <div class="tip-title">Speed Limit Updates Live</div>
-                    <div class="tip-text">Change speed limit in settings and it applies to active downloads within 10 seconds.</div>
-                </div>
-            </div>
-            <div class="tip">
-                <span class="tip-icon">📋</span>
-                <div>
-                    <div class="tip-title">Download Order</div>
-                    <div class="tip-text">Choose how items are queued: complete shows first, round-robin by season/episode, or alphabetically.</div>
-                </div>
-            </div>
+        
+        <div class="card">
+            <h2>💡 {{ t.get('quick_tips', 'Quick Tips') }}</h2>
+            
             <div class="tip">
                 <span class="tip-icon">📱</span>
-                <div>
-                    <div class="tip-title">Mobile Friendly</div>
-                    <div class="tip-text">JellyLooter works on phones and tablets - browse and start downloads from anywhere.</div>
+                <div class="tip-content">
+                    <h3>{{ t.get('tip_multiselect', 'Multi-Select Items') }}</h3>
+                    <p>{{ t.get('tip_multiselect_desc', 'Hold Ctrl/Cmd and click to select multiple items, or just click non-folder items to toggle selection.') }}</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">⚡</span>
+                <div class="tip-content">
+                    <h3>{{ t.get('tip_speed', 'Speed Limit Updates Live') }}</h3>
+                    <p>{{ t.get('tip_speed_desc', 'Change speed limit in settings and it applies to active downloads within 10 seconds.') }}</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">📋</span>
+                <div class="tip-content">
+                    <h3>{{ t.get('tip_order', 'Download Order') }}</h3>
+                    <p>{{ t.get('tip_order_desc', 'Choose how items are queued: complete shows first, round-robin by season/episode, or alphabetically.') }}</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">🗺️</span>
+                <div class="tip-content">
+                    <h3>{{ t.get('tip_mappings', 'Library Mappings') }}</h3>
+                    <p>{{ t.get('tip_mappings_desc', 'Set up mappings to sync entire libraries automatically. Maps remote libraries to local folders.') }}</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">🌐</span>
+                <div class="tip-content">
+                    <h3>{{ t.get('tip_language', 'Change Language') }}</h3>
+                    <p>{{ t.get('tip_language_desc', 'Go to Settings > Appearance > Language to switch between English, Spanish, and German.') }}</p>
                 </div>
             </div>
         </div>
-
-        <div class="section">
-            <h2 class="section-title">❓ FAQ</h2>
-            <div class="faq-item">
-                <div class="faq-question">Why do I get "No space left on device"?</div>
-                <div class="faq-answer">Docker volume mapping issue. Check that <code>/storage</code> points to your actual media storage. Run: <code>docker exec jellylooter df -h /storage</code></div>
+        
+        <div class="card">
+            <h2>🔧 {{ t.get('troubleshooting', 'Troubleshooting') }}</h2>
+            
+            <div class="tip">
+                <span class="tip-icon">🔑</span>
+                <div class="tip-content">
+                    <h3>{{ t.get('issue_auth', 'Authentication Issues') }}</h3>
+                    <p>{{ t.get('issue_auth_desc', 'If using username/password auth, try deleting and re-adding the server. The user_id must be stored correctly.') }}</p>
+                </div>
             </div>
-            <div class="faq-item">
-                <div class="faq-question">Do I need to enable authentication?</div>
-                <div class="faq-answer">No! Auth is now optional (off by default). Enable it in Settings if you want login protection.</div>
+            
+            <div class="tip">
+                <span class="tip-icon">🐌</span>
+                <div class="tip-content">
+                    <h3>{{ t.get('issue_slow', 'Slow Downloads') }}</h3>
+                    <p>{{ t.get('issue_slow_desc', 'Check your speed limit setting. Set to 0 for unlimited. Also check network connection to remote server.') }}</p>
+                </div>
             </div>
-            <div class="faq-item">
-                <div class="faq-question">Why aren't all items showing?</div>
-                <div class="faq-answer">Pagination limits items per page. Increase "Items Per Page" in settings or use the page navigation.</div>
-            </div>
-            <div class="faq-item">
-                <div class="faq-question">How do I detect duplicates?</div>
-                <div class="faq-answer">Configure your local Jellyfin server in Settings and click "Rebuild Cache". Items you own show a green badge.</div>
-            </div>
-        </div>
-
-        <div class="section">
-            <h2 class="section-title">🔧 Troubleshooting</h2>
-            <div class="faq-item">
-                <div class="faq-question">Check volume mappings:</div>
-                <div class="faq-answer"><code>docker inspect jellylooter | grep -A10 "Mounts"</code></div>
-            </div>
-            <div class="faq-item">
-                <div class="faq-question">Test write permissions:</div>
-                <div class="faq-answer"><code>docker exec jellylooter touch /storage/test && docker exec jellylooter rm /storage/test</code></div>
-            </div>
-            <div class="faq-item">
-                <div class="faq-question">View logs:</div>
-                <div class="faq-answer"><code>docker logs -f jellylooter</code></div>
+            
+            <div class="tip">
+                <span class="tip-icon">❌</span>
+                <div class="tip-content">
+                    <h3>{{ t.get('issue_error', 'Download Errors') }}</h3>
+                    <p>{{ t.get('issue_error_desc', 'Check the Activity Log for details. Common issues: disk full, permissions, network timeout.') }}</p>
+                </div>
             </div>
         </div>
-
+        
         <div class="footer">
-            <p>JellyLooter v2.3.0 • Made with ❤️ by <a href="https://buymeacoffee.com/friendlymedia" target="_blank">FriendlyMedia</a></p>
+            <p>JellyLooter v{{ version }} • <a href="https://github.com/jlightner86/jellylooter" target="_blank">GitHub</a> • <a href="https://ko-fi.com/jellyloot" target="_blank">{{ t.get('support_btn', 'Support') }}</a></p>
         </div>
     </div>
 </body>
