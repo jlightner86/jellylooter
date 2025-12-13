@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/jlightner86/jellylooter/main/icon.png">
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --jf-primary: #00a4dc; --jf-bg-dark: #101010; --jf-bg-card: #1a1a1a; --jf-bg-input: #2a2a2a; --jf-text: #fff; --jf-text-muted: #888; --jf-border: #333; --jf-success: #4caf50; --jf-gradient: linear-gradient(135deg, #00a4dc 0%, #aa5cc3 100%); }
+        :root { --jf-primary: #00a4dc; --jf-bg-dark: #101010; --jf-bg-card: #1a1a1a; --jf-bg-input: #2a2a2a; --jf-text: #fff; --jf-text-muted: #888; --jf-border: #333; --jf-success: #4caf50; --jf-gradient: linear-gradient(135deg, #00a4dc 0%, #aa5cc3 100%); --jf-purple: #aa5cc3; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Quicksand', sans-serif; background: var(--jf-bg-dark); color: var(--jf-text); min-height: 100vh; line-height: 1.6; }
         .container { max-width: 800px; margin: 0 auto; padding: 1rem; }
@@ -18,13 +18,13 @@
         .logo-text { font-size: 1.5rem; font-weight: 700; background: var(--jf-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .btn { padding: 0.5rem 1rem; background: var(--jf-bg-card); border: 1px solid var(--jf-border); border-radius: 8px; color: var(--jf-text); text-decoration: none; font-weight: 600; font-size: 0.875rem; }
         .btn:hover { background: var(--jf-primary); border-color: var(--jf-primary); }
-        .btn-coffee { background: #ff5e5b; border-color: #ff5e5b; color: white; }
         h1 { font-size: 1.75rem; margin-bottom: 2rem; }
         .version { background: var(--jf-bg-card); border: 1px solid var(--jf-border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
         .version-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
         .version-number { font-size: 1.25rem; font-weight: 700; color: var(--jf-primary); }
         .version-date { font-size: 0.875rem; color: var(--jf-text-muted); }
         .version-tag { padding: 0.25rem 0.75rem; background: var(--jf-primary); border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+        .version-tag.major { background: var(--jf-purple); }
         .changes { list-style: none; }
         .changes li { padding: 0.5rem 0; padding-left: 1.5rem; position: relative; color: var(--jf-text-muted); }
         .changes li::before { content: '•'; position: absolute; left: 0; color: var(--jf-primary); }
@@ -32,12 +32,21 @@
         .change-type.new { background: rgba(76,175,80,0.2); color: #4caf50; }
         .change-type.fix { background: rgba(244,67,54,0.2); color: #f44336; }
         .change-type.improve { background: rgba(0,164,220,0.2); color: #00a4dc; }
+        .change-type.pro { background: rgba(170,92,195,0.2); color: #aa5cc3; }
+        .change-type.security { background: rgba(255,152,0,0.2); color: #ff9800; }
         .footer { text-align: center; padding-top: 2rem; color: var(--jf-text-muted); font-size: 0.875rem; }
         .footer a { color: var(--jf-primary); text-decoration: none; }
-        .support-banner { background: linear-gradient(135deg, #ff5e5b 0%, #ff9500 100%); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; text-align: center; color: white; }
-        .support-banner h3 { margin-bottom: 0.5rem; }
-        .support-banner p { margin-bottom: 1rem; opacity: 0.9; }
-        .support-banner .btn { background: #1a1a1a; color: #ff5e5b; border-color: white; }
+        .support-section { background: var(--jf-bg-card); border: 1px solid var(--jf-border); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; }
+        .support-section h3 { margin-bottom: 1rem; }
+        .support-options { display: flex; flex-direction: column; gap: 1rem; }
+        .support-option { display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--jf-bg-input); border-radius: 8px; }
+        .support-option-icon { font-size: 2rem; }
+        .support-option-info { flex: 1; }
+        .support-option-title { font-weight: 600; margin-bottom: 0.25rem; }
+        .support-option-desc { font-size: 0.875rem; color: var(--jf-text-muted); }
+        .support-warning { background: rgba(255,152,0,0.1); border: 1px solid rgba(255,152,0,0.3); border-radius: 8px; padding: 1rem; margin-top: 1rem; font-size: 0.875rem; color: #ff9800; }
+        .btn-kofi { background: #ff5e5b; border-color: #ff5e5b; color: white; }
+        .btn-pro { background: var(--jf-purple); border-color: var(--jf-purple); color: white; }
     </style>
 </head>
 <body>
@@ -48,22 +57,88 @@
                 <span class="logo-text">JellyLooter</span>
             </div>
             <div style="display:flex;gap:0.5rem;">
-                <a href="https://ko-fi.com/jellyloot" target="_blank" class="btn btn-coffee">❤️ {{ t.get('support_btn', 'Support') }}</a>
                 <a href="/" class="btn">← {{ t.get('back', 'Back') }}</a>
             </div>
         </div>
         <h1>{{ t.get('changelog', 'Changelog') }}</h1>
-        <div class="support-banner">
-            <h3>❤️ {{ t.get('enjoying_jellylooter', 'Enjoying JellyLooter?') }}</h3>
-            <p>{{ t.get('support_message', 'If this project saves you time, consider supporting on Ko-fi!') }}</p>
-            <a href="https://ko-fi.com/jellyloot" target="_blank" class="btn">Ko-fi</a>
+        
+        <!-- Support Section -->
+        <div class="support-section">
+            <h3>❤️ Support JellyLooter</h3>
+            <div class="support-options">
+                <div class="support-option">
+                    <span class="support-option-icon">☕</span>
+                    <div class="support-option-info">
+                        <div class="support-option-title">Ko-fi (Donations)</div>
+                        <div class="support-option-desc">One-time donations to support development. No features included.</div>
+                    </div>
+                    <a href="https://ko-fi.com/jellyloot" target="_blank" class="btn btn-kofi">Donate</a>
+                </div>
+                <div class="support-option">
+                    <span class="support-option-icon">⭐</span>
+                    <div class="support-option-info">
+                        <div class="support-option-title">Pro License ($10)</div>
+                        <div class="support-option-desc">Lifetime license for Pro features: notifications, transcoding, scheduling, and more.</div>
+                    </div>
+                    <a href="https://lightwave43.gumroad.com/l/rmtmrr" target="_blank" class="btn btn-pro">Buy Pro</a>
+                </div>
+            </div>
+            <div class="support-warning">
+                ⚠️ <strong>Note:</strong> Ko-fi donations do NOT include Pro features. If you want Pro features, purchase a license from Gumroad. Donations are non-refundable and are for supporting development only.
+            </div>
+        </div>
+
+        <div class="version">
+            <div class="version-header">
+                <span class="version-number">v3.0.0</span>
+                <span class="version-date">{{ t.get('december', 'December') }} 2024</span>
+                <span class="version-tag major">Major Release</span>
+            </div>
+            <ul class="changes">
+                <li><span class="change-type new">New</span> ⭐ Rating overlays on posters (IMDB/TMDB ratings)</li>
+                <li><span class="change-type new">New</span> 📊 Quality badges on posters (4K, 1080p, HDR, Dolby Vision, Atmos)</li>
+                <li><span class="change-type new">New</span> 🏷️ Content rating badges (PG-13, R, TV-MA)</li>
+                <li><span class="change-type new">New</span> Toggle for ratings and quality badges in Advanced Settings</li>
+                <li><span class="change-type new">New</span> ⌨️ Keyboard shortcuts modal (press ? to view)</li>
+                <li><span class="change-type new">New</span> 📊 Download statistics widget (speed, queue, today's downloads)</li>
+                <li><span class="change-type new">New</span> 📦 Collection/Playlist "Download All" button</li>
+                <li><span class="change-type new">New</span> 💾 Config export/import (Settings → Backup & Restore)</li>
+                <li><span class="change-type new">New</span> 🏥 Health check endpoint (/health) for Docker monitoring</li>
+                <li><span class="change-type pro">Pro</span> Licensing system with Free/Trial/Pro tiers</li>
+                <li><span class="change-type pro">Pro</span> 🔄 Download resume - interrupted downloads can be resumed</li>
+                <li><span class="change-type pro">Pro</span> Notifications via Apprise (Discord, Telegram, 80+ services)</li>
+                <li><span class="change-type pro">Pro</span> <span style="opacity: 0.6;">🚧 GPU transcoding (NVIDIA NVENC, Intel QuickSync, AMD VAAPI) - <em>Coming Soon</em></span></li>
+                <li><span class="change-type pro">Pro</span> <span style="opacity: 0.6;">🚧 Transcoding presets: H.264, H.265, Mobile, 4K Optimized - <em>Coming Soon</em></span></li>
+                <li><span class="change-type pro">Pro</span> Download and bandwidth scheduling</li>
+                <li><span class="change-type pro">Pro</span> *arr integration - Sonarr/Radarr folder naming</li>
+                <li><span class="change-type pro">Pro</span> Custom themes (14 presets including seasonal + custom colors)</li>
+                <li><span class="change-type pro">Pro</span> Multiple local servers for duplicate detection</li>
+                <li><span class="change-type pro">Pro</span> Concurrent downloads limit (Free: 2, Pro: 10)</li>
+                <li><span class="change-type security">Security</span> bcrypt password hashing</li>
+                <li><span class="change-type security">Security</span> Rate limiting on login (5 attempts/minute)</li>
+                <li><span class="change-type security">Security</span> Path traversal protection</li>
+                <li><span class="change-type security">Security</span> Input validation and security headers</li>
+                <li><span class="change-type security">Security</span> API keys encrypted at rest</li>
+                <li><span class="change-type security">Security</span> Backup license system for license recovery</li>
+                <li><span class="change-type new">New</span> Single-click to select, double-click to open folders</li>
+                <li><span class="change-type new">New</span> Keyboard shortcuts (P=pause, D=download, 1/2/3=tabs, ?=help)</li>
+                <li><span class="change-type new">New</span> Interaction hints and hover tooltips</li>
+                <li><span class="change-type new">New</span> Stop after current downloads button</li>
+                <li><span class="change-type new">New</span> Mobile hamburger menu with Downloads & Stats</li>
+                <li><span class="change-type new">New</span> Movie downloads now use folder with year (e.g., "Inception (2010)/")</li>
+                <li><span class="change-type new">New</span> Automatic subtitle download (SRT, ASS, VTT)</li>
+                <li><span class="change-type new">New</span> Collapsible panels (click header to collapse)</li>
+                <li><span class="change-type improve">Improve</span> 2-second polling for better performance</li>
+                <li><span class="change-type improve">Improve</span> Config caching reduces disk I/O</li>
+                <li><span class="change-type fix">Fix</span> Folder names now visible in browser</li>
+                <li><span class="change-type fix">Fix</span> Download panel button tooltips</li>
+            </ul>
         </div>
 
         <div class="version">
             <div class="version-header">
                 <span class="version-number">v2.4.1</span>
                 <span class="version-date">{{ t.get('december', 'December') }} 2024</span>
-                <span class="version-tag">{{ t.get('latest', 'Latest') }}</span>
             </div>
             <ul class="changes">
                 <li><span class="change-type fix">{{ t.get('fix', 'Fix') }}</span> {{ t.get('ch_mobile_view', 'Mobile view now works correctly with hamburger menu') }}</li>
@@ -96,20 +171,18 @@
             </ul>
         </div>
 
-        <div class="version">
+        <!-- Legal Disclaimer -->
+        <div class="version" style="background: rgba(255,152,0,0.1); border-color: rgba(255,152,0,0.3);">
             <div class="version-header">
-                <span class="version-number">v2.2.1</span>
-                <span class="version-date">{{ t.get('december', 'December') }} 2024</span>
+                <span class="version-number" style="color: #ff9800;">⚖️ Legal Notice</span>
             </div>
-            <ul class="changes">
-                <li><span class="change-type fix">{{ t.get('fix', 'Fix') }}</span> {{ t.get('ch_syntax', 'Python syntax errors fixed') }}</li>
-                <li><span class="change-type new">{{ t.get('new', 'New') }}</span> {{ t.get('ch_favicon', 'Added favicon') }}</li>
-                <li><span class="change-type new">{{ t.get('new', 'New') }}</span> {{ t.get('ch_kofi', 'Ko-fi support links') }}</li>
-            </ul>
+            <p style="color: var(--jf-text-muted); font-size: 0.875rem; margin: 0;">
+                JellyLooter is designed for legitimate personal use only. We do not support piracy or illegal downloading of copyrighted content. You are solely responsible for ensuring your use of this software complies with all applicable laws. See the Help page for full disclaimer.
+            </p>
         </div>
 
         <div class="footer">
-            <p>JellyLooter v{{ version }} • <a href="https://github.com/jlightner86/jellylooter" target="_blank">GitHub</a> • <a href="https://ko-fi.com/jellyloot" target="_blank">{{ t.get('support_btn', 'Support') }}</a></p>
+            <p>JellyLooter v{{ version }} • <a href="https://github.com/jlightner86/jellylooter" target="_blank">GitHub</a></p>
         </div>
     </div>
 </body>

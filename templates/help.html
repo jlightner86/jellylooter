@@ -7,10 +7,10 @@
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/jlightner86/jellylooter/main/icon.png">
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --jf-primary: #00a4dc; --jf-bg-dark: #101010; --jf-bg-card: #1a1a1a; --jf-bg-input: #2a2a2a; --jf-text: #fff; --jf-text-muted: #888; --jf-border: #333; --jf-success: #4caf50; --jf-gradient: linear-gradient(135deg, #00a4dc 0%, #aa5cc3 100%); }
+        :root { --jf-primary: #00a4dc; --jf-bg-dark: #101010; --jf-bg-card: #1a1a1a; --jf-bg-input: #2a2a2a; --jf-text: #fff; --jf-text-muted: #888; --jf-border: #333; --jf-success: #4caf50; --jf-gradient: linear-gradient(135deg, #00a4dc 0%, #aa5cc3 100%); --jf-purple: #aa5cc3; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Quicksand', sans-serif; background: var(--jf-bg-dark); color: var(--jf-text); min-height: 100vh; line-height: 1.6; }
-        .container { max-width: 800px; margin: 0 auto; padding: 1rem; }
+        .container { max-width: 900px; margin: 0 auto; padding: 1rem; }
         @media (min-width: 768px) { .container { padding: 2rem; } }
         .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--jf-border); flex-wrap: wrap; gap: 1rem; }
         .logo { display: flex; align-items: center; gap: 0.75rem; }
@@ -18,22 +18,44 @@
         .logo-text { font-size: 1.5rem; font-weight: 700; background: var(--jf-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .btn { padding: 0.5rem 1rem; background: var(--jf-bg-card); border: 1px solid var(--jf-border); border-radius: 8px; color: var(--jf-text); text-decoration: none; font-weight: 600; font-size: 0.875rem; }
         .btn:hover { background: var(--jf-primary); border-color: var(--jf-primary); }
-        .btn-coffee { background: #ff5e5b; border-color: #ff5e5b; color: white; }
         h1 { font-size: 1.75rem; margin-bottom: 2rem; }
-        h2 { font-size: 1.25rem; color: var(--jf-primary); margin-bottom: 1rem; }
+        h2 { font-size: 1.25rem; color: var(--jf-primary); margin-bottom: 1rem; margin-top: 0; }
+        h3 { font-size: 1rem; margin-bottom: 0.5rem; }
         .card { background: var(--jf-bg-card); border: 1px solid var(--jf-border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
         .tip { display: flex; gap: 1rem; align-items: flex-start; background: var(--jf-bg-input); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
-        .tip-icon { font-size: 1.5rem; }
+        .tip:last-child { margin-bottom: 0; }
+        .tip-icon { font-size: 1.5rem; flex-shrink: 0; }
         .tip-content h3 { font-size: 1rem; margin-bottom: 0.25rem; }
-        .tip-content p { color: var(--jf-text-muted); font-size: 0.875rem; }
+        .tip-content p { color: var(--jf-text-muted); font-size: 0.875rem; margin: 0; }
+        .tip-content code { background: var(--jf-bg-dark); padding: 0.125rem 0.375rem; border-radius: 4px; font-size: 0.8rem; }
         .footer { text-align: center; padding-top: 2rem; color: var(--jf-text-muted); font-size: 0.875rem; }
         .footer a { color: var(--jf-primary); text-decoration: none; }
-        .support-banner { background: linear-gradient(135deg, #ff5e5b 0%, #ff9500 100%); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; text-align: center; color: white; }
-        .support-banner h3 { margin-bottom: 0.5rem; }
-        .support-banner p { margin-bottom: 1rem; opacity: 0.9; }
-        .support-banner .btn { background: #1a1a1a; color: white; border-color: white; }
         .verified { display: inline-flex; align-items: center; gap: 0.5rem; background: var(--jf-bg-card); border: 1px solid var(--jf-border); padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 2rem; }
         .verified-badge { background: var(--jf-success); color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+        .support-section { background: var(--jf-bg-card); border: 1px solid var(--jf-border); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; }
+        .support-section h3 { margin-bottom: 1rem; }
+        .support-options { display: flex; flex-direction: column; gap: 1rem; }
+        .support-option { display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--jf-bg-input); border-radius: 8px; flex-wrap: wrap; }
+        .support-option-icon { font-size: 2rem; }
+        .support-option-info { flex: 1; min-width: 200px; }
+        .support-option-title { font-weight: 600; margin-bottom: 0.25rem; }
+        .support-option-desc { font-size: 0.875rem; color: var(--jf-text-muted); }
+        .support-warning { background: rgba(255,152,0,0.1); border: 1px solid rgba(255,152,0,0.3); border-radius: 8px; padding: 1rem; margin-top: 1rem; font-size: 0.875rem; color: #ff9800; }
+        .btn-kofi { background: #ff5e5b; border-color: #ff5e5b; color: white; }
+        .btn-pro { background: var(--jf-purple); border-color: var(--jf-purple); color: white; }
+        .toc { background: var(--jf-bg-input); padding: 1rem; border-radius: 8px; margin-bottom: 2rem; }
+        .toc-title { font-weight: 600; margin-bottom: 0.5rem; }
+        .toc-list { list-style: none; display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; }
+        .toc-list a { color: var(--jf-primary); text-decoration: none; font-size: 0.875rem; }
+        .toc-list a:hover { text-decoration: underline; }
+        .faq-item { border-bottom: 1px solid var(--jf-border); padding: 1rem 0; }
+        .faq-item:last-child { border-bottom: none; padding-bottom: 0; }
+        .faq-q { font-weight: 600; color: var(--jf-primary); margin-bottom: 0.5rem; }
+        .faq-a { color: var(--jf-text-muted); font-size: 0.9rem; }
+        .steps { counter-reset: step; }
+        .step { display: flex; gap: 1rem; margin-bottom: 1rem; }
+        .step::before { counter-increment: step; content: counter(step); background: var(--jf-primary); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; }
+        .step-content { flex: 1; }
     </style>
 </head>
 <body>
@@ -44,32 +66,79 @@
                 <span class="logo-text">JellyLooter</span>
             </div>
             <div style="display:flex;gap:0.5rem;">
-                <a href="https://ko-fi.com/jellyloot" target="_blank" class="btn btn-coffee">❤️ {{ t.get('support_btn', 'Support') }}</a>
                 <a href="/" class="btn">← {{ t.get('back', 'Back') }}</a>
             </div>
         </div>
         
         <h1>{{ t.get('help_support', 'Help & Support') }}</h1>
         
-        <div class="support-banner">
-            <h3>❤️ {{ t.get('support_jellylooter', 'Support JellyLooter') }}</h3>
-            <p>{{ t.get('support_message', 'If this project saves you time, consider supporting on Ko-fi!') }}</p>
-            <a href="https://ko-fi.com/jellyloot" target="_blank" class="btn">❤️ Ko-fi</a>
-        </div>
-        
         <div class="verified">
             <span class="verified-badge">✓ {{ t.get('verified', 'VERIFIED') }}</span>
-            <span>{{ t.get('confirmed_working', 'Confirmed working on') }} <strong>Unraid 7.2.0 / 7.2.2</strong></span>
+            <span>{{ t.get('confirmed_working', 'Confirmed working on') }} <strong>Unraid 7.0+ / 7.2.2</strong>, Docker Desktop, Linux</span>
         </div>
         
-        <div class="card">
+        <!-- Table of Contents -->
+        <div class="toc">
+            <div class="toc-title">📖 Quick Navigation</div>
+            <ul class="toc-list">
+                <li><a href="#support">Support</a></li>
+                <li><a href="#quick-tips">Quick Tips</a></li>
+                <li><a href="#keyboard-shortcuts">Keyboard Shortcuts</a></li>
+                <li><a href="#collections">Collections & Playlists</a></li>
+                <li><a href="#display-settings">Display Settings</a></li>
+                <li><a href="#backup-restore">Backup & Restore</a></li>
+                <li><a href="#download-resume">Download Resume (Pro)</a></li>
+                <li><a href="#health-check">Health Check</a></li>
+                <li><a href="#arr-setup">*arr Setup</a></li>
+                <li><a href="#troubleshooting">Troubleshooting</a></li>
+                <li><a href="#faq">FAQ</a></li>
+                <li><a href="#legal">Legal</a></li>
+            </ul>
+        </div>
+        
+        <!-- Support Section -->
+        <div class="support-section" id="support">
+            <h3>❤️ Support JellyLooter</h3>
+            <div class="support-options">
+                <div class="support-option">
+                    <span class="support-option-icon">☕</span>
+                    <div class="support-option-info">
+                        <div class="support-option-title">Ko-fi (Donations)</div>
+                        <div class="support-option-desc">One-time donations to support development. No features included - just a thank you!</div>
+                    </div>
+                    <a href="https://ko-fi.com/jellyloot" target="_blank" class="btn btn-kofi">Donate</a>
+                </div>
+                <div class="support-option">
+                    <span class="support-option-icon">⭐</span>
+                    <div class="support-option-info">
+                        <div class="support-option-title">Pro License ($10 lifetime)</div>
+                        <div class="support-option-desc">Unlock Pro features: notifications, GPU transcoding, scheduling, *arr integration, themes, and more.</div>
+                    </div>
+                    <a href="https://lightwave43.gumroad.com/l/rmtmrr" target="_blank" class="btn btn-pro">Buy Pro</a>
+                </div>
+            </div>
+            <div class="support-warning">
+                ⚠️ <strong>Important:</strong> Ko-fi donations do NOT include Pro features. If you want Pro features like notifications, transcoding, or scheduling, please purchase a Pro license from Gumroad instead. Donations are non-refundable and are for supporting development only.
+            </div>
+        </div>
+        
+        <!-- Quick Tips -->
+        <div class="card" id="quick-tips">
             <h2>💡 {{ t.get('quick_tips', 'Quick Tips') }}</h2>
             
             <div class="tip">
-                <span class="tip-icon">📱</span>
+                <span class="tip-icon">👆</span>
                 <div class="tip-content">
-                    <h3>{{ t.get('tip_multiselect', 'Multi-Select Items') }}</h3>
-                    <p>{{ t.get('tip_multiselect_desc', 'Hold Ctrl/Cmd and click to select multiple items, or just click non-folder items to toggle selection.') }}</p>
+                    <h3>Selection</h3>
+                    <p>Single-click to select items. Double-click to open folders. Ctrl+click for multi-select. Press Space to toggle selection on focused item.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">⌨️</span>
+                <div class="tip-content">
+                    <h3>Keyboard Shortcuts</h3>
+                    <p>Press <code>?</code> anytime to see all keyboard shortcuts. Quick keys: <code>1/2/3</code> for tabs, <code>P</code> to pause, <code>D</code> to download.</p>
                 </div>
             </div>
             
@@ -88,25 +157,232 @@
                     <p>{{ t.get('tip_order_desc', 'Choose how items are queued: complete shows first, round-robin by season/episode, or alphabetically.') }}</p>
                 </div>
             </div>
+        </div>
+        
+        <!-- Keyboard Shortcuts -->
+        <div class="card" id="keyboard-shortcuts">
+            <h2>⌨️ Keyboard Shortcuts</h2>
+            <p style="color: var(--jf-text-muted); margin-bottom: 1rem;">Press <code>?</code> anytime to see this list in-app.</p>
             
+            <h3>Navigation</h3>
             <div class="tip">
-                <span class="tip-icon">🗺️</span>
+                <span class="tip-icon">🔢</span>
                 <div class="tip-content">
-                    <h3>{{ t.get('tip_mappings', 'Library Mappings') }}</h3>
-                    <p>{{ t.get('tip_mappings_desc', 'Set up mappings to sync entire libraries automatically. Maps remote libraries to local folders.') }}</p>
+                    <p><code>/</code> Focus search box<br>
+                    <code>1</code> Go to Browse tab<br>
+                    <code>2</code> Go to Sync tab<br>
+                    <code>3</code> Go to Settings tab<br>
+                    <code>Esc</code> Clear selection / Close modal</p>
                 </div>
             </div>
             
+            <h3 style="margin-top: 1rem;">Selection</h3>
             <div class="tip">
-                <span class="tip-icon">🌐</span>
+                <span class="tip-icon">✓</span>
                 <div class="tip-content">
-                    <h3>{{ t.get('tip_language', 'Change Language') }}</h3>
-                    <p>{{ t.get('tip_language_desc', 'Go to Settings > Appearance > Language to switch between English, Spanish, and German.') }}</p>
+                    <p><code>Space</code> Toggle selection on hovered item<br>
+                    <code>Ctrl+A</code> Select all items on page<br>
+                    <code>Enter</code> Download selected items</p>
+                </div>
+            </div>
+            
+            <h3 style="margin-top: 1rem;">Downloads</h3>
+            <div class="tip">
+                <span class="tip-icon">⬇️</span>
+                <div class="tip-content">
+                    <p><code>P</code> Pause / Resume downloads<br>
+                    <code>D</code> Download selected items<br>
+                    <code>R</code> Refresh current view</p>
                 </div>
             </div>
         </div>
         
-        <div class="card">
+        <!-- Collections & Playlists -->
+        <div class="card" id="collections">
+            <h2>📦 Collections & Playlists</h2>
+            
+            <div class="tip">
+                <span class="tip-icon">📥</span>
+                <div class="tip-content">
+                    <h3>Download All Button</h3>
+                    <p>Collections (BoxSets) and Playlists show a "Download All" button on their poster. Click it to queue all movies/episodes in that collection with a single click.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">🔄</span>
+                <div class="tip-content">
+                    <h3>Recursive Downloads</h3>
+                    <p>When you download a collection, JellyLooter automatically resolves all nested items (series → seasons → episodes) and queues them in your preferred order.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Backup & Restore -->
+        <div class="card" id="backup-restore">
+            <h2>💾 Backup & Restore</h2>
+            
+            <div class="tip">
+                <span class="tip-icon">📤</span>
+                <div class="tip-content">
+                    <h3>Export Configuration</h3>
+                    <p>Go to <strong>Settings → Advanced Settings → Backup & Restore</strong> and click "Export Config". This downloads a JSON file with all your settings. API keys are masked (***MASKED***) for security.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">📥</span>
+                <div class="tip-content">
+                    <h3>Import Configuration</h3>
+                    <p>Click "Import Config" and select a previously exported JSON file. Your existing API keys are preserved if the imported ones are masked. Great for migrating to a new server or restoring after reinstall.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Download Resume -->
+        <div class="card" id="download-resume">
+            <h2>🔄 Download Resume (Pro)</h2>
+            
+            <div class="tip">
+                <span class="tip-icon">💎</span>
+                <div class="tip-content">
+                    <h3>Pro Feature</h3>
+                    <p>Download resume is available for Pro license holders. Interrupted downloads can be resumed from where they left off.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">📁</span>
+                <div class="tip-content">
+                    <h3>How It Works</h3>
+                    <p>Downloads in progress are saved as <code>.partial</code> files. If JellyLooter restarts or a download is interrupted, it will automatically resume from the last saved position.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">⏱️</span>
+                <div class="tip-content">
+                    <h3>Auto-Save</h3>
+                    <p>Progress is saved every 30 seconds during download. After completion, the <code>.partial</code> extension is removed and the file is renamed to its final name.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Health Check -->
+        <div class="card" id="health-check">
+            <h2>🏥 Health Check Endpoint</h2>
+            
+            <div class="tip">
+                <span class="tip-icon">🔗</span>
+                <div class="tip-content">
+                    <h3>Endpoint</h3>
+                    <p>Access at <code>/health</code> or <code>/api/health</code> (no authentication required). Perfect for Docker healthchecks and monitoring systems.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">📊</span>
+                <div class="tip-content">
+                    <h3>Response Data</h3>
+                    <p>Returns JSON with: version, uptime, queue status (active/pending/paused), disk space, server connectivity, cache info, and license tier.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">🐳</span>
+                <div class="tip-content">
+                    <h3>Docker Healthcheck</h3>
+                    <p>Add to your docker-compose.yml:<br>
+                    <code>healthcheck:<br>&nbsp;&nbsp;test: ["CMD", "curl", "-f", "http://localhost:5000/health"]<br>&nbsp;&nbsp;interval: 30s</code></p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Display Settings -->
+        <div class="card" id="display-settings">
+            <h2>🎨 Display Settings</h2>
+            
+            <div class="tip">
+                <span class="tip-icon">⭐</span>
+                <div class="tip-content">
+                    <h3>Rating Overlays</h3>
+                    <p>Show IMDB/TMDB ratings on poster images. To toggle: <strong>Settings → Advanced Settings → "Show ratings on posters"</strong>. Ratings are pulled from your Jellyfin/Emby server's metadata.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">📊</span>
+                <div class="tip-content">
+                    <h3>Quality Badges</h3>
+                    <p>Show resolution (4K, 1080p, 720p), HDR, Dolby Vision, and Atmos badges on posters. To toggle: <strong>Settings → Advanced Settings → "Show quality badges"</strong>. Quality info is detected from the media file's video/audio streams.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">🏷️</span>
+                <div class="tip-content">
+                    <h3>Content Ratings</h3>
+                    <p>Content ratings (PG-13, R, TV-MA, etc.) appear in the top-right corner of posters when available. These are always shown when rating data exists in your server's metadata.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">🌙</span>
+                <div class="tip-content">
+                    <h3>Theme</h3>
+                    <p>Toggle dark/light theme in <strong>Settings → Appearance</strong>. Pro users can also use custom themes (Jellyfin, Plex, Emby, Christmas) or create custom color schemes.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- *arr Setup -->
+        <div class="card" id="arr-setup">
+            <h2>📁 *arr Integration Setup (Pro)</h2>
+            <p style="color: var(--jf-text-muted); margin-bottom: 1rem;">Connect Sonarr/Radarr to use their exact folder naming conventions for downloads.</p>
+            
+            <h3 style="margin-top: 1rem;">Finding Your Sonarr API Key</h3>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-content">Open Sonarr web UI</div>
+                </div>
+                <div class="step">
+                    <div class="step-content">Go to <strong>Settings → General</strong></div>
+                </div>
+                <div class="step">
+                    <div class="step-content">Scroll to <strong>Security</strong> section</div>
+                </div>
+                <div class="step">
+                    <div class="step-content">Copy the <strong>API Key</strong> (click to reveal if hidden)</div>
+                </div>
+            </div>
+            
+            <h3 style="margin-top: 1.5rem;">Finding Your Radarr API Key</h3>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-content">Open Radarr web UI</div>
+                </div>
+                <div class="step">
+                    <div class="step-content">Go to <strong>Settings → General</strong></div>
+                </div>
+                <div class="step">
+                    <div class="step-content">Scroll to <strong>Security</strong> section</div>
+                </div>
+                <div class="step">
+                    <div class="step-content">Copy the <strong>API Key</strong></div>
+                </div>
+            </div>
+            
+            <div class="tip" style="margin-top: 1.5rem;">
+                <span class="tip-icon">💡</span>
+                <div class="tip-content">
+                    <h3>How It Works</h3>
+                    <p>JellyLooter caches your Sonarr/Radarr library and uses the exact folder names when downloading. For example, if Radarr has "Inception (2010) {tmdb-27205}", your downloads will use that exact folder name. Click "Refresh" in Pro Settings to update the cache.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Troubleshooting -->
+        <div class="card" id="troubleshooting">
             <h2>🔧 {{ t.get('troubleshooting', 'Troubleshooting') }}</h2>
             
             <div class="tip">
@@ -132,10 +408,114 @@
                     <p>{{ t.get('issue_error_desc', 'Check the Activity Log for details. Common issues: disk full, permissions, network timeout.') }}</p>
                 </div>
             </div>
+            
+            <div class="tip">
+                <span class="tip-icon">🔄</span>
+                <div class="tip-content">
+                    <h3>Cache Not Updating</h3>
+                    <p>Click "Rebuild Cache" in the Activity Log panel. This rescans your local library for duplicate detection.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">⭐</span>
+                <div class="tip-content">
+                    <h3>Ratings Not Showing</h3>
+                    <p>Ratings come from your Jellyfin/Emby server's metadata. Make sure your library has been scanned and has metadata. Also check that "Show ratings on posters" is enabled in Advanced Settings.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">📊</span>
+                <div class="tip-content">
+                    <h3>Quality Badges Not Showing</h3>
+                    <p>Quality info requires media analysis. In Jellyfin, go to your library settings and enable "Extract chapter images" or run a full library scan. The MediaStreams data must be present for badges to appear.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- FAQ -->
+        <div class="card" id="faq">
+            <h2>❓ Frequently Asked Questions</h2>
+            
+            <div class="faq-item">
+                <div class="faq-q">Q: What's the difference between Ko-fi donations and Pro license?</div>
+                <div class="faq-a">Ko-fi donations are just tips to support development - you get nothing except our gratitude. Pro licenses ($10 lifetime) unlock all Pro features: notifications, GPU transcoding, download scheduling, *arr integration, custom themes, and remove the banner ad.</div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-q">Q: Where do ratings come from?</div>
+                <div class="faq-a">Ratings are pulled directly from your Jellyfin/Emby server's metadata. JellyLooter doesn't make external API calls for ratings. If your server has IMDB/TMDB ratings in its database (from library scans), they'll appear on posters.</div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-q">Q: Why don't I see 4K/HDR badges on my content?</div>
+                <div class="faq-a">Quality badges require MediaStreams data from Jellyfin/Emby. Run a full library scan on your remote server to populate this data. Also ensure "Show quality badges" is enabled in Advanced Settings.</div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-q">Q: Can I use JellyLooter with Plex?</div>
+                <div class="faq-a">No, JellyLooter only supports Jellyfin and Emby servers. Plex uses a different API that is not compatible.</div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-q">Q: Is my API key/password stored securely?</div>
+                <div class="faq-a">API keys are stored in your local config file. Passwords are hashed with bcrypt before storage. The config file is only accessible within your Docker container's /config volume.</div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-q">Q: How does duplicate detection work?</div>
+                <div class="faq-a">JellyLooter scans your local Jellyfin/Emby server and builds a cache of IMDB/TMDB IDs. When browsing remote content, items that exist locally are highlighted with a green border. Click "Rebuild Cache" to refresh.</div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-q">Q: Can I download entire seasons/series at once?</div>
+                <div class="faq-a">Yes! Navigate to a series or season and select it, then click Download. JellyLooter will queue all episodes. You can also Ctrl+click to select multiple items.</div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-q">Q: What happens if a download fails?</div>
+                <div class="faq-a">Failed downloads are logged in the Activity Log. Partial files are automatically cleaned up. You can retry by selecting the item and downloading again.</div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-q">Q: How do I get GPU transcoding working on Unraid?</div>
+                <div class="faq-a">For NVIDIA GPUs, add <code>--runtime=nvidia</code> to Extra Parameters and set <code>NVIDIA_VISIBLE_DEVICES=all</code> (or your GPU UUID). For Intel QuickSync, pass through /dev/dri. Transcoding is a Pro feature.</div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-q">Q: My license key isn't working. What do I do?</div>
+                <div class="faq-a">Make sure you're entering the key exactly as received (with dashes). Keys are validated with Gumroad's API. If you're offline, the key will be trusted based on format. Contact us on GitHub if issues persist.</div>
+            </div>
+        </div>
+        
+        <!-- Legal Disclaimer -->
+        <div class="card" id="legal">
+            <h2>⚖️ Legal Disclaimer</h2>
+            <div style="color: var(--jf-text-muted); font-size: 0.9rem; line-height: 1.7;">
+                <p style="margin-bottom: 1rem;"><strong>JellyLooter is designed for legitimate personal use only.</strong></p>
+                
+                <p style="margin-bottom: 0.75rem;">This software is intended to help users sync and backup media they have legal access to, such as:</p>
+                <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
+                    <li>Content you own or have purchased</li>
+                    <li>Media shared by friends/family with their permission</li>
+                    <li>Content from servers you are authorized to access</li>
+                </ul>
+                
+                <p style="margin-bottom: 0.75rem;"><strong>We do not support, condone, or encourage:</strong></p>
+                <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
+                    <li>Piracy or illegal downloading of copyrighted content</li>
+                    <li>Circumventing DRM or copy protection</li>
+                    <li>Distributing copyrighted material without authorization</li>
+                    <li>Any use that violates copyright laws in your jurisdiction</li>
+                </ul>
+                
+                <p style="margin-bottom: 0;"><strong>You are solely responsible</strong> for ensuring your use of this software complies with all applicable laws and the terms of service of any media servers you access. By using JellyLooter, you agree to use it only for lawful purposes.</p>
+            </div>
         </div>
         
         <div class="footer">
-            <p>JellyLooter v{{ version }} • <a href="https://github.com/jlightner86/jellylooter" target="_blank">GitHub</a> • <a href="https://ko-fi.com/jellyloot" target="_blank">{{ t.get('support_btn', 'Support') }}</a></p>
+            <p>JellyLooter v{{ version }} • <a href="https://github.com/friendlymedia/jellylooter" target="_blank">GitHub</a> • <a href="https://lightwave43.gumroad.com/l/rmtmrr" target="_blank">Get Pro</a></p>
         </div>
     </div>
 </body>

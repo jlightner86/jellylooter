@@ -106,6 +106,21 @@
             background-clip: text;
         }
 
+        .pro-badge {
+            background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
+            color: #000;
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            margin-left: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            display: none;
+            vertical-align: middle;
+        }
+
         .header-actions {
             display: flex;
             gap: 0.5rem;
@@ -233,7 +248,7 @@
         .main-container {
             max-width: 1600px;
             margin: 0 auto;
-            padding: 1.5rem 2rem;
+            padding: 1.5rem 2rem 5rem 2rem; /* Extra bottom padding for license banner */
             display: grid;
             grid-template-columns: 1fr 380px;
             gap: 1.5rem;
@@ -448,8 +463,7 @@
             .modal-content { 
                 width: 95%; 
                 max-width: none; 
-                margin: 0.5rem;
-                max-height: 90vh;
+                max-height: 85vh;
                 overflow-y: auto;
             }
             .form-input { font-size: 16px; } /* Prevent zoom on iOS */
@@ -461,6 +475,10 @@
             .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
             .stat-item { padding: 0.75rem; }
             .stat-value { font-size: 1.25rem; }
+            
+            /* Hide right column on mobile - use hamburger menu instead */
+            .right-column { display: none !important; }
+            .left-column { padding-bottom: 80px; } /* Space for banner */
         }
         
         @media (max-width: 480px) {
@@ -477,6 +495,166 @@
         .mobile-menu { display: none; }
         .mobile-menu-overlay { display: none; }
         .right-column-toggle { display: none; }
+        
+        /* Mobile menu enhancements */
+        .mobile-menu-section {
+            padding: 0.75rem 1rem;
+            background: var(--jf-bg-card);
+            border-radius: var(--radius);
+            margin-bottom: 0.5rem;
+        }
+        .mobile-menu-section-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--jf-text-muted);
+            margin-bottom: 0.5rem;
+        }
+        .mobile-stats-grid {
+            display: flex;
+            gap: 1rem;
+        }
+        .mobile-stat {
+            font-size: 0.875rem;
+        }
+        .mobile-stat span {
+            font-weight: 700;
+            color: var(--jf-primary);
+        }
+        .mobile-badge {
+            display: inline-block;
+            background: var(--jf-primary);
+            color: white;
+            font-size: 0.7rem;
+            padding: 0.125rem 0.375rem;
+            border-radius: 10px;
+            margin-left: 0.5rem;
+        }
+        
+        /* License Banner */
+        .license-banner {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 0.75rem 1rem;
+            text-align: center;
+            z-index: 99;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .license-banner-free {
+            background: linear-gradient(135deg, var(--jf-primary) 0%, var(--jf-purple) 100%);
+            color: white;
+        }
+        .license-banner-trial {
+            background: linear-gradient(135deg, #ff9800 0%, #f44336 100%);
+            color: white;
+        }
+        .license-banner-text {
+            font-size: 0.875rem;
+        }
+        .license-banner-btn {
+            background: white;
+            color: var(--jf-primary);
+            border: none;
+            padding: 0.375rem 1rem;
+            border-radius: var(--radius);
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+        .license-banner-btn:hover {
+            opacity: 0.9;
+        }
+        .license-banner-close {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 1.25rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+            opacity: 0.7;
+        }
+        .license-banner-close:hover {
+            opacity: 1;
+        }
+        
+        /* Interaction hints */
+        .interaction-hint {
+            font-size: 0.75rem;
+            color: var(--jf-text-muted);
+            padding: 0.5rem 0;
+            text-align: center;
+        }
+        .interaction-hint span {
+            margin: 0 0.5rem;
+        }
+        
+        /* Pro settings styles */
+        .pro-badge {
+            background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
+            color: #000;
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 0.125rem 0.5rem;
+            border-radius: 4px;
+            margin-left: auto;
+        }
+        
+        .license-status-box {
+            background: var(--jf-bg-input);
+            border-radius: var(--radius);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .license-status-box.pro {
+            background: linear-gradient(135deg, rgba(255,215,0,0.1) 0%, rgba(255,170,0,0.1) 100%);
+            border: 1px solid rgba(255,215,0,0.3);
+        }
+        
+        .license-status-box.trial {
+            background: linear-gradient(135deg, rgba(255,152,0,0.1) 0%, rgba(244,67,54,0.1) 100%);
+            border: 1px solid rgba(255,152,0,0.3);
+        }
+        
+        .license-status-box.free {
+            background: var(--jf-bg-input);
+            border: 1px solid var(--jf-border);
+        }
+        
+        .pro-section {
+            border-top: 1px solid var(--jf-border);
+            padding-top: 0.5rem;
+        }
+        
+        .pro-section.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        
+        .pro-lock-overlay {
+            position: relative;
+        }
+        
+        .pro-lock-overlay::after {
+            content: '🔒 Pro Feature';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--jf-bg-card);
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius);
+            font-size: 0.875rem;
+            color: var(--jf-text-muted);
+        }
 
         /* Panels */
         .panel {
@@ -510,6 +688,39 @@
         .panel-title-icon { color: var(--jf-primary); }
 
         .panel-body { padding: 1.25rem; }
+
+        /* Collapsible & Movable Panels (Pro) */
+        .panel.collapsible .panel-header {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .panel.collapsible .panel-header:hover {
+            background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 100%);
+        }
+
+        .panel.collapsed .panel-body {
+            display: none;
+        }
+
+        .panel.collapsed .panel-header {
+            border-bottom: none;
+        }
+
+        .panel-controls {
+            display: flex;
+            gap: 0.25rem;
+            margin-left: auto;
+            padding-left: 0.5rem;
+        }
+
+        .panel-collapse-icon {
+            transition: transform 0.2s;
+        }
+
+        .panel.collapsed .panel-collapse-icon {
+            transform: rotate(-90deg);
+        }
 
         /* Buttons */
         .btn {
@@ -842,24 +1053,25 @@
 
         .browser-item.selected { border-color: var(--jf-primary); }
 
-        .browser-item.exists { opacity: 0.5; }
+        .browser-item.exists { opacity: 0.6; }
 
         .browser-item.exists::after {
             content: '✓';
             position: absolute;
-            top: 0.5rem;
-            right: 0.5rem;
-            width: 24px;
-            height: 24px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
             background: var(--jf-success);
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.75rem;
+            font-size: 1.25rem;
             font-weight: bold;
             color: white;
-            z-index: 2;
+            z-index: 10;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+            line-height: 40px;
+            text-align: center;
         }
 
         .browser-item-poster {
@@ -867,6 +1079,157 @@
             height: 100%;
             object-fit: cover;
             object-position: center center;
+        }
+
+        /* Rating Badge Overlay */
+        .rating-badge {
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            z-index: 5;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .rating-badge.imdb {
+            background: linear-gradient(135deg, rgba(245,197,24,0.95) 0%, rgba(200,160,20,0.95) 100%);
+            color: #000;
+        }
+        
+        .rating-badge.tmdb {
+            background: linear-gradient(135deg, rgba(1,180,228,0.95) 0%, rgba(144,206,161,0.95) 100%);
+            color: #000;
+        }
+        
+        .rating-badge.rt-fresh {
+            background: linear-gradient(135deg, rgba(250,50,10,0.95) 0%, rgba(200,40,10,0.95) 100%);
+            color: #fff;
+        }
+        
+        .rating-badge.rt-rotten {
+            background: linear-gradient(135deg, rgba(80,160,80,0.95) 0%, rgba(60,130,60,0.95) 100%);
+            color: #fff;
+        }
+        
+        .rating-badge-icon {
+            font-size: 0.8rem;
+        }
+        
+        /* Content Rating Badge (PG-13, R, TV-MA etc) */
+        .content-rating-badge {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 0.6rem;
+            font-weight: 700;
+            background: rgba(0,0,0,0.75);
+            color: #fff;
+            z-index: 5;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        
+        /* Quality Badges Container (bottom of poster) */
+        .quality-badges {
+            position: absolute;
+            bottom: 6px;
+            left: 6px;
+            right: 6px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+            z-index: 5;
+        }
+        
+        .quality-badge {
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 0.6rem;
+            font-weight: 700;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        
+        /* Resolution badges */
+        .quality-badge.res-4k {
+            background: linear-gradient(135deg, rgba(0,0,0,0.85) 0%, rgba(40,40,40,0.85) 100%);
+            color: #ffd700;
+            border: 1px solid #ffd700;
+        }
+        
+        .quality-badge.res-1080p {
+            background: linear-gradient(135deg, rgba(0,100,200,0.85) 0%, rgba(0,70,150,0.85) 100%);
+            color: #fff;
+        }
+        
+        .quality-badge.res-720p {
+            background: linear-gradient(135deg, rgba(100,100,100,0.85) 0%, rgba(70,70,70,0.85) 100%);
+            color: #fff;
+        }
+        
+        .quality-badge.res-sd {
+            background: rgba(80,80,80,0.85);
+            color: #aaa;
+        }
+        
+        /* HDR badges */
+        .quality-badge.hdr {
+            background: linear-gradient(135deg, rgba(255,140,0,0.9) 0%, rgba(200,100,0,0.9) 100%);
+            color: #000;
+            font-weight: 800;
+        }
+        
+        .quality-badge.dolby-vision {
+            background: linear-gradient(135deg, rgba(0,0,0,0.9) 0%, rgba(30,30,30,0.9) 100%);
+            color: #00d4ff;
+            border: 1px solid #00d4ff;
+        }
+        
+        .quality-badge.atmos {
+            background: linear-gradient(135deg, rgba(20,20,40,0.9) 0%, rgba(40,40,80,0.9) 100%);
+            color: #a0a0ff;
+            border: 1px solid #6060c0;
+        }
+
+        /* Collection/Playlist Download Button */
+        .collection-download-btn {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            transform: translate(-50%, 50%);
+            padding: 0.5rem 0.75rem;
+            background: linear-gradient(135deg, var(--jf-primary) 0%, var(--jf-accent) 100%);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 0.7rem;
+            font-weight: 600;
+            cursor: pointer;
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 0.2s, transform 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+            white-space: nowrap;
+        }
+
+        .browser-item:hover .collection-download-btn {
+            opacity: 1;
+        }
+
+        .collection-download-btn:hover {
+            transform: translate(-50%, 50%) scale(1.05);
+        }
+
+        .collection-download-btn span {
+            margin-right: 0.25rem;
         }
 
         .browser-item-placeholder {
@@ -884,7 +1247,23 @@
             display: none;
         }
 
-        .browser-item.folder .browser-item-placeholder {
+        /* Show title for pure folders (not Series which have posters) */
+        .browser-item.folder:not(.series) .browser-item-title {
+            display: block;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1.5rem 0.5rem 0.5rem;
+            background: linear-gradient(transparent, rgba(0,0,0,0.9));
+            font-size: 0.75rem;
+            font-weight: 600;
+            line-height: 1.3;
+            text-align: center;
+            color: white;
+        }
+
+        .browser-item.folder:not(.series) .browser-item-placeholder {
             background: linear-gradient(135deg, rgba(0,164,220,0.2) 0%, rgba(170,92,195,0.2) 100%);
         }
 
@@ -904,6 +1283,57 @@
             font-size: 3rem;
             margin-bottom: 1rem;
             opacity: 0.5;
+        }
+
+        /* Resumable Downloads (Pro) */
+        .resumable-section {
+            border-top: 1px solid var(--jf-border);
+            padding: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .resumable-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--jf-text-muted);
+            margin-bottom: 0.75rem;
+        }
+
+        .resumable-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem;
+            background: var(--jf-bg-input);
+            border-radius: var(--radius);
+            margin-bottom: 0.5rem;
+        }
+
+        .resumable-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .resumable-name {
+            font-size: 0.85rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .resumable-meta {
+            font-size: 0.7rem;
+            color: var(--jf-text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .resumable-actions {
+            display: flex;
+            gap: 0.25rem;
+            margin-left: 0.5rem;
         }
 
         .download-item {
@@ -1001,6 +1431,45 @@
             letter-spacing: 0.5px;
         }
 
+        /* Stats Widget */
+        .stats-widget {
+            background: var(--jf-bg-card);
+            border: 1px solid var(--jf-border);
+            border-radius: var(--radius);
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stats-widget .stats-grid {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 0;
+        }
+
+        .stats-widget .stat-item {
+            text-align: center;
+            padding: 0.5rem;
+        }
+
+        .stats-widget .stat-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--jf-primary);
+        }
+
+        .stats-widget .stat-label {
+            font-size: 0.65rem;
+            color: var(--jf-text-muted);
+            text-transform: uppercase;
+            margin-top: 0.25rem;
+        }
+
+        @media (max-width: 768px) {
+            .stats-widget .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
         /* Control Bar */
         .control-bar {
             display: flex;
@@ -1049,13 +1518,15 @@
         /* Modal */
         .modal {
             position: fixed;
-            inset: 0;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             background: rgba(0, 0, 0, 0.7);
             display: none;
-            align-items: center;
             justify-content: center;
-            z-index: 1000;
-            padding: 2rem;
+            align-items: center;
+            z-index: 9999;
         }
 
         .modal.active { display: flex; }
@@ -1064,10 +1535,10 @@
             background: var(--jf-bg-card);
             border-radius: var(--radius-lg);
             border: 1px solid var(--jf-border);
-            width: 100%;
+            width: 90%;
             max-width: 480px;
             max-height: 90vh;
-            overflow: hidden;
+            overflow-y: auto;
             display: flex;
             flex-direction: column;
         }
@@ -1256,6 +1727,7 @@
             transition: var(--transition);
             pointer-events: none;
             margin-bottom: 0.5rem;
+            z-index: 1000;
         }
 
         [data-tooltip]:hover::after {
@@ -1285,9 +1757,9 @@
         /* Toast Notifications */
         .toast-container {
             position: fixed;
-            bottom: 2rem;
+            bottom: 5rem;
             right: 2rem;
-            z-index: 2000;
+            z-index: 10000;
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
@@ -1337,6 +1809,262 @@
         }
 
         .settings-section-title span { color: var(--jf-primary); }
+
+        /* ========== Seasonal Theme Effects ========== */
+        #theme-effects {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        /* Base decoration styles */
+        .theme-decor {
+            position: absolute;
+            opacity: 0.15;
+        }
+
+        /* Falling items container */
+        .falling-items {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .fall-item {
+            position: absolute;
+            top: -30px;
+            animation: fall-down linear infinite;
+        }
+
+        /* Generic falling animation */
+        @keyframes fall-down {
+            0% { transform: translateY(-30px) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.6; }
+            90% { opacity: 0.6; }
+            100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+        }
+
+        /* Falling item positions */
+        .fall-item:nth-child(1) { left: 5%; animation-duration: 15s; font-size: 1.2rem; animation-delay: 0s; }
+        .fall-item:nth-child(2) { left: 15%; animation-duration: 12s; font-size: 0.8rem; animation-delay: 2s; }
+        .fall-item:nth-child(3) { left: 30%; animation-duration: 18s; font-size: 1rem; animation-delay: 4s; }
+        .fall-item:nth-child(4) { left: 50%; animation-duration: 14s; font-size: 1.1rem; animation-delay: 1s; }
+        .fall-item:nth-child(5) { left: 65%; animation-duration: 16s; font-size: 0.9rem; animation-delay: 3s; }
+        .fall-item:nth-child(6) { left: 80%; animation-duration: 13s; font-size: 1.3rem; animation-delay: 5s; }
+        .fall-item:nth-child(7) { left: 90%; animation-duration: 17s; font-size: 0.7rem; animation-delay: 2.5s; }
+        .fall-item:nth-child(8) { left: 42%; animation-duration: 11s; font-size: 1rem; animation-delay: 4.5s; }
+        .fall-item:nth-child(9) { left: 72%; animation-duration: 19s; font-size: 0.9rem; animation-delay: 1.5s; }
+        .fall-item:nth-child(10) { left: 22%; animation-duration: 13s; font-size: 1.1rem; animation-delay: 3.5s; }
+
+        /* ===== CHRISTMAS ===== */
+        .tree { font-size: 4rem; filter: drop-shadow(0 0 10px rgba(34, 139, 34, 0.5)); animation: tree-glow 3s ease-in-out infinite; }
+        .tree-1 { bottom: 5%; left: 3%; font-size: 5rem; animation-delay: 0s; }
+        .tree-2 { bottom: 8%; right: 5%; font-size: 4rem; animation-delay: 1s; }
+        .tree-3 { bottom: 3%; left: 25%; font-size: 3rem; opacity: 0.1; animation-delay: 0.5s; }
+        .tree-4 { bottom: 6%; right: 25%; font-size: 3.5rem; opacity: 0.12; animation-delay: 1.5s; }
+
+        @keyframes tree-glow {
+            0%, 100% { filter: drop-shadow(0 0 10px rgba(34, 139, 34, 0.5)); }
+            50% { filter: drop-shadow(0 0 20px rgba(196, 30, 58, 0.6)) drop-shadow(0 0 30px rgba(255, 215, 0, 0.4)); }
+        }
+
+        .snowflake { color: rgba(255, 255, 255, 0.6); text-shadow: 0 0 5px rgba(255, 255, 255, 0.5); }
+
+        body.christmas-theme { background: radial-gradient(ellipse at bottom, #1a2f1a 0%, #0d1a0d 100%); }
+        body.christmas-theme .header { background: linear-gradient(180deg, rgba(196,30,58,0.2) 0%, transparent 100%); border-bottom-color: rgba(34, 139, 34, 0.3); }
+        body.christmas-theme .browser-item:hover { border-color: #c41e3a; box-shadow: 0 0 15px rgba(196, 30, 58, 0.3); }
+
+        /* ===== WINTER ===== */
+        .snowman { font-size: 3.5rem; filter: drop-shadow(0 0 15px rgba(200, 220, 255, 0.4)); animation: snowman-wiggle 4s ease-in-out infinite; }
+        .snowman-1 { bottom: 5%; left: 5%; font-size: 4rem; }
+        .snowman-2 { bottom: 8%; right: 8%; font-size: 3.5rem; animation-delay: 1s; }
+        .snowman-3 { bottom: 4%; left: 40%; font-size: 3rem; opacity: 0.1; animation-delay: 2s; }
+
+        @keyframes snowman-wiggle {
+            0%, 100% { transform: rotate(-2deg); }
+            50% { transform: rotate(2deg); }
+        }
+
+        body.winter-theme { background: radial-gradient(ellipse at bottom, #1a2940 0%, #0a1929 100%); }
+        body.winter-theme .header { background: linear-gradient(180deg, rgba(91,155,213,0.2) 0%, transparent 100%); }
+        body.winter-theme .browser-item:hover { box-shadow: 0 0 15px rgba(91, 155, 213, 0.3); }
+
+        /* ===== HALLOWEEN ===== */
+        .pumpkin { font-size: 4rem; filter: drop-shadow(0 0 20px rgba(255, 111, 0, 0.5)); animation: pumpkin-glow 2s ease-in-out infinite; }
+        .pumpkin-1 { bottom: 5%; left: 5%; font-size: 4.5rem; }
+        .pumpkin-2 { bottom: 8%; right: 8%; font-size: 3.5rem; animation-delay: 0.5s; }
+
+        .ghost { font-size: 2.5rem; animation: ghost-float 3s ease-in-out infinite; }
+        .ghost-1 { top: 20%; right: 10%; animation-delay: 0s; }
+        .ghost-2 { top: 35%; left: 8%; animation-delay: 1.5s; opacity: 0.12; }
+
+        .bat { font-size: 1.5rem; animation: bat-fly 4s ease-in-out infinite; }
+        .bat-1 { top: 15%; left: 20%; }
+        .bat-2 { top: 25%; right: 25%; animation-delay: 1s; }
+        .bat-3 { top: 10%; left: 60%; animation-delay: 2s; opacity: 0.1; }
+
+        @keyframes pumpkin-glow {
+            0%, 100% { filter: drop-shadow(0 0 20px rgba(255, 111, 0, 0.5)); }
+            50% { filter: drop-shadow(0 0 35px rgba(255, 111, 0, 0.8)); }
+        }
+
+        @keyframes ghost-float {
+            0%, 100% { transform: translateY(0) translateX(0); }
+            25% { transform: translateY(-15px) translateX(10px); }
+            75% { transform: translateY(10px) translateX(-10px); }
+        }
+
+        @keyframes bat-fly {
+            0%, 100% { transform: translateY(0) translateX(0) rotate(0deg); }
+            25% { transform: translateY(-20px) translateX(30px) rotate(10deg); }
+            50% { transform: translateY(10px) translateX(50px) rotate(-5deg); }
+            75% { transform: translateY(-10px) translateX(20px) rotate(5deg); }
+        }
+
+        body.halloween-theme { background: radial-gradient(ellipse at bottom, #1a1a1a 0%, #0d0d0d 100%); }
+        body.halloween-theme .header { background: linear-gradient(180deg, rgba(255,111,0,0.15) 0%, transparent 100%); }
+        body.halloween-theme .browser-item:hover { box-shadow: 0 0 15px rgba(255, 111, 0, 0.3); }
+
+        /* ===== VALENTINE'S ===== */
+        .heart { color: rgba(233, 30, 99, 0.7); text-shadow: 0 0 10px rgba(233, 30, 99, 0.5); animation: heart-float linear infinite; }
+
+        @keyframes heart-float {
+            0% { transform: translateY(-30px) scale(0.8); opacity: 0; }
+            10% { opacity: 0.7; }
+            50% { transform: translateY(50vh) scale(1.1); }
+            90% { opacity: 0.7; }
+            100% { transform: translateY(100vh) scale(0.9); opacity: 0; }
+        }
+
+        body.valentines-theme { background: radial-gradient(ellipse at bottom, #2d1520 0%, #1a0a10 100%); }
+        body.valentines-theme .header { background: linear-gradient(180deg, rgba(233,30,99,0.2) 0%, transparent 100%); }
+        body.valentines-theme .browser-item:hover { box-shadow: 0 0 15px rgba(233, 30, 99, 0.3); }
+
+        /* ===== SPRING ===== */
+        .flower { font-size: 3rem; animation: flower-sway 4s ease-in-out infinite; }
+        .flower-1 { bottom: 5%; left: 5%; font-size: 3.5rem; }
+        .flower-2 { bottom: 8%; right: 10%; font-size: 2.5rem; animation-delay: 1s; }
+        .flower-3 { bottom: 3%; left: 35%; font-size: 2rem; opacity: 0.12; animation-delay: 2s; }
+
+        .petal { color: rgba(255, 182, 193, 0.7); }
+
+        @keyframes flower-sway {
+            0%, 100% { transform: rotate(-5deg); }
+            50% { transform: rotate(5deg); }
+        }
+
+        body.spring-theme { background: radial-gradient(ellipse at bottom, #2d1a25 0%, #1a0f15 100%); }
+        body.spring-theme .header { background: linear-gradient(180deg, rgba(233,30,140,0.15) 0%, transparent 100%); }
+        body.spring-theme .browser-item:hover { box-shadow: 0 0 15px rgba(233, 30, 140, 0.3); }
+
+        /* ===== SUMMER ===== */
+        .sun { font-size: 5rem; top: 5%; right: 10%; animation: sun-pulse 4s ease-in-out infinite; filter: drop-shadow(0 0 30px rgba(255, 200, 0, 0.5)); }
+        .palm { font-size: 4rem; }
+        .palm-1 { bottom: 3%; left: 3%; font-size: 4.5rem; }
+        .palm-2 { bottom: 5%; right: 5%; font-size: 3.5rem; }
+        .wave { font-size: 3rem; bottom: 0; left: 30%; animation: wave-move 3s ease-in-out infinite; }
+
+        @keyframes sun-pulse {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 30px rgba(255, 200, 0, 0.5)); }
+            50% { transform: scale(1.1); filter: drop-shadow(0 0 50px rgba(255, 200, 0, 0.7)); }
+        }
+
+        @keyframes wave-move {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(20px); }
+        }
+
+        body.summer-theme { background: radial-gradient(ellipse at top, #2d2010 0%, #1a1205 100%); }
+        body.summer-theme .header { background: linear-gradient(180deg, rgba(255,152,0,0.2) 0%, transparent 100%); }
+        body.summer-theme .browser-item:hover { box-shadow: 0 0 15px rgba(255, 152, 0, 0.3); }
+
+        /* ===== FALL / AUTUMN ===== */
+        .fall-tree { font-size: 3rem; }
+        .fall-tree-1 { bottom: 5%; left: 8%; font-size: 3.5rem; }
+        .fall-tree-2 { bottom: 7%; right: 10%; font-size: 3rem; }
+
+        .leaf { color: rgba(230, 81, 0, 0.7); animation: leaf-fall linear infinite; }
+
+        @keyframes leaf-fall {
+            0% { transform: translateY(-30px) translateX(0) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.7; }
+            50% { transform: translateY(50vh) translateX(30px) rotate(180deg); }
+            90% { opacity: 0.7; }
+            100% { transform: translateY(100vh) translateX(-20px) rotate(360deg); opacity: 0; }
+        }
+
+        body.fall-theme { background: radial-gradient(ellipse at bottom, #2d1a0a 0%, #1a0f05 100%); }
+        body.fall-theme .header { background: linear-gradient(180deg, rgba(230,81,0,0.2) 0%, transparent 100%); }
+        body.fall-theme .browser-item:hover { box-shadow: 0 0 15px rgba(230, 81, 0, 0.3); }
+
+        /* ===== ST. PATRICK'S DAY ===== */
+        .clover { font-size: 3rem; animation: clover-spin 5s linear infinite; }
+        .clover-1 { bottom: 5%; left: 5%; font-size: 3.5rem; }
+        .clover-2 { bottom: 8%; right: 8%; font-size: 2.5rem; animation-delay: 1s; }
+        .clover-3 { bottom: 3%; left: 30%; font-size: 2rem; opacity: 0.1; animation-delay: 2s; }
+        .pot-gold { font-size: 4rem; bottom: 10%; right: 15%; animation: rainbow-glow 3s ease-in-out infinite; }
+
+        .clover-fall { color: rgba(46, 125, 50, 0.7); }
+
+        @keyframes clover-spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes rainbow-glow {
+            0%, 100% { filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.5)); }
+            50% { filter: drop-shadow(0 0 30px rgba(255, 215, 0, 0.8)); }
+        }
+
+        body.stpatricks-theme { background: radial-gradient(ellipse at bottom, #142814 0%, #0a1a0a 100%); }
+        body.stpatricks-theme .header { background: linear-gradient(180deg, rgba(46,125,50,0.2) 0%, transparent 100%); }
+        body.stpatricks-theme .browser-item:hover { box-shadow: 0 0 15px rgba(46, 125, 50, 0.3); }
+
+        /* ===== 4TH OF JULY ===== */
+        .firework { font-size: 3rem; animation: firework-burst 2s ease-out infinite; }
+        .firework-1 { top: 10%; left: 15%; animation-delay: 0s; }
+        .firework-2 { top: 15%; right: 20%; animation-delay: 0.7s; }
+        .firework-3 { top: 8%; left: 50%; animation-delay: 1.4s; font-size: 2rem; }
+        .flag { font-size: 4rem; bottom: 5%; right: 5%; animation: flag-wave 2s ease-in-out infinite; }
+
+        .star { color: rgba(255, 215, 0, 0.7); text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+
+        @keyframes firework-burst {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+            100% { transform: scale(0.8); opacity: 0; }
+        }
+
+        @keyframes flag-wave {
+            0%, 100% { transform: rotate(-3deg); }
+            50% { transform: rotate(3deg); }
+        }
+
+        body.july4th-theme { background: radial-gradient(ellipse at bottom, #141428 0%, #0a0a1a 100%); }
+        body.july4th-theme .header { background: linear-gradient(180deg, rgba(183,28,28,0.2) 0%, transparent 100%); }
+        body.july4th-theme .browser-item:hover { box-shadow: 0 0 15px rgba(183, 28, 28, 0.3); }
+
+        /* Ensure content stays above theme effects */
+        .header, .main-content, .panel {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Mobile responsive for themes */
+        @media (max-width: 768px) {
+            .theme-decor { font-size: 2rem !important; opacity: 0.1 !important; }
+            .tree-3, .tree-4, .snowman-3, .ghost-2, .bat-3, .flower-3, .clover-3 { display: none; }
+            .fall-item { font-size: 0.8rem !important; }
+            .sun { font-size: 3rem !important; }
+            .flag { font-size: 2.5rem !important; }
+        }
     </style>
 </head>
 <body>
@@ -1346,6 +2074,7 @@
             <div class="logo">
                 <img src="https://raw.githubusercontent.com/jlightner86/jellylooter/main/icon.png" alt="JellyLooter" class="logo-icon" style="background: none;">
                 <span class="logo-text">JellyLooter</span>
+                <span class="pro-badge" id="header-pro-badge" style="display: none;" title="Click 5 times to manage license">PRO</span>
             </div>
             <div class="header-actions">
                 <!-- Mobile menu button -->
@@ -1362,7 +2091,6 @@
                     <span class="theme-icon-dark">🌙</span>
                 </button>
                 
-                <a href="https://ko-fi.com/jellyloot" target="_blank" class="btn btn-sm" style="background: #ff5e5b; color: white; border-color: #ff5e5b;">❤️ Support</a>
                 <a href="/changelog" class="btn btn-secondary btn-sm" data-i18n="changelog">Changelog</a>
                 <a href="/help" class="btn btn-secondary btn-sm" data-i18n="help">Help</a>
                 
@@ -1391,12 +2119,60 @@
             <button class="mobile-menu-close" id="mobile-menu-close">×</button>
         </div>
         <div class="mobile-menu-items">
+            <!-- Downloads Section (mobile only) -->
+            <div class="mobile-menu-section">
+                <div class="mobile-menu-section-title">📊 Quick Stats</div>
+                <div class="mobile-stats-grid">
+                    <div class="mobile-stat"><span id="mobile-stat-active">0</span> Active</div>
+                    <div class="mobile-stat"><span id="mobile-stat-pending">0</span> Pending</div>
+                </div>
+            </div>
+            <button onclick="openMobileDownloads(); closeMobileMenu();">⬇️ Downloads <span id="mobile-download-badge" class="mobile-badge" style="display:none;">0</span></button>
+            <button onclick="openMobileLog(); closeMobileMenu();">📋 Activity Log</button>
+            <hr style="border: none; border-top: 1px solid var(--jf-border); margin: 0.5rem 0;">
             <button onclick="toggleTheme(); closeMobileMenu();">🌙 Toggle Theme</button>
-            <a href="https://ko-fi.com/jellyloot" target="_blank">❤️ Support on Ko-fi</a>
             <a href="/changelog">📋 Changelog</a>
             <a href="/help">❓ Help</a>
             <button onclick="openModal('password-modal'); closeMobileMenu();">🔑 Change Password</button>
-            <a href="/logout" style="color: var(--jf-danger);">🚪 Sign Out</a>
+            <a href="/logout" style="color: var(--jf-error);">🚪 Sign Out</a>
+        </div>
+    </div>
+
+    <!-- Mobile Downloads Modal -->
+    <div class="modal" id="mobile-downloads-modal">
+        <div class="modal-content" style="max-height: 80vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h2>⬇️ Downloads</h2>
+                <button class="modal-close" onclick="closeModal('mobile-downloads-modal')">×</button>
+            </div>
+            <div class="modal-body" style="padding: 0;">
+                <div class="mobile-queue-controls" style="display: flex; gap: 0.5rem; padding: 1rem; border-bottom: 1px solid var(--jf-border);">
+                    <button class="btn btn-secondary btn-sm" id="mobile-pause-btn" onclick="pauseDownloads()">⏸️ Pause</button>
+                    <button class="btn btn-secondary btn-sm" id="mobile-resume-btn" onclick="resumeDownloads()" style="display: none;">▶️ Resume</button>
+                    <button class="btn btn-danger btn-sm" onclick="cancelAllDownloads()">⏹️ Cancel All</button>
+                </div>
+                <div class="queue-container" id="mobile-download-queue" style="max-height: 50vh;">
+                    <div class="queue-empty">
+                        <div class="queue-empty-icon">📭</div>
+                        <p>No active downloads</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Log Modal -->
+    <div class="modal" id="mobile-log-modal">
+        <div class="modal-content" style="max-height: 80vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h2>📋 Activity Log</h2>
+                <button class="modal-close" onclick="closeModal('mobile-log-modal')">×</button>
+            </div>
+            <div class="modal-body" style="padding: 0;">
+                <div class="log-container" id="mobile-log-container" style="max-height: 60vh;">
+                    <div class="log-line">Waiting for activity...</div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1436,6 +2212,13 @@
                         <!-- Search/Filter Box -->
                         <div class="search-box" style="margin-bottom: 0.75rem;">
                             <input type="text" class="form-input" id="library-search" data-i18n-placeholder="filter_items" placeholder="🔍 Filter items..." style="width: 100%;">
+                        </div>
+                        
+                        <!-- Interaction Hints -->
+                        <div class="interaction-hint" id="interaction-hint" style="display: none;">
+                            <span>👆 Single-click to select</span>
+                            <span>👆👆 Double-click to open folders</span>
+                            <span>⌨️ Ctrl+click for multi-select</span>
                         </div>
                         
                         <div class="browser-container">
@@ -1581,6 +2364,9 @@
                                 <div class="form-group">
                                     <label class="form-label" data-i18n="max_downloads">Max Downloads</label>
                                     <input type="number" class="form-input" id="max-downloads" min="1" max="10" value="2">
+                                    <div class="form-hint" id="max-downloads-hint" style="display: none;">
+                                        <span style="color: var(--jf-warning);">⚠️ Free tier limited to 2 concurrent downloads</span>
+                                    </div>
                                 </div>
                             </div>
                             <div class="form-row">
@@ -1607,7 +2393,299 @@
                                     <span class="toggle-slider"></span>
                                 </label>
                             </div>
+                            <div class="toggle-container">
+                                <span class="toggle-label" data-i18n="show_ratings">Show ratings on posters</span>
+                                <label class="toggle">
+                                    <input type="checkbox" id="show-ratings" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="toggle-container">
+                                <span class="toggle-label" data-i18n="show_quality">Show quality badges (4K, HDR, etc)</span>
+                                <label class="toggle">
+                                    <input type="checkbox" id="show-quality" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="toggle-container">
+                                <span class="toggle-label" data-i18n="download_subtitles">📝 Download subtitles automatically</span>
+                                <label class="toggle">
+                                    <input type="checkbox" id="download-subtitles" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="form-group" id="subtitle-languages-group" style="margin-top: 0.5rem;">
+                                <label class="form-label" data-i18n="subtitle_languages">Subtitle Languages (ISO codes)</label>
+                                <input type="text" class="form-input" id="subtitle-languages" value="eng, spa, ger" placeholder="eng, spa, ger, fre">
+                                <div class="form-hint" data-i18n="subtitle_hint">Comma-separated language codes. Use "all" to download all available subtitles.</div>
+                            </div>
                             <button class="btn btn-primary" style="width: 100%; margin-top: 1rem;" id="save-settings-btn" data-i18n="save_settings">Save Settings</button>
+                            
+                            <!-- Config Backup/Restore -->
+                            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--jf-border);">
+                                <h4 style="font-size: 0.9rem; margin-bottom: 0.75rem;">💾 Backup & Restore</h4>
+                                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                    <button class="btn btn-secondary btn-sm" onclick="exportConfig()">
+                                        📤 Export Config
+                                    </button>
+                                    <label class="btn btn-secondary btn-sm" style="cursor: pointer;">
+                                        📥 Import Config
+                                        <input type="file" id="import-config-file" accept=".json" style="display: none;" onchange="importConfig(event)">
+                                    </label>
+                                </div>
+                                <div class="form-hint" style="margin-top: 0.5rem;">
+                                    Export saves settings (API keys masked). Import restores settings while preserving existing API keys.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Security Settings -->
+                        <button class="advanced-toggle" id="security-toggle" style="margin-top: 1rem;">
+                            <span class="advanced-toggle-icon">▼</span>
+                            <span data-i18n="security_settings">🔒 Security Settings</span>
+                        </button>
+                        <div class="advanced-content" id="security-content" style="display: none;">
+                            <div class="toggle-container">
+                                <span class="toggle-label" data-i18n="enable_auth">Enable Authentication</span>
+                                <label class="toggle">
+                                    <input type="checkbox" id="auth-enabled">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="form-hint" data-i18n="auth_hint">Require login to access JellyLooter</div>
+                            
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label class="form-label" data-i18n="session_timeout">Session Timeout (minutes)</label>
+                                <input type="number" class="form-input" id="session-timeout" min="5" max="1440" value="30">
+                            </div>
+                            
+                            <div class="toggle-container" style="margin-top: 1rem;">
+                                <span class="toggle-label" data-i18n="trust_proxy">Trust X-Forwarded headers</span>
+                                <label class="toggle">
+                                    <input type="checkbox" id="trust-proxy">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="form-hint" data-i18n="trust_proxy_hint">Enable if using a reverse proxy (Nginx, Traefik, etc.) to get correct client IPs</div>
+                            
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label class="form-label" data-i18n="trusted_proxies">Trusted Proxy IPs</label>
+                                <input type="text" class="form-input" id="trusted-proxies" placeholder="172.17.0.0/16, 10.0.0.0/8">
+                                <div class="form-hint" data-i18n="trusted_proxies_hint">Comma-separated list of IP ranges allowed to set X-Forwarded headers</div>
+                            </div>
+                            
+                            <button class="btn btn-primary" style="width: 100%; margin-top: 1rem;" id="save-security-btn" data-i18n="save_security">Save Security Settings</button>
+                        </div>
+                        
+                        <!-- Pro Settings -->
+                        <button class="advanced-toggle pro-settings-toggle" id="pro-toggle" style="margin-top: 1rem;">
+                            <span class="advanced-toggle-icon">▼</span>
+                            <span data-i18n="pro_features">⭐ Pro Settings</span>
+                            <span class="pro-badge" id="pro-badge" style="display: none;">PRO</span>
+                        </button>
+                        <div class="advanced-content" id="pro-content" style="display: none;">
+                            <!-- License Status -->
+                            <div class="license-status-box" id="license-status-box">
+                                <div id="license-status-text">Loading...</div>
+                            </div>
+                            
+                            <!-- Notifications (Pro) -->
+                            <div class="pro-section" id="notifications-section">
+                                <h4 style="margin: 1rem 0 0.5rem; font-size: 0.9rem;" data-i18n="notifications">🔔 Notifications</h4>
+                                <div class="form-group">
+                                    <label class="form-label" data-i18n="notification_urls">Notification URLs (Apprise)</label>
+                                    <textarea class="form-input" id="notification-urls" rows="3" placeholder="discord://webhook_id/webhook_token&#10;telegram://bot_token/chat_id"></textarea>
+                                    <div class="form-hint"><span data-i18n="notification_hint">One URL per line.</span> <a href="https://github.com/caronc/apprise/wiki" target="_blank">Apprise docs</a></div>
+                                </div>
+                                <div class="toggle-container">
+                                    <span class="toggle-label" data-i18n="notify_complete">Notify on download complete</span>
+                                    <label class="toggle">
+                                        <input type="checkbox" id="notify-complete" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="toggle-container">
+                                    <span class="toggle-label">Notify on errors</span>
+                                    <label class="toggle">
+                                        <input type="checkbox" id="notify-error" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- Transcoding (Pro) - Coming Soon -->
+                            <div class="pro-section" id="transcode-section">
+                                <h4 style="margin: 1rem 0 0.5rem; font-size: 0.9rem;">🎬 Transcoding <span style="font-size: 0.7rem; background: var(--jf-warning); color: #000; padding: 0.15rem 0.4rem; border-radius: 4px; margin-left: 0.5rem;">COMING SOON</span></h4>
+                                <div style="padding: 1rem; background: var(--jf-bg-input); border-radius: var(--radius); color: var(--jf-text-muted); font-size: 0.85rem;">
+                                    <p style="margin: 0;">🚧 Transcoding is temporarily disabled while we work on improving hardware acceleration support and stability.</p>
+                                    <p style="margin: 0.5rem 0 0 0;">This feature will automatically convert downloaded media to H.265/HEVC for smaller file sizes, with support for NVIDIA NVENC, Intel QuickSync, and AMD VAAPI hardware encoding.</p>
+                                </div>
+                                <!-- Hidden inputs to preserve settings -->
+                                <input type="hidden" id="transcode-enabled" value="false">
+                                <input type="hidden" id="transcode-encoder" value="software">
+                                <input type="hidden" id="transcode-preset" value="original">
+                                <input type="hidden" id="transcode-custom" value="">
+                            </div>
+                            
+                            <!-- Scheduling (Pro) -->
+                            <div class="pro-section" id="schedule-section">
+                                <h4 style="margin: 1rem 0 0.5rem; font-size: 0.9rem;">📅 Scheduling</h4>
+                                <div class="toggle-container">
+                                    <span class="toggle-label">Download schedule</span>
+                                    <label class="toggle">
+                                        <input type="checkbox" id="schedule-enabled">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="form-row" style="margin-top: 0.5rem;">
+                                    <div class="form-group">
+                                        <label class="form-label">Start time</label>
+                                        <input type="time" class="form-input" id="schedule-start" value="02:00">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">End time</label>
+                                        <input type="time" class="form-input" id="schedule-end" value="06:00">
+                                    </div>
+                                </div>
+                                <div class="form-hint">Downloads only run between these times</div>
+                                
+                                <div class="toggle-container" style="margin-top: 1rem;">
+                                    <span class="toggle-label">Bandwidth schedule</span>
+                                    <label class="toggle">
+                                        <input type="checkbox" id="bandwidth-schedule-enabled">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="form-row" style="margin-top: 0.5rem;">
+                                    <div class="form-group">
+                                        <label class="form-label">Day limit (KB/s)</label>
+                                        <input type="number" class="form-input" id="bandwidth-day" min="0" value="1000">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Night limit (KB/s)</label>
+                                        <input type="number" class="form-input" id="bandwidth-night" min="0" value="0" placeholder="0 = unlimited">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- *arr Integration (Pro) -->
+                            <div class="pro-section" id="arr-section">
+                                <h4 style="margin: 1rem 0 0.5rem; font-size: 0.9rem;">📺 *arr Integration</h4>
+                                <div class="form-hint" style="margin-bottom: 1rem; padding: 0.75rem; background: var(--jf-bg-input); border-radius: var(--radius);">
+                                    <strong>Benefits:</strong>
+                                    <ul style="margin: 0.5rem 0 0 1rem; font-size: 0.8rem;">
+                                        <li>Auto-trigger library scans after downloads</li>
+                                        <li>Use *arr naming conventions for folders</li>
+                                        <li>Mark items as available in your *arr library</li>
+                                        <li>Sync metadata and organize files properly</li>
+                                    </ul>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Sonarr URL</label>
+                                    <input type="text" class="form-input" id="sonarr-url" placeholder="http://localhost:8989">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Sonarr API Key</label>
+                                    <input type="password" class="form-input" id="sonarr-key" placeholder="API key">
+                                </div>
+                                <button class="btn btn-secondary btn-sm" onclick="testArrConnection('sonarr')" style="margin-bottom: 1rem;">Test Sonarr</button>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">Radarr URL</label>
+                                    <input type="text" class="form-input" id="radarr-url" placeholder="http://localhost:7878">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Radarr API Key</label>
+                                    <input type="password" class="form-input" id="radarr-key" placeholder="API key">
+                                </div>
+                                <button class="btn btn-secondary btn-sm" onclick="testArrConnection('radarr')">Test Radarr</button>
+                                
+                                <div style="margin-top: 1rem; padding: 0.75rem; background: var(--jf-bg-input); border-radius: var(--radius);">
+                                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                                        <span style="font-weight: 600; font-size: 0.85rem;">📁 Folder Name Cache</span>
+                                        <button class="btn btn-secondary btn-sm" onclick="refreshArrCache()">🔄 Refresh</button>
+                                    </div>
+                                    <div id="arr-cache-status" style="font-size: 0.8rem; color: var(--jf-text-muted);">
+                                        Loading...
+                                    </div>
+                                    <div style="font-size: 0.75rem; color: var(--jf-text-muted); margin-top: 0.5rem;">
+                                        💡 Save Pro Settings before clicking Refresh to cache folder names.
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Themes (Pro) -->
+                            <div class="pro-section" id="themes-section">
+                                <h4 style="margin: 1rem 0 0.5rem; font-size: 0.9rem;">🎨 Custom Themes</h4>
+                                <div class="form-group">
+                                    <label class="form-label">Theme</label>
+                                    <select class="form-input" id="custom-theme-select">
+                                        <option value="default">Default (JellyLooter)</option>
+                                        <option value="jellyfin">Jellyfin Theme</option>
+                                        <option value="plex">Plex Theme</option>
+                                        <option value="emby">Emby Theme</option>
+                                        <optgroup label="🌸 Seasonal">
+                                            <option value="winter">❄️ Winter</option>
+                                            <option value="spring">🌷 Spring</option>
+                                            <option value="summer">☀️ Summer</option>
+                                            <option value="fall">🍂 Fall / Autumn</option>
+                                        </optgroup>
+                                        <optgroup label="🎉 Holidays">
+                                            <option value="christmas">🎄 Christmas</option>
+                                            <option value="halloween">🎃 Halloween</option>
+                                            <option value="valentines">💕 Valentine's Day</option>
+                                            <option value="stpatricks">☘️ St. Patrick's Day</option>
+                                            <option value="july4th">🇺🇸 4th of July</option>
+                                        </optgroup>
+                                        <option value="custom">🎨 Custom Colors</option>
+                                    </select>
+                                </div>
+                                <div id="custom-colors-group" style="display: none; margin-top: 0.5rem;">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Primary Color</label>
+                                            <input type="color" class="form-input" id="theme-primary" value="#00a4dc" style="height: 40px; padding: 2px;" title="Buttons, links, accents">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Accent Color</label>
+                                            <input type="color" class="form-input" id="theme-accent" value="#aa5cc3" style="height: 40px; padding: 2px;" title="Secondary accents, gradients">
+                                        </div>
+                                    </div>
+                                    <div class="form-row" style="margin-top: 0.5rem;">
+                                        <div class="form-group">
+                                            <label class="form-label">Background</label>
+                                            <input type="color" class="form-input" id="theme-bg" value="#101010" style="height: 40px; padding: 2px;" title="Main background">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Card Background</label>
+                                            <input type="color" class="form-input" id="theme-card" value="#1a1a1a" style="height: 40px; padding: 2px;" title="Cards, panels, modals">
+                                        </div>
+                                    </div>
+                                    <div class="form-row" style="margin-top: 0.5rem;">
+                                        <div class="form-group">
+                                            <label class="form-label">Input Background</label>
+                                            <input type="color" class="form-input" id="theme-input" value="#2a2a2a" style="height: 40px; padding: 2px;" title="Input fields, buttons">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Border Color</label>
+                                            <input type="color" class="form-input" id="theme-border" value="#333333" style="height: 40px; padding: 2px;" title="Borders, dividers">
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-secondary btn-sm" onclick="applyCustomTheme()" style="margin-top: 0.5rem;">Apply Custom Theme</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Multiple Local Servers (Pro) -->
+                            <div class="pro-section" id="multi-local-section">
+                                <h4 style="margin: 1rem 0 0.5rem; font-size: 0.9rem;">🏠 Multiple Local Servers</h4>
+                                <div class="form-hint" style="margin-bottom: 0.75rem;">
+                                    Connect multiple local Jellyfin/Emby servers for unified duplicate detection across your network.
+                                </div>
+                                <div id="local-servers-list" style="margin-bottom: 0.5rem;"></div>
+                                <button class="btn btn-secondary btn-sm" onclick="openModal('local-server-modal')">+ Add Local Server</button>
+                            </div>
+                            
+                            <button class="btn btn-primary" style="width: 100%; margin-top: 1rem;" id="save-pro-btn">Save Pro Settings</button>
                         </div>
                     </div>
                 </div>
@@ -1650,17 +2728,41 @@
                 </div>
             </div>
 
+            <!-- Download Statistics Widget -->
+            <div class="stats-widget" id="stats-widget">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="stat-total-downloaded">0 GB</div>
+                        <div class="stat-label">Total Downloaded</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="stat-today">0</div>
+                        <div class="stat-label">Today</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="stat-speed">0 KB/s</div>
+                        <div class="stat-label">Current Speed</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="stat-queue">0</div>
+                        <div class="stat-label">In Queue</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Download Queue -->
-            <div class="panel">
-                <div class="panel-header">
+            <div class="panel" id="panel-downloads" data-panel-id="downloads">
+                <div class="panel-header" onclick="togglePanelCollapse(this.parentElement)">
                     <h2 class="panel-title">
+                        <span class="panel-collapse-icon">▼</span>
                         <span class="panel-title-icon">⬇️</span>
                         <span data-i18n="downloads">Downloads</span>
                     </h2>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <button class="btn btn-secondary btn-sm" id="pause-btn" data-tooltip="Pause All">⏸️</button>
-                        <button class="btn btn-secondary btn-sm" id="resume-btn" style="display: none;" data-tooltip="Resume All">▶️</button>
-                        <button class="btn btn-danger btn-sm" id="cancel-all-btn" data-tooltip="Cancel All">⏹️</button>
+                    <div class="panel-controls" onclick="event.stopPropagation()">
+                        <button class="btn btn-secondary btn-sm" id="pause-btn" title="Pause All">⏸️</button>
+                        <button class="btn btn-secondary btn-sm" id="resume-btn" style="display: none;" title="Resume All">▶️</button>
+                        <button class="btn btn-secondary btn-sm" id="stop-after-btn" title="Stop after current" onclick="stopAfterCurrent()">🛑</button>
+                        <button class="btn btn-danger btn-sm" id="cancel-all-btn" title="Cancel All">⏹️</button>
                     </div>
                 </div>
                 <div class="panel-body">
@@ -1670,17 +2772,26 @@
                             <p data-i18n="no_active_downloads">No active downloads</p>
                         </div>
                     </div>
+                    <!-- Resumable Downloads (Pro feature) -->
+                    <div id="resumable-downloads" class="resumable-section" style="display: none;">
+                        <div class="resumable-header">
+                            <span>🔄 Resumable Downloads</span>
+                            <span class="pro-badge">PRO</span>
+                        </div>
+                        <div id="resumable-list"></div>
+                    </div>
                 </div>
             </div>
 
             <!-- Log Panel -->
-            <div class="panel" style="margin-top: 1rem;">
-                <div class="panel-header">
+            <div class="panel" id="panel-log" data-panel-id="log" style="margin-top: 1rem;">
+                <div class="panel-header" onclick="togglePanelCollapse(this.parentElement)">
                     <h2 class="panel-title">
+                        <span class="panel-collapse-icon">▼</span>
                         <span class="panel-title-icon">📋</span>
                         <span data-i18n="activity_log">Activity Log</span>
                     </h2>
-                    <div style="display: flex; gap: 0.5rem;">
+                    <div class="panel-controls" onclick="event.stopPropagation()">
                         <button class="btn btn-secondary btn-sm" id="toggle-history-btn">📜 <span data-i18n="history">History</span></button>
                         <button class="btn btn-secondary btn-sm" id="rebuild-cache-btn">🔄 <span data-i18n="rebuild_cache">Rebuild Cache</span></button>
                     </div>
@@ -1858,6 +2969,116 @@
         </div>
     </div>
 
+    <!-- Local Server Modal (Pro) -->
+    <div class="modal" id="local-server-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">🏠 Add Local Server</h3>
+                <button class="modal-close" onclick="closeModal('local-server-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-hint" style="margin-bottom: 1rem; padding: 0.75rem; background: var(--jf-bg-input); border-radius: var(--radius);">
+                    Add local Jellyfin/Emby servers for duplicate detection. JellyLooter will scan these servers to avoid downloading media you already have.
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Server Name</label>
+                    <input type="text" class="form-input" id="new-local-server-name" placeholder="e.g., Living Room Server">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Server URL</label>
+                    <input type="text" class="form-input" id="new-local-server-url" placeholder="http://192.168.1.100:8096">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Authentication Method</label>
+                    <select class="form-input" id="new-local-auth-method">
+                        <option value="key">API Key</option>
+                        <option value="creds">Username / Password</option>
+                    </select>
+                </div>
+                <div id="new-local-auth-key-fields">
+                    <div class="form-group">
+                        <label class="form-label">API Key</label>
+                        <input type="password" class="form-input" id="new-local-server-key" placeholder="Enter API key">
+                    </div>
+                </div>
+                <div id="new-local-auth-creds-fields" style="display: none;">
+                    <div class="form-group">
+                        <label class="form-label">Username</label>
+                        <input type="text" class="form-input" id="new-local-server-username" placeholder="Username">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-input" id="new-local-server-password" placeholder="Password">
+                    </div>
+                </div>
+                <button class="btn btn-secondary" onclick="testLocalServerConnection()" style="margin-top: 0.5rem;">Test Connection</button>
+                <div id="new-local-server-test-result" style="margin-top: 0.5rem;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('local-server-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="addLocalServer()">Add Server</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Keyboard Shortcuts Modal -->
+    <div class="modal" id="shortcuts-modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 class="modal-title">⌨️ Keyboard Shortcuts</h3>
+                <button class="modal-close" onclick="closeModal('shortcuts-modal')">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 1rem;">
+                <div style="display: grid; gap: 0.75rem;">
+                    <div style="font-weight: 600; color: var(--jf-primary); margin-bottom: 0.5rem;">Navigation</div>
+                    <div class="shortcut-row"><kbd>/</kbd> <span>Focus search box</span></div>
+                    <div class="shortcut-row"><kbd>Esc</kbd> <span>Clear selection / Close modal</span></div>
+                    <div class="shortcut-row"><kbd>1</kbd> <span>Go to Browse tab</span></div>
+                    <div class="shortcut-row"><kbd>2</kbd> <span>Go to Sync tab</span></div>
+                    <div class="shortcut-row"><kbd>3</kbd> <span>Go to Settings tab</span></div>
+                    
+                    <div style="font-weight: 600; color: var(--jf-primary); margin: 0.75rem 0 0.5rem;">Selection</div>
+                    <div class="shortcut-row"><kbd>Space</kbd> <span>Toggle selection on hovered item</span></div>
+                    <div class="shortcut-row"><kbd>Ctrl</kbd>+<kbd>A</kbd> <span>Select all items on page</span></div>
+                    <div class="shortcut-row"><kbd>Enter</kbd> <span>Download selected items</span></div>
+                    
+                    <div style="font-weight: 600; color: var(--jf-primary); margin: 0.75rem 0 0.5rem;">Downloads</div>
+                    <div class="shortcut-row"><kbd>P</kbd> <span>Pause / Resume downloads</span></div>
+                    <div class="shortcut-row"><kbd>D</kbd> <span>Download selected items</span></div>
+                    
+                    <div style="font-weight: 600; color: var(--jf-primary); margin: 0.75rem 0 0.5rem;">Other</div>
+                    <div class="shortcut-row"><kbd>?</kbd> <span>Show this help</span></div>
+                    <div class="shortcut-row"><kbd>R</kbd> <span>Refresh current view</span></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeModal('shortcuts-modal')">Got it!</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .shortcut-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.25rem 0;
+        }
+        .shortcut-row kbd {
+            background: var(--jf-bg-input);
+            border: 1px solid var(--jf-border);
+            border-radius: 4px;
+            padding: 0.25rem 0.5rem;
+            font-family: monospace;
+            font-size: 0.8rem;
+            min-width: 2rem;
+            text-align: center;
+        }
+        .shortcut-row span {
+            color: var(--jf-text-muted);
+        }
+    </style>
+
     <script>
         // State
         let config = {};
@@ -1887,7 +3108,110 @@
             startStatusPolling();
             startLogPolling();
             setupSearch();
+            setupKeyboardShortcuts();
         });
+        
+        // Keyboard Shortcuts
+        function setupKeyboardShortcuts() {
+            document.addEventListener('keydown', (e) => {
+                // Don't trigger shortcuts when typing in inputs
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                    // But allow Escape to blur
+                    if (e.key === 'Escape') {
+                        e.target.blur();
+                    }
+                    return;
+                }
+                
+                switch (e.key) {
+                    case '?': // Show shortcuts help
+                        e.preventDefault();
+                        openModal('shortcuts-modal');
+                        break;
+                        
+                    case ' ': // Space - toggle selection on focused item
+                        e.preventDefault();
+                        const focused = document.querySelector('.browser-item:focus, .browser-item:hover');
+                        if (focused) {
+                            toggleSelection(focused.dataset.id);
+                        }
+                        break;
+                        
+                    case 'Enter': // Enter - download selected or navigate
+                        if (selectedItems.size > 0) {
+                            document.getElementById('download-selected-btn').click();
+                        }
+                        break;
+                        
+                    case 'a': // Ctrl+A - select all
+                        if (e.ctrlKey || e.metaKey) {
+                            e.preventDefault();
+                            selectAllOnPage();
+                        }
+                        break;
+                        
+                    case 'Escape': // Escape - clear selection or close modal
+                        const openModal = document.querySelector('.modal.active');
+                        if (openModal) {
+                            closeModal(openModal.id);
+                        } else if (selectedItems.size > 0) {
+                            clearSelection();
+                        }
+                        break;
+                        
+                    case '/': // Focus search
+                        e.preventDefault();
+                        document.getElementById('library-search').focus();
+                        break;
+                    
+                    case 'p': // P - Pause/Resume
+                    case 'P':
+                        e.preventDefault();
+                        if (is_paused) {
+                            document.getElementById('resume-btn').click();
+                        } else {
+                            document.getElementById('pause-btn').click();
+                        }
+                        break;
+                    
+                    case 'd': // D - Download selected
+                    case 'D':
+                        if (selectedItems.size > 0) {
+                            e.preventDefault();
+                            document.getElementById('download-selected-btn').click();
+                        }
+                        break;
+                    
+                    case 'r': // R - Refresh
+                    case 'R':
+                        if (!e.ctrlKey && !e.metaKey) {
+                            e.preventDefault();
+                            if (currentServerId) {
+                                loadLibrary(currentServerId, currentParentId);
+                            }
+                        }
+                        break;
+                    
+                    case '1': // 1 - Browse tab
+                        e.preventDefault();
+                        document.querySelector('[data-tab="browse"]').click();
+                        break;
+                    
+                    case '2': // 2 - Sync tab
+                        e.preventDefault();
+                        document.querySelector('[data-tab="sync"]').click();
+                        break;
+                    
+                    case '3': // 3 - Settings tab
+                        e.preventDefault();
+                        document.querySelector('[data-tab="settings"]').click();
+                        break;
+                }
+            });
+        }
+        
+        // Track pause state for keyboard shortcut
+        let is_paused = false;
         
         // Search/Filter
         function setupSearch() {
@@ -2180,18 +3504,63 @@
             document.getElementById('chunk-size').value = config.chunk_size_kb || 64;
             document.getElementById('confirm-downloads').checked = config.confirm_downloads || false;
             document.getElementById('show-notifications').checked = config.show_notifications !== false;
+            document.getElementById('show-ratings').checked = config.show_ratings !== false;
+            document.getElementById('show-quality').checked = config.show_quality !== false;
+            document.getElementById('download-subtitles').checked = config.download_subtitles !== false;
+            document.getElementById('subtitle-languages').value = (config.subtitle_languages || ['eng', 'spa', 'ger']).join(', ');
             document.getElementById('theme-toggle-settings').checked = (config.theme || 'dark') === 'dark';
             document.getElementById('language-select').value = config.language || 'en';
+            
+            // Security settings
+            document.getElementById('auth-enabled').checked = config.auth_enabled || false;
+            document.getElementById('session-timeout').value = config.session_timeout_minutes || 30;
+            document.getElementById('trust-proxy').checked = config.trust_proxy_headers || false;
+            document.getElementById('trusted-proxies').value = config.trusted_proxy_ips || '';
+            
+            // Apply tier limits to max downloads
+            applyMaxDownloadsLimit();
+        }
+        
+        function applyMaxDownloadsLimit() {
+            const maxDownloadsInput = document.getElementById('max-downloads');
+            const hint = document.getElementById('max-downloads-hint');
+            const tier = config.license_tier || 'free';
+            
+            if (tier === 'free') {
+                maxDownloadsInput.max = 2;
+                if (parseInt(maxDownloadsInput.value) > 2) {
+                    maxDownloadsInput.value = 2;
+                }
+                hint.style.display = 'block';
+            } else {
+                maxDownloadsInput.max = 10;
+                hint.style.display = 'none';
+            }
         }
 
         async function saveSettings() {
             config.speed_limit_kbs = parseInt(document.getElementById('speed-limit').value) || 0;
             config.sync_time = document.getElementById('sync-time').value || '04:00';
-            config.max_concurrent_downloads = parseInt(document.getElementById('max-downloads').value) || 2;
+            
+            // Enforce tier limit on max downloads
+            let maxDownloads = parseInt(document.getElementById('max-downloads').value) || 2;
+            const tier = config.license_tier || 'free';
+            if (tier === 'free' && maxDownloads > 2) {
+                maxDownloads = 2;
+                showToast('Free tier limited to 2 concurrent downloads', 'warning');
+            }
+            config.max_concurrent_downloads = maxDownloads;
+            
             config.connection_timeout = parseInt(document.getElementById('connection-timeout').value) || 30;
             config.chunk_size_kb = parseInt(document.getElementById('chunk-size').value) || 64;
             config.confirm_downloads = document.getElementById('confirm-downloads').checked;
             config.show_notifications = document.getElementById('show-notifications').checked;
+            config.show_ratings = document.getElementById('show-ratings').checked;
+            config.show_quality = document.getElementById('show-quality').checked;
+            config.download_subtitles = document.getElementById('download-subtitles').checked;
+            // Parse subtitle languages from comma-separated string
+            const subLangs = document.getElementById('subtitle-languages').value;
+            config.subtitle_languages = subLangs.split(',').map(l => l.trim().toLowerCase()).filter(l => l);
             
             await api('config', 'POST', config);
             showToast('Settings saved');
@@ -2204,6 +3573,60 @@
             await api('config', 'POST', config);
             showToast('Language saved - refreshing...');
             setTimeout(() => location.reload(), 500);
+        }
+        
+        // Config Export/Import
+        function exportConfig() {
+            // Trigger download via API
+            window.location.href = '/api/config/export';
+            showToast('📤 Config exported', 'success');
+        }
+        
+        function importConfig(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const importData = JSON.parse(e.target.result);
+                    
+                    // Confirm import
+                    const exportInfo = importData._export || {};
+                    const confirmMsg = `Import configuration from ${exportInfo.exported_at ? new Date(exportInfo.exported_at).toLocaleString() : 'unknown date'}?\n\n` +
+                        `Version: ${exportInfo.version || 'unknown'}\n\n` +
+                        `Note: ${exportInfo.note || 'API keys will need to be re-entered.'}`;
+                    
+                    if (!confirm(confirmMsg)) {
+                        event.target.value = '';
+                        return;
+                    }
+                    
+                    // Send to server
+                    const response = await fetch('/api/config/import', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(importData)
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showToast('📥 ' + result.message, 'success');
+                        // Reload to apply new config
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        showToast('❌ Import failed: ' + result.error, 'error');
+                    }
+                } catch (err) {
+                    showToast('❌ Invalid config file: ' + err.message, 'error');
+                }
+                
+                // Reset file input
+                event.target.value = '';
+            };
+            
+            reader.readAsText(file);
         }
 
         // Mappings
@@ -2515,6 +3938,10 @@
                 `;
                 return;
             }
+            
+            // Show interaction hints when items are displayed
+            const hint = document.getElementById('interaction-hint');
+            if (hint) hint.style.display = 'block';
 
             grid.innerHTML = items.map(item => {
                 const icon = item.IsFolder ? '📁' : (item.Type === 'Movie' ? '🎬' : '📺');
@@ -2524,21 +3951,105 @@
                 
                 const classes = ['browser-item'];
                 if (item.IsFolder) classes.push('folder');
+                if (item.Type === 'Series') classes.push('series'); // Series looks like media, not pure folder
+                if (item.Type === 'Movie' || item.Type === 'Episode') classes.push('media-item');
                 if (item.ExistsLocally) classes.push('exists');
                 if (selectedItems.has(item.Id)) classes.push('selected');
+                
+                // Tooltip text - show name, and for folders add hint
+                const tooltipText = item.IsFolder 
+                    ? `${escapeHtml(item.Name)} (double-click to open)` 
+                    : escapeHtml(item.Name);
+                
+                // Determine if this item should show overlays
+                // Show for: Movies, Episodes, AND Series (which are "folders" but have ratings)
+                const showOverlays = item.Type === 'Movie' || item.Type === 'Episode' || item.Type === 'Series';
+                
+                // Build rating badge HTML
+                let ratingBadgeHtml = '';
+                let contentRatingHtml = '';
+                let qualityBadgesHtml = '';
+                
+                if (showOverlays && config.show_ratings !== false) {
+                    // IMDB/TMDB Rating (CommunityRating is 0-10 scale)
+                    if (item.CommunityRating && item.CommunityRating > 0) {
+                        const rating = item.CommunityRating.toFixed(1);
+                        ratingBadgeHtml = `<div class="rating-badge imdb"><span class="rating-badge-icon">⭐</span>${rating}</div>`;
+                    }
+                    
+                    // Critic Rating (Rotten Tomatoes 0-100)
+                    if (item.CriticRating && item.CriticRating > 0) {
+                        const isFresh = item.CriticRating >= 60;
+                        const rtIcon = isFresh ? '🍅' : '🥬';
+                        const rtClass = isFresh ? 'rt-fresh' : 'rt-rotten';
+                        // If we already have community rating, show RT below it
+                        if (!ratingBadgeHtml) {
+                            ratingBadgeHtml = `<div class="rating-badge ${rtClass}"><span class="rating-badge-icon">${rtIcon}</span>${item.CriticRating}%</div>`;
+                        }
+                    }
+                    
+                    // Content Rating (PG-13, R, TV-MA, etc)
+                    if (item.OfficialRating) {
+                        contentRatingHtml = `<div class="content-rating-badge">${escapeHtml(item.OfficialRating)}</div>`;
+                    }
+                }
+                
+                // Build quality badges (resolution, HDR, Atmos) - only for actual media files (Movies, Episodes)
+                if ((item.Type === 'Movie' || item.Type === 'Episode') && config.show_quality !== false) {
+                    const qualityBadges = [];
+                    
+                    // Resolution badge
+                    if (item.Resolution) {
+                        const resClass = item.Resolution === '4K' ? 'res-4k' : 
+                                        item.Resolution === '1080p' ? 'res-1080p' :
+                                        item.Resolution === '720p' ? 'res-720p' : 'res-sd';
+                        qualityBadges.push(`<span class="quality-badge ${resClass}">${item.Resolution}</span>`);
+                    }
+                    
+                    // Dolby Vision (takes priority over HDR)
+                    if (item.IsDolbyVision) {
+                        qualityBadges.push(`<span class="quality-badge dolby-vision">DV</span>`);
+                    } else if (item.IsHDR) {
+                        qualityBadges.push(`<span class="quality-badge hdr">HDR</span>`);
+                    }
+                    
+                    // Atmos
+                    if (item.IsAtmos) {
+                        qualityBadges.push(`<span class="quality-badge atmos">ATMOS</span>`);
+                    }
+                    
+                    if (qualityBadges.length > 0) {
+                        qualityBadgesHtml = `<div class="quality-badges">${qualityBadges.join('')}</div>`;
+                    }
+                }
+                
+                // Collection/Playlist download button
+                let collectionBtnHtml = '';
+                if (item.Type === 'BoxSet' || item.Type === 'Playlist') {
+                    collectionBtnHtml = `<button class="collection-download-btn" onclick="event.stopPropagation(); downloadCollection('${item.Id}', '${escapeHtml(item.Name)}')" title="Download All Items">
+                        <span>⬇️</span> Download All
+                    </button>`;
+                }
 
                 return `
                     <div class="${classes.join(' ')}" 
                          data-id="${item.Id}" 
                          data-name="${escapeHtml(item.Name)}"
                          data-folder="${item.IsFolder}"
+                         data-type="${item.Type || ''}"
+                         title="${tooltipText}"
                          onclick="handleItemClick(event, '${item.Id}', ${item.IsFolder}, '${escapeHtml(item.Name)}')"
+                         ondblclick="handleItemDblClick(event, '${item.Id}', ${item.IsFolder}, '${escapeHtml(item.Name)}')"
                          oncontextmenu="handleItemContext(event, '${item.Id}')">
+                        ${ratingBadgeHtml}
+                        ${contentRatingHtml}
                         ${imgSrc ? 
                             `<img class="browser-item-poster" src="${imgSrc}" loading="lazy" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                              <div class="browser-item-placeholder" style="display:none;">${icon}</div>` :
                             `<div class="browser-item-placeholder">${icon}</div>`
                         }
+                        ${qualityBadgesHtml}
+                        ${collectionBtnHtml}
                         <div class="browser-item-title">${escapeHtml(item.Name)}</div>
                     </div>
                 `;
@@ -2548,10 +4059,16 @@
         function handleItemClick(e, id, isFolder, name) {
             if (e.ctrlKey || e.metaKey) {
                 toggleSelection(id);
-            } else if (isFolder) {
-                navigateTo(id, name);
             } else {
+                // Single click always selects (for both folders and media)
                 toggleSelection(id);
+            }
+        }
+        
+        function handleItemDblClick(e, id, isFolder, name) {
+            if (isFolder) {
+                // Double click navigates into folders
+                navigateTo(id, name);
             }
         }
 
@@ -2570,7 +4087,8 @@
         }
 
         function selectAllOnPage() {
-            const items = document.querySelectorAll('.browser-item:not(.folder)');
+            // Now includes folders too
+            const items = document.querySelectorAll('.browser-item');
             const allSelected = Array.from(items).every(el => selectedItems.has(el.dataset.id));
             
             if (allSelected) {
@@ -2690,8 +4208,10 @@
         }
 
         async function confirmDownloadPath() {
+            const itemCount = selectedItems.size;
+            
             if (config.confirm_downloads) {
-                if (!confirm(`Download ${selectedItems.size} item(s) to ${pendingDownloadPath}?`)) {
+                if (!confirm(`Download ${itemCount} item(s) to ${pendingDownloadPath}?`)) {
                     return;
                 }
             }
@@ -2704,7 +4224,55 @@
 
             closeModal('path-modal');
             clearSelection();
-            showToast(`Queued ${selectedItems.size} item(s) for download`);
+            showToast(`Queued ${itemCount} item(s) for download`);
+        }
+
+        // Download entire collection/playlist
+        async function downloadCollection(collectionId, collectionName) {
+            showToast(`📦 Fetching items from "${collectionName}"...`, 'info');
+            
+            try {
+                // First, get all items in the collection
+                const result = await api('collection_items', 'POST', {
+                    server_id: currentServerId,
+                    collection_id: collectionId
+                });
+                
+                if (result.error) {
+                    showToast('❌ ' + result.error, 'error');
+                    return;
+                }
+                
+                if (!result.items || result.items.length === 0) {
+                    showToast('📭 Collection is empty or has no downloadable items', 'warning');
+                    return;
+                }
+                
+                const itemCount = result.items.length;
+                
+                // Confirm download
+                if (!confirm(`Download all ${itemCount} items from "${collectionName}"?\n\nThis will queue all movies/episodes in this collection.`)) {
+                    return;
+                }
+                
+                // Get download path - use default or last used
+                const downloadPath = config.download_path || '/downloads';
+                
+                // Queue all items
+                const itemIds = result.items.map(item => item.Id);
+                
+                await api('batch_download', 'POST', {
+                    server_id: currentServerId,
+                    item_ids: itemIds,
+                    path: downloadPath
+                });
+                
+                showToast(`📦 Queued ${itemCount} items from "${collectionName}"`, 'success');
+                
+            } catch (e) {
+                showToast('❌ Failed to fetch collection items', 'error');
+                console.error('Collection download error:', e);
+            }
         }
 
         // Server Management
@@ -2869,7 +4437,7 @@
             document.getElementById('mapping-folder-browser').style.display = 'none';
         }
 
-        // Status Polling
+        // Status Polling (optimized - 2 second interval)
         function startStatusPolling() {
             async function poll() {
                 try {
@@ -2877,7 +4445,14 @@
                     updateDownloadQueue(status);
                     updateStats(status);
                     updateScanProgress(status.scan_progress);
+                    
+                    // Update mobile stats
+                    if (typeof updateMobileStats === 'function') {
+                        updateMobileStats(status);
+                    }
 
+                    // Update pause state for keyboard shortcut
+                    is_paused = status.paused;
                     document.getElementById('pause-btn').style.display = status.paused ? 'none' : 'flex';
                     document.getElementById('resume-btn').style.display = status.paused ? 'flex' : 'none';
                 } catch (err) {
@@ -2885,7 +4460,7 @@
                 }
             }
             poll();
-            setInterval(poll, 1000);
+            setInterval(poll, 2000); // 2 second polling for better performance
         }
 
         function updateDownloadQueue(status) {
@@ -2927,6 +4502,90 @@
             ].join('');
         }
         
+        // Resumable Downloads (Pro feature)
+        let lastResumableCheck = 0;
+        
+        async function loadResumableDownloads() {
+            const now = Date.now();
+            if (now - lastResumableCheck < 30000) return; // Check every 30 seconds
+            lastResumableCheck = now;
+            
+            try {
+                const data = await api('downloads/resumable');
+                const section = document.getElementById('resumable-downloads');
+                const list = document.getElementById('resumable-list');
+                
+                if (data.pro_required || !data.resumable || data.resumable.length === 0) {
+                    section.style.display = 'none';
+                    return;
+                }
+                
+                section.style.display = 'block';
+                list.innerHTML = data.resumable.map(item => `
+                    <div class="resumable-item">
+                        <div class="resumable-info">
+                            <div class="resumable-name" title="${escapeHtml(item.filename)}">${escapeHtml(item.filename)}</div>
+                            <div class="resumable-meta">
+                                ${item.downloaded_human} / ${item.total_human} (${item.percent}%) • ${item.age}
+                            </div>
+                        </div>
+                        <div class="resumable-actions">
+                            <button class="btn btn-primary btn-sm" onclick="resumePartialDownload('${item.task_id}')" title="Resume">▶️</button>
+                            <button class="btn btn-danger btn-sm" onclick="deletePartialDownload('${item.task_id}')" title="Delete">🗑️</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                // Silently fail
+            }
+        }
+        
+        async function resumePartialDownload(taskId) {
+            try {
+                const result = await fetch('/api/downloads/resume_partial', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ task_id: taskId })
+                }).then(r => r.json());
+                
+                if (result.success) {
+                    showToast('🔄 ' + result.message, 'success');
+                    lastResumableCheck = 0; // Force refresh
+                    loadResumableDownloads();
+                } else {
+                    showToast('❌ ' + result.error, 'error');
+                }
+            } catch (e) {
+                showToast('Failed to resume download', 'error');
+            }
+        }
+        
+        async function deletePartialDownload(taskId) {
+            if (!confirm('Delete this partial download? This cannot be undone.')) return;
+            
+            try {
+                const result = await fetch('/api/downloads/delete_partial', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ task_id: taskId })
+                }).then(r => r.json());
+                
+                if (result.success) {
+                    showToast('🗑️ Partial download deleted', 'success');
+                    lastResumableCheck = 0; // Force refresh
+                    loadResumableDownloads();
+                } else {
+                    showToast('❌ ' + result.error, 'error');
+                }
+            } catch (e) {
+                showToast('Failed to delete partial download', 'error');
+            }
+        }
+        
+        // Load resumable downloads periodically
+        setInterval(loadResumableDownloads, 30000);
+        setTimeout(loadResumableDownloads, 2000); // Initial check after 2 sec
+        
         function calculateETA(download) {
             if (!download.speed_raw || download.speed_raw <= 0) return null;
             if (!download.total || download.total <= 0) return null;
@@ -2953,12 +4612,46 @@
             // Update title bar with download count
             if (activeCount > 0) {
                 document.title = `JellyLooter (${activeCount} ⬇)`;
+                // Refresh total stats more often when downloads are active
+                updateTotalStats(true);
             } else if (pendingCount > 0) {
                 document.title = `JellyLooter (${pendingCount} pending)`;
             } else {
                 document.title = 'JellyLooter';
             }
+            
+            // Update stats widget - calculate current speed from active downloads
+            let currentSpeed = 0;
+            Object.values(status.active || {}).forEach(dl => {
+                if (dl.speed_raw) currentSpeed += dl.speed_raw;
+            });
+            
+            document.getElementById('stat-speed').textContent = currentSpeed > 0 
+                ? (currentSpeed > 1024*1024 ? `${(currentSpeed/1024/1024).toFixed(1)} MB/s` : `${(currentSpeed/1024).toFixed(0)} KB/s`)
+                : '0 KB/s';
+            document.getElementById('stat-queue').textContent = activeCount + pendingCount;
         }
+        
+        // Fetch and update total downloaded stats (less frequently)
+        let lastStatsUpdate = 0;
+        async function updateTotalStats(force = false) {
+            const now = Date.now();
+            const interval = force ? 3000 : 10000; // 3 sec when forced, 10 sec otherwise
+            if (now - lastStatsUpdate < interval) return;
+            lastStatsUpdate = now;
+            
+            try {
+                const stats = await api('stats');
+                document.getElementById('stat-total-downloaded').textContent = stats.total_human || '0 B';
+                document.getElementById('stat-today').textContent = stats.today_count || 0;
+            } catch (e) {
+                // Silently fail
+            }
+        }
+        
+        // Call total stats update periodically
+        setInterval(updateTotalStats, 10000);
+        setTimeout(updateTotalStats, 1000); // Initial update after 1 sec
 
         function updateScanProgress(scan) {
             const container = document.getElementById('scan-progress');
@@ -3011,6 +4704,924 @@
             div.textContent = str;
             return div.innerHTML;
         }
+        
+        // --- Mobile menu functions ---
+        function openMobileDownloads() {
+            openModal('mobile-downloads-modal');
+            updateMobileDownloadQueue();
+        }
+        
+        function openMobileLog() {
+            openModal('mobile-log-modal');
+            updateMobileLog();
+        }
+        
+        function updateMobileDownloadQueue() {
+            const mobileQueue = document.getElementById('mobile-download-queue');
+            const desktopQueue = document.getElementById('download-queue');
+            if (mobileQueue && desktopQueue) {
+                mobileQueue.innerHTML = desktopQueue.innerHTML;
+            }
+        }
+        
+        function updateMobileLog() {
+            const mobileLog = document.getElementById('mobile-log-container');
+            const desktopLog = document.getElementById('log-container');
+            if (mobileLog && desktopLog) {
+                mobileLog.innerHTML = desktopLog.innerHTML;
+            }
+        }
+        
+        function updateMobileStats(data) {
+            const activeCount = Object.keys(data.active || {}).length;
+            const pendingCount = (data.pending || []).length;
+            
+            // Update mobile stats
+            const mobileActive = document.getElementById('mobile-stat-active');
+            const mobilePending = document.getElementById('mobile-stat-pending');
+            const mobileBadge = document.getElementById('mobile-download-badge');
+            
+            if (mobileActive) mobileActive.textContent = activeCount;
+            if (mobilePending) mobilePending.textContent = pendingCount;
+            
+            // Show badge if downloads active
+            if (mobileBadge) {
+                const total = activeCount + pendingCount;
+                if (total > 0) {
+                    mobileBadge.textContent = total;
+                    mobileBadge.style.display = 'inline-block';
+                } else {
+                    mobileBadge.style.display = 'none';
+                }
+            }
+            
+            // Sync mobile pause/resume buttons
+            const mobilePause = document.getElementById('mobile-pause-btn');
+            const mobileResume = document.getElementById('mobile-resume-btn');
+            if (mobilePause && mobileResume) {
+                mobilePause.style.display = data.paused ? 'none' : '';
+                mobileResume.style.display = data.paused ? '' : 'none';
+            }
+        }
+        
+        // --- License banner ---
+        function initLicenseBanner() {
+            const banner = document.getElementById('license-banner');
+            if (!banner) return;
+            
+            // Check license status from last status poll
+            fetch('/api/license')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.tier === 'pro') {
+                        // Show thank you message for Pro users
+                        banner.className = 'license-banner';
+                        banner.style.background = 'linear-gradient(135deg, #4caf50 0%, #2e7d32 100%)';
+                        banner.innerHTML = `
+                            <span class="license-banner-text">⭐ Thank you for supporting JellyLooter!</span>
+                            <button class="license-banner-btn" onclick="this.parentElement.style.display='none'">✓ Dismiss</button>
+                        `;
+                        banner.style.display = 'flex';
+                        // Auto-hide after 5 seconds
+                        setTimeout(() => { banner.style.display = 'none'; }, 5000);
+                        
+                        // Show PRO badge
+                        updateProBadge(true);
+                    } else if (data.tier === 'trial') {
+                        banner.className = 'license-banner license-banner-trial';
+                        banner.innerHTML = `
+                            <span class="license-banner-text">⏰ Pro Trial: ${data.trial_days_remaining} days remaining</span>
+                            <button class="license-banner-btn" onclick="activateLicenseKey()">🔑 Enter License</button>
+                            <a href="https://lightwave43.gumroad.com/l/rmtmrr" target="_blank" class="license-banner-btn">Buy Pro - $10</a>
+                        `;
+                        banner.style.display = 'flex';
+                        updateProBadge(false);
+                    } else {
+                        banner.className = 'license-banner license-banner-free';
+                        banner.innerHTML = `
+                            <span class="license-banner-text">🔓 Free Version</span>
+                            <button class="license-banner-btn" onclick="activateTrial()">🚀 Start 14-Day Trial</button>
+                            <a href="https://lightwave43.gumroad.com/l/rmtmrr" target="_blank" class="license-banner-btn" style="background: var(--jf-purple); color: white;">⭐ Go Pro - $10</a>
+                        `;
+                        banner.style.display = 'flex';
+                        updateProBadge(false);
+                    }
+                })
+                .catch(() => {
+                    // Default to free banner on error
+                    banner.style.display = 'flex';
+                    updateProBadge(false);
+                });
+        }
+        
+        // PRO badge next to logo
+        function updateProBadge(isPro) {
+            const badge = document.getElementById('header-pro-badge');
+            if (badge) {
+                if (isPro) {
+                    badge.style.display = 'inline-block';
+                    badge.onclick = handleProBadgeClick;
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+        }
+        
+        // Hidden license purge via PRO badge clicks
+        let proBadgeClicks = 0;
+        let proBadgeTimer = null;
+        function handleProBadgeClick() {
+            proBadgeClicks++;
+            clearTimeout(proBadgeTimer);
+            proBadgeTimer = setTimeout(() => { proBadgeClicks = 0; }, 500);
+            
+            if (proBadgeClicks >= 5) {
+                proBadgeClicks = 0;
+                purgeAllLicenses();
+            }
+        }
+        
+        function activateTrial() {
+            fetch('/api/license/trial', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('🎉 Trial activated! Enjoy 14 days of Pro features.', 'success');
+                        initLicenseBanner();
+                        loadProSettings(); // Reload pro settings to enable sections
+                    } else {
+                        showToast(data.error || 'Could not activate trial', 'error');
+                    }
+                });
+        }
+        
+        function activateLicenseKey() {
+            const key = prompt('Enter your Pro license key:');
+            if (!key) return;
+            
+            fetch('/api/license/activate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key: key.trim() })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('🎉 Pro license activated! Reloading...', 'success');
+                    // Force immediate reload to apply all Pro settings
+                    setTimeout(() => window.location.reload(true), 1000);
+                } else {
+                    showToast(data.error || 'Invalid license key', 'error');
+                }
+            });
+        }
+        
+        // --- Settings Toggle Sections ---
+        function setupSettingsToggles() {
+            // Security toggle
+            const securityToggle = document.getElementById('security-toggle');
+            const securityContent = document.getElementById('security-content');
+            if (securityToggle && securityContent) {
+                securityToggle.addEventListener('click', () => {
+                    securityContent.style.display = securityContent.style.display === 'none' ? 'block' : 'none';
+                    securityToggle.querySelector('.advanced-toggle-icon').textContent = 
+                        securityContent.style.display === 'none' ? '▼' : '▲';
+                });
+            }
+            
+            // Pro toggle
+            const proToggle = document.getElementById('pro-toggle');
+            const proContent = document.getElementById('pro-content');
+            if (proToggle && proContent) {
+                proToggle.addEventListener('click', () => {
+                    proContent.style.display = proContent.style.display === 'none' ? 'block' : 'none';
+                    proToggle.querySelector('.advanced-toggle-icon').textContent = 
+                        proContent.style.display === 'none' ? '▼' : '▲';
+                    if (proContent.style.display === 'block') {
+                        loadProSettings();
+                    }
+                });
+            }
+            
+            // Transcode preset change
+            const transcodePreset = document.getElementById('transcode-preset');
+            if (transcodePreset) {
+                transcodePreset.addEventListener('change', () => {
+                    document.getElementById('custom-transcode-group').style.display = 
+                        transcodePreset.value === 'custom' ? 'block' : 'none';
+                });
+            }
+        }
+        
+        // --- Load Pro Settings ---
+        function loadProSettings() {
+            fetch('/api/license')
+                .then(r => r.json())
+                .then(data => {
+                    const statusBox = document.getElementById('license-status-box');
+                    const proBadge = document.getElementById('pro-badge');
+                    
+                    // Update config.license_tier
+                    config.license_tier = data.tier;
+                    
+                    if (data.tier === 'pro') {
+                        statusBox.className = 'license-status-box pro';
+                        statusBox.innerHTML = '<span style="color: #ffd700;">⭐</span> <strong>Pro License Active</strong>';
+                        if (proBadge) proBadge.style.display = 'inline-block';
+                        enableProSections(true);
+                    } else if (data.tier === 'trial') {
+                        statusBox.className = 'license-status-box trial';
+                        statusBox.innerHTML = `<strong>Pro Trial</strong> - ${data.trial_days_remaining} days remaining<br>
+                            <button class="btn btn-sm" style="margin-top: 0.5rem;" onclick="window.open('https://lightwave43.gumroad.com/l/rmtmrr', '_blank')">Buy Pro - $10</button>`;
+                        enableProSections(true);
+                    } else {
+                        statusBox.className = 'license-status-box free';
+                        statusBox.innerHTML = `<strong>Free Tier</strong><br>
+                            <button class="btn btn-sm" style="margin-top: 0.5rem;" onclick="activateTrial()">Start 14-Day Trial</button>
+                            <button class="btn btn-sm" style="margin-top: 0.5rem; margin-left: 0.5rem;" onclick="activateLicenseKey()">Enter License Key</button>
+                            <div id="backup-license-check" style="margin-top: 0.5rem;"></div>`;
+                        enableProSections(false);
+                        
+                        // Check for backup license in library folders
+                        checkBackupLicense();
+                    }
+                    
+                    // Update max downloads input limit based on tier
+                    applyMaxDownloadsLimit();
+                    
+                    // Load saved pro settings into form
+                    loadProFormValues();
+                });
+        }
+        
+        function checkBackupLicense() {
+            fetch('/api/license/check_backup')
+                .then(r => r.json())
+                .then(data => {
+                    const container = document.getElementById('backup-license-check');
+                    if (!container) return;
+                    
+                    if (data.found) {
+                        container.innerHTML = `
+                            <div style="background: rgba(0,164,220,0.1); padding: 0.5rem; border-radius: var(--radius); margin-top: 0.5rem;">
+                                <span style="color: var(--jf-primary);">🔍 Found backup license in library</span><br>
+                                <button class="btn btn-primary btn-sm" style="margin-top: 0.5rem;" onclick="restoreBackupLicense()">
+                                    🔄 Restore License
+                                </button>
+                            </div>`;
+                    }
+                });
+        }
+        
+        function restoreBackupLicense() {
+            fetch('/api/license/restore', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('✅ License restored from backup!', 'success');
+                        loadLicenseStatus();
+                        updateLicenseBanner();
+                    } else {
+                        showToast('❌ Could not restore license: ' + (data.error || 'Unknown error'), 'error');
+                    }
+                })
+                .catch(() => showToast('Failed to restore license', 'error'));
+        }
+        
+        // Hidden purge function - accessible via console, Ctrl+Shift+Alt+P, or clicking PRO badge 5 times
+        function purgeAllLicenses() {
+            if (!confirm('⚠️ NUCLEAR OPTION ⚠️\n\nThis will remove ALL licenses including backups.\n\nAre you sure?')) {
+                return;
+            }
+            if (!confirm('FINAL WARNING: This cannot be undone.\n\nType "yes" in the next prompt to confirm.')) {
+                return;
+            }
+            const finalConfirm = prompt('Type "PURGE" to confirm:');
+            if (finalConfirm !== 'PURGE') {
+                showToast('Purge cancelled', 'warning');
+                return;
+            }
+            
+            fetch('/api/license/purge_all', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ confirm: 'PURGE_ALL_LICENSES_CONFIRM' })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`☢️ ${data.message}`, 'success');
+                    loadLicenseStatus();
+                    updateLicenseBanner();
+                } else {
+                    showToast('Purge failed: ' + data.error, 'error');
+                }
+            })
+            .catch(() => showToast('Purge request failed', 'error'));
+        }
+        
+        // Secret keyboard shortcut: Ctrl+Shift+Alt+P
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.shiftKey && e.altKey && e.key === 'P') {
+                e.preventDefault();
+                purgeAllLicenses();
+            }
+        });
+        
+        function enableProSections(enabled) {
+            const sections = ['notifications-section', 'transcode-section', 'schedule-section', 'arr-section', 'themes-section', 'multi-local-section'];
+            sections.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.classList.toggle('disabled', !enabled);
+                    if (!enabled) {
+                        el.classList.add('pro-lock-overlay');
+                    } else {
+                        el.classList.remove('pro-lock-overlay');
+                    }
+                }
+            });
+        }
+        
+        function loadProFormValues() {
+            // Load current config values into pro settings form
+            if (!config) return;
+            
+            // Notifications
+            const notifyUrls = config.notification_urls || [];
+            document.getElementById('notification-urls').value = notifyUrls.join('\n');
+            document.getElementById('notify-complete').checked = config.notify_on_complete !== false;
+            document.getElementById('notify-error').checked = config.notify_on_error !== false;
+            
+            // Transcoding (disabled - just preserve values in hidden inputs)
+            const transcodeEnabled = document.getElementById('transcode-enabled');
+            const transcodeEncoder = document.getElementById('transcode-encoder');
+            const transcodePreset = document.getElementById('transcode-preset');
+            const transcodeCustom = document.getElementById('transcode-custom');
+            if (transcodeEnabled) transcodeEnabled.value = 'false'; // Always disabled
+            if (transcodeEncoder) transcodeEncoder.value = config.transcode_encoder || 'software';
+            if (transcodePreset) transcodePreset.value = 'original'; // Always original
+            if (transcodeCustom) transcodeCustom.value = config.transcode_custom_args || '';
+            
+            // Scheduling
+            document.getElementById('schedule-enabled').checked = config.download_schedule_enabled || false;
+            document.getElementById('schedule-start').value = config.download_schedule_start || '02:00';
+            document.getElementById('schedule-end').value = config.download_schedule_end || '06:00';
+            document.getElementById('bandwidth-schedule-enabled').checked = config.bandwidth_schedule_enabled || false;
+            document.getElementById('bandwidth-day').value = config.bandwidth_day_limit_kbs || 1000;
+            document.getElementById('bandwidth-night').value = config.bandwidth_night_limit_kbs || 0;
+            
+            // *arr
+            document.getElementById('sonarr-url').value = config.sonarr_url || '';
+            document.getElementById('sonarr-key').value = config.sonarr_api_key || '';
+            document.getElementById('radarr-url').value = config.radarr_url || '';
+            document.getElementById('radarr-key').value = config.radarr_api_key || '';
+            
+            // Theme
+            if (config.custom_theme) {
+                document.getElementById('custom-theme-select').value = config.custom_theme;
+                if (config.custom_theme === 'custom') {
+                    document.getElementById('custom-colors-group').style.display = 'block';
+                    document.getElementById('theme-primary').value = config.theme_primary || '#00a4dc';
+                    document.getElementById('theme-accent').value = config.theme_accent || '#aa5cc3';
+                    document.getElementById('theme-bg').value = config.theme_bg || '#101010';
+                    document.getElementById('theme-card').value = config.theme_card || '#1a1a1a';
+                    document.getElementById('theme-input').value = config.theme_input || '#2a2a2a';
+                    document.getElementById('theme-border').value = config.theme_border || '#333333';
+                    // Apply custom theme on load
+                    applyCustomTheme();
+                } else if (config.custom_theme !== 'default') {
+                    applyThemePreset(config.custom_theme);
+                }
+            }
+        }
+        
+        // --- Save Security Settings ---
+        document.addEventListener('DOMContentLoaded', () => {
+            setupSettingsToggles();
+            
+            const saveSecurityBtn = document.getElementById('save-security-btn');
+            if (saveSecurityBtn) {
+                saveSecurityBtn.addEventListener('click', () => {
+                    config.auth_enabled = document.getElementById('auth-enabled').checked;
+                    config.session_timeout_minutes = parseInt(document.getElementById('session-timeout').value) || 30;
+                    config.trust_proxy_headers = document.getElementById('trust-proxy').checked;
+                    config.trusted_proxy_ips = document.getElementById('trusted-proxies').value;
+                    
+                    api('config', 'POST', config)
+                        .then(() => showToast('Security settings saved!', 'success'))
+                        .catch(() => showToast('Failed to save settings', 'error'));
+                });
+            }
+            
+            const saveProBtn = document.getElementById('save-pro-btn');
+            if (saveProBtn) {
+                saveProBtn.addEventListener('click', saveProSettings);
+            }
+            
+            // Theme selector toggle
+            const themeSelect = document.getElementById('custom-theme-select');
+            if (themeSelect) {
+                themeSelect.addEventListener('change', () => {
+                    document.getElementById('custom-colors-group').style.display = 
+                        themeSelect.value === 'custom' ? 'block' : 'none';
+                    if (themeSelect.value !== 'custom') {
+                        applyThemePreset(themeSelect.value);
+                    }
+                });
+            }
+        });
+        
+        function saveProSettings() {
+            // Notifications
+            const urlText = document.getElementById('notification-urls').value;
+            config.notification_urls = urlText.split('\n').map(u => u.trim()).filter(u => u);
+            config.notify_on_complete = document.getElementById('notify-complete').checked;
+            config.notify_on_error = document.getElementById('notify-error').checked;
+            
+            // Transcoding (disabled - always set to off)
+            config.transcode_enabled = false;
+            config.transcode_encoder = 'software';
+            config.transcode_preset = 'original';
+            config.transcode_custom_args = '';
+            
+            // Scheduling
+            config.download_schedule_enabled = document.getElementById('schedule-enabled').checked;
+            config.download_schedule_start = document.getElementById('schedule-start').value;
+            config.download_schedule_end = document.getElementById('schedule-end').value;
+            config.bandwidth_schedule_enabled = document.getElementById('bandwidth-schedule-enabled').checked;
+            config.bandwidth_day_limit_kbs = parseInt(document.getElementById('bandwidth-day').value) || 1000;
+            config.bandwidth_night_limit_kbs = parseInt(document.getElementById('bandwidth-night').value) || 0;
+            
+            // *arr
+            config.sonarr_url = document.getElementById('sonarr-url').value;
+            config.sonarr_api_key = document.getElementById('sonarr-key').value;
+            config.radarr_url = document.getElementById('radarr-url').value;
+            config.radarr_api_key = document.getElementById('radarr-key').value;
+            
+            // Theme
+            config.custom_theme = document.getElementById('custom-theme-select').value;
+            config.theme_primary = document.getElementById('theme-primary').value;
+            config.theme_accent = document.getElementById('theme-accent').value;
+            config.theme_bg = document.getElementById('theme-bg').value;
+            config.theme_card = document.getElementById('theme-card').value;
+            config.theme_input = document.getElementById('theme-input').value;
+            config.theme_border = document.getElementById('theme-border').value;
+            
+            api('config', 'POST', config)
+                .then(() => showToast('Pro settings saved!', 'success'))
+                .catch(() => showToast('Failed to save settings', 'error'));
+        }
+        
+        // Color utility function
+        function adjustColor(hex, amount) {
+            let color = hex.replace('#', '');
+            if (color.length === 3) color = color[0]+color[0]+color[1]+color[1]+color[2]+color[2];
+            const num = parseInt(color, 16);
+            const r = Math.min(255, Math.max(0, (num >> 16) + amount));
+            const g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amount));
+            const b = Math.min(255, Math.max(0, (num & 0x0000FF) + amount));
+            return '#' + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        }
+        
+        // Theme factory - generates full theme from minimal config
+        function createTheme(primary, accent, bg, special = null) {
+            const bgCard = adjustColor(bg, 16);
+            const bgInput = adjustColor(bg, 32);
+            const border = adjustColor(bg, 48);
+            // Parse primary for header bg
+            const p = primary.slice(1);
+            const r = parseInt(p.slice(0,2), 16);
+            const g = parseInt(p.slice(2,4), 16);
+            const b = parseInt(p.slice(4,6), 16);
+            return {
+                primary, accent, bg, bgCard, bgInput, border,
+                text: '#ffffff',
+                textMuted: '#888888',
+                headerBg: `rgba(${r},${g},${b},0.15)`,
+                gradient: `linear-gradient(135deg, ${primary} 0%, ${accent} 100%)`,
+                special
+            };
+        }
+        
+        const THEME_PRESETS = {
+            // Standard Themes
+            default: createTheme('#00a4dc', '#aa5cc3', '#101010'),
+            jellyfin: createTheme('#00a4dc', '#aa5cc3', '#101010'),
+            plex: createTheme('#e5a00d', '#cc7b19', '#1f2326'),
+            emby: createTheme('#52b54b', '#4caf50', '#202020'),
+            // Seasonal Themes
+            winter: createTheme('#5b9bd5', '#a8d5e5', '#0a1929', 'winter'),
+            spring: createTheme('#e91e8c', '#8bc34a', '#1a0f15', 'spring'),
+            summer: createTheme('#ff9800', '#03a9f4', '#1a1205', 'summer'),
+            fall: createTheme('#e65100', '#8d6e63', '#1a0f05', 'fall'),
+            // Holiday Themes
+            christmas: createTheme('#c41e3a', '#228b22', '#0d1a0d', 'christmas'),
+            halloween: createTheme('#ff6f00', '#7b1fa2', '#0d0d0d', 'halloween'),
+            valentines: createTheme('#e91e63', '#f48fb1', '#1a0a10', 'valentines'),
+            stpatricks: createTheme('#2e7d32', '#ffd700', '#0a1a0a', 'stpatricks'),
+            july4th: createTheme('#b71c1c', '#1565c0', '#0a0a1a', 'july4th')
+        };
+        
+        function applyThemePreset(preset) {
+            const theme = THEME_PRESETS[preset] || THEME_PRESETS.default;
+            const root = document.documentElement;
+            
+            // Apply all color variables
+            root.style.setProperty('--jf-primary', theme.primary);
+            root.style.setProperty('--jf-primary-dark', adjustColor(theme.primary, -20));
+            root.style.setProperty('--jf-primary-light', adjustColor(theme.primary, 20));
+            root.style.setProperty('--jf-purple', theme.accent);
+            root.style.setProperty('--jf-bg-dark', theme.bg);
+            root.style.setProperty('--jf-bg-card', theme.bgCard);
+            root.style.setProperty('--jf-bg-card-hover', adjustColor(theme.bgCard, 10));
+            root.style.setProperty('--jf-bg-input', theme.bgInput);
+            root.style.setProperty('--jf-border', theme.border);
+            root.style.setProperty('--jf-text', theme.text);
+            root.style.setProperty('--jf-text-muted', theme.textMuted);
+            root.style.setProperty('--jf-header-bg', theme.headerBg);
+            root.style.setProperty('--jf-gradient', theme.gradient);
+            
+            // Handle special theme effects
+            removeSpecialEffects();
+            if (theme.special) {
+                applySpecialEffects(theme.special);
+            }
+            
+            showToast(`Applied ${preset} theme`, 'success');
+        }
+        
+        function removeSpecialEffects() {
+            // Remove any special theme effects
+            const existing = document.getElementById('theme-effects');
+            if (existing) existing.remove();
+            // Remove all theme classes
+            document.body.classList.remove('christmas-theme', 'winter-theme', 'halloween-theme', 
+                'valentines-theme', 'spring-theme', 'summer-theme', 'fall-theme', 
+                'stpatricks-theme', 'july4th-theme');
+        }
+        
+        // Theme effects configuration - data-driven for smaller code
+        const THEME_EFFECTS = {
+            christmas: { decor: ['tree tree-1:🎄','tree tree-2:🎄','tree tree-3:🎄','tree tree-4:🎄'], fall: 'snowflake', fallItems: '❄❅❆❄❅❆❄❅' },
+            winter: { decor: ['snowman snowman-1:⛄','snowman snowman-2:☃️','snowman snowman-3:⛄'], fall: 'snowflake', fallItems: '❄❅❆❄❅❆❄❅❄❅' },
+            halloween: { decor: ['pumpkin pumpkin-1:🎃','pumpkin pumpkin-2:🎃','ghost ghost-1:👻','ghost ghost-2:👻','bat bat-1:🦇','bat bat-2:🦇','bat bat-3:🦇'] },
+            valentines: { fall: 'heart', fallItems: '💕❤️💗💖💕❤️💗💖' },
+            spring: { decor: ['flower flower-1:🌸','flower flower-2:🌷','flower flower-3:🌺'], fall: 'petal', fallItems: '🌸🌼🌸🌼🌸🌼' },
+            summer: { decor: ['sun:☀️','palm palm-1:🌴','palm palm-2:🌴','wave wave-1:🌊'] },
+            fall: { decor: ['fall-tree fall-tree-1:🍂','fall-tree fall-tree-2:🍁'], fall: 'leaf', fallItems: '🍂🍁🍃🍂🍁🍃🍂🍁' },
+            stpatricks: { decor: ['clover clover-1:☘️','clover clover-2:🍀','clover clover-3:☘️','pot-gold:🌈'], fall: 'clover-fall', fallItems: '☘️🍀☘️🍀☘️🍀' },
+            july4th: { decor: ['firework firework-1:🎆','firework firework-2:🎇','firework firework-3:✨','flag:🇺🇸'], fall: 'star', fallItems: '⭐✨⭐✨⭐✨' }
+        };
+        
+        function applySpecialEffects(effectType) {
+            document.body.classList.add(`${effectType}-theme`);
+            const container = document.createElement('div');
+            container.id = 'theme-effects';
+            
+            const effect = THEME_EFFECTS[effectType];
+            if (!effect) return;
+            
+            let html = '';
+            // Add decorations
+            if (effect.decor) {
+                effect.decor.forEach(d => {
+                    const [classes, emoji] = d.split(':');
+                    html += `<div class="theme-decor ${classes}">${emoji}</div>`;
+                });
+            }
+            // Add falling items
+            if (effect.fall && effect.fallItems) {
+                html += '<div class="falling-items">';
+                [...effect.fallItems].forEach(emoji => {
+                    html += `<div class="fall-item ${effect.fall}">${emoji}</div>`;
+                });
+                html += '</div>';
+            }
+            
+            container.innerHTML = html;
+            document.body.appendChild(container);
+        }
+        
+        function applyCustomTheme() {
+            const primary = document.getElementById('theme-primary').value;
+            const accent = document.getElementById('theme-accent').value;
+            const root = document.documentElement;
+            
+            root.style.setProperty('--jf-primary', primary);
+            root.style.setProperty('--jf-primary-dark', adjustColor(primary, -20));
+            root.style.setProperty('--jf-primary-light', adjustColor(primary, 20));
+            root.style.setProperty('--jf-purple', accent);
+            root.style.setProperty('--jf-gradient', `linear-gradient(135deg, ${primary} 0%, ${accent} 100%)`);
+            
+            // Apply background colors
+            const bg = document.getElementById('theme-bg').value;
+            const card = document.getElementById('theme-card').value;
+            const input = document.getElementById('theme-input').value;
+            const border = document.getElementById('theme-border').value;
+            
+            root.style.setProperty('--jf-bg-dark', bg);
+            root.style.setProperty('--jf-bg-card', card);
+            root.style.setProperty('--jf-bg-card-hover', adjustColor(card, 10));
+            root.style.setProperty('--jf-bg-input', input);
+            root.style.setProperty('--jf-border', border);
+            
+            // Convert primary to rgba for header background
+            const r = parseInt(primary.slice(1,3), 16);
+            const g = parseInt(primary.slice(3,5), 16);
+            const b = parseInt(primary.slice(5,7), 16);
+            root.style.setProperty('--jf-header-bg', `rgba(${r},${g},${b},0.15)`);
+            
+            // Remove special effects for custom theme
+            removeSpecialEffects();
+            
+            showToast('Custom theme applied!', 'success');
+        }
+        
+        function testArrConnection(type) {
+            const url = document.getElementById(`${type}-url`).value;
+            const key = document.getElementById(`${type}-key`).value;
+            
+            fetch('/api/test_arr', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type, url, api_key: key })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`✓ Connected to ${data.name} v${data.version}`, 'success');
+                    // Refresh cache after successful connection
+                    refreshArrCache();
+                } else {
+                    showToast(`✗ ${type}: ${data.error}`, 'error');
+                }
+            })
+            .catch(() => showToast(`Failed to test ${type}`, 'error'));
+        }
+        
+        function refreshArrCache() {
+            const statusEl = document.getElementById('arr-cache-status');
+            if (statusEl) statusEl.textContent = 'Refreshing...';
+            
+            fetch('/api/refresh_arr_cache', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('*arr cache refresh started', 'success');
+                        // Update status after a delay
+                        setTimeout(loadArrCacheStatus, 2000);
+                    } else {
+                        showToast(data.error || 'Failed to refresh cache', 'error');
+                    }
+                })
+                .catch(() => showToast('Failed to refresh cache', 'error'));
+        }
+        
+        function loadArrCacheStatus() {
+            fetch('/api/arr_cache_status')
+                .then(r => r.json())
+                .then(data => {
+                    const statusEl = document.getElementById('arr-cache-status');
+                    if (statusEl) {
+                        const parts = [];
+                        if (data.sonarr_series_count > 0) {
+                            parts.push(`${data.sonarr_series_count} series (Sonarr)`);
+                        }
+                        if (data.radarr_movies_count > 0) {
+                            parts.push(`${data.radarr_movies_count} movies (Radarr)`);
+                        }
+                        if (parts.length > 0) {
+                            statusEl.textContent = `Cached: ${parts.join(', ')}`;
+                            if (data.last_refresh) {
+                                statusEl.textContent += ` • Last: ${data.last_refresh}`;
+                            }
+                        } else {
+                            statusEl.textContent = 'No cached data. Click Refresh after configuring *arr connections.';
+                        }
+                    }
+                })
+                .catch(() => {
+                    const statusEl = document.getElementById('arr-cache-status');
+                    if (statusEl) statusEl.textContent = 'Could not load cache status';
+                });
+        }
+        
+        // --- Stop After Current ---
+        function stopAfterCurrent() {
+            fetch('/api/stop_after_current', { method: 'POST' })
+                .then(r => r.json())
+                .then(() => showToast('Will stop after current downloads complete', 'success'));
+        }
+        
+        // --- Collapsible Panels ---
+        function togglePanelCollapse(panel) {
+            panel.classList.toggle('collapsed');
+            savePanelLayout();
+        }
+        
+        function savePanelLayout() {
+            const rightColumn = document.getElementById('right-column');
+            if (!rightColumn) return;
+            
+            const panels = rightColumn.querySelectorAll('.panel[data-panel-id]');
+            const layout = {
+                order: Array.from(panels).map(p => p.dataset.panelId),
+                collapsed: Array.from(panels).filter(p => p.classList.contains('collapsed')).map(p => p.dataset.panelId)
+            };
+            
+            // Save to config
+            config.panel_layout = layout;
+            api('config', 'POST', config).catch(() => {});
+        }
+        
+        function loadPanelLayout() {
+            if (!config.panel_layout) return;
+            
+            const rightColumn = document.getElementById('right-column');
+            if (!rightColumn) return;
+            
+            const layout = config.panel_layout;
+            
+            // Restore collapsed state
+            if (layout.collapsed) {
+                layout.collapsed.forEach(id => {
+                    const panel = document.querySelector(`.panel[data-panel-id="${id}"]`);
+                    if (panel) panel.classList.add('collapsed');
+                });
+            }
+            
+            // Restore order (Pro only)
+            if (layout.order && isProTier()) {
+                const panels = {};
+                rightColumn.querySelectorAll('.panel[data-panel-id]').forEach(p => {
+                    panels[p.dataset.panelId] = p;
+                });
+                
+                layout.order.forEach(id => {
+                    if (panels[id]) {
+                        rightColumn.appendChild(panels[id]);
+                    }
+                });
+            }
+        }
+        
+        function isProTier() {
+            return config.license_tier === 'pro' || config.license_tier === 'trial';
+        }
+        
+        // Initialize panel layout on load
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(loadPanelLayout, 100);
+            
+            // Show/hide pro controls
+            if (!isProTier()) {
+                document.querySelectorAll('.pro-only').forEach(el => {
+                    el.style.display = 'none';
+                });
+            }
+        });
+        
+        // --- Local Server Management (Pro) ---
+        function loadLocalServers() {
+            fetch('/api/local_servers')
+                .then(r => r.json())
+                .then(data => {
+                    const list = document.getElementById('local-servers-list');
+                    if (!list) return;
+                    
+                    if (!data.servers || data.servers.length === 0) {
+                        list.innerHTML = '<div class="form-hint">No local servers configured</div>';
+                        return;
+                    }
+                    
+                    list.innerHTML = data.servers.map(s => `
+                        <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: var(--jf-bg-input); border-radius: var(--radius); margin-bottom: 0.5rem;">
+                            <span style="flex: 1;">🏠 ${escapeHtml(s.name || 'Local Server')}</span>
+                            <span style="font-size: 0.75rem; color: var(--jf-text-muted);">${escapeHtml(s.url)}</span>
+                            <button class="btn btn-danger btn-sm" onclick="deleteLocalServer('${s.id}')" title="Remove">🗑️</button>
+                        </div>
+                    `).join('');
+                });
+        }
+        
+        function testLocalServerConnection() {
+            const url = document.getElementById('new-local-server-url').value.trim();
+            const method = document.getElementById('new-local-auth-method').value;
+            const resultEl = document.getElementById('new-local-server-test-result');
+            
+            if (!url) {
+                resultEl.innerHTML = '<span style="color: var(--jf-error);">Please enter a URL</span>';
+                return;
+            }
+            
+            resultEl.innerHTML = '<span style="color: var(--jf-text-muted);">Testing...</span>';
+            
+            let payload = { url };
+            if (method === 'key') {
+                payload.key = document.getElementById('new-local-server-key').value;
+            } else {
+                payload.username = document.getElementById('new-local-server-username').value;
+                payload.password = document.getElementById('new-local-server-password').value;
+            }
+            
+            fetch('/api/test_connection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    resultEl.innerHTML = '<span style="color: var(--jf-success);">✓ Connection successful!</span>';
+                    // Store the key/user_id for adding
+                    window._localServerKey = data.key;
+                    window._localServerUserId = data.user_id;
+                } else {
+                    resultEl.innerHTML = `<span style="color: var(--jf-error);">✗ ${data.error || 'Connection failed'}</span>`;
+                }
+            })
+            .catch(() => {
+                resultEl.innerHTML = '<span style="color: var(--jf-error);">✗ Connection error</span>';
+            });
+        }
+        
+        function addLocalServer() {
+            const name = document.getElementById('new-local-server-name').value.trim() || 'Local Server';
+            const url = document.getElementById('new-local-server-url').value.trim();
+            const key = window._localServerKey || document.getElementById('new-local-server-key').value;
+            const userId = window._localServerUserId;
+            
+            if (!url) {
+                showToast('Please enter a server URL', 'error');
+                return;
+            }
+            
+            fetch('/api/local_servers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, url, key, user_id: userId })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    showToast('Local server added!', 'success');
+                    closeModal('local-server-modal');
+                    loadLocalServers();
+                    // Clear form
+                    document.getElementById('new-local-server-name').value = '';
+                    document.getElementById('new-local-server-url').value = '';
+                    document.getElementById('new-local-server-key').value = '';
+                    window._localServerKey = null;
+                    window._localServerUserId = null;
+                } else {
+                    showToast(data.error || 'Failed to add server', 'error');
+                }
+            })
+            .catch(() => showToast('Failed to add server', 'error'));
+        }
+        
+        function deleteLocalServer(id) {
+            if (!confirm('Remove this local server?')) return;
+            
+            fetch(`/api/local_servers/${id}`, { method: 'DELETE' })
+                .then(r => r.json())
+                .then(() => {
+                    showToast('Local server removed', 'success');
+                    loadLocalServers();
+                })
+                .catch(() => showToast('Failed to remove server', 'error'));
+        }
+        
+        // Load local servers when Pro settings are opened
+        document.addEventListener('DOMContentLoaded', () => {
+            const proToggle = document.getElementById('pro-toggle');
+            if (proToggle) {
+                proToggle.addEventListener('click', () => {
+                    setTimeout(loadLocalServers, 100);
+                    setTimeout(loadArrCacheStatus, 100);
+                });
+            }
+            
+            // Local server auth method toggle (multi-local server modal)
+            const newLocalAuthMethod = document.getElementById('new-local-auth-method');
+            if (newLocalAuthMethod) {
+                newLocalAuthMethod.addEventListener('change', (e) => {
+                    document.getElementById('new-local-auth-key-fields').style.display = e.target.value === 'key' ? 'block' : 'none';
+                    document.getElementById('new-local-auth-creds-fields').style.display = e.target.value === 'creds' ? 'block' : 'none';
+                });
+            }
+        });
+        
+        // Initialize license banner on load
+        document.addEventListener('DOMContentLoaded', initLicenseBanner);
     </script>
+    
+    <!-- License Banner -->
+    <div class="license-banner license-banner-free" id="license-banner" style="display: none;">
+        <span class="license-banner-text">🔓 Free Version</span>
+        <button class="license-banner-btn" onclick="activateLicenseKey()">🔑 Enter License Key</button>
+        <a href="https://lightwave43.gumroad.com/l/rmtmrr" target="_blank" class="license-banner-btn" style="background: var(--jf-purple); color: white;">⭐ Go Pro - $10</a>
+    </div>
 </body>
 </html>
