@@ -85,6 +85,11 @@
                 <li><a href="#quick-tips">Quick Tips</a></li>
                 <li><a href="#keyboard-shortcuts">Keyboard Shortcuts</a></li>
                 <li><a href="#collections">Collections & Playlists</a></li>
+                <li><a href="#folder-naming">Folder Naming</a></li>
+                <li><a href="#metadata-apis">Metadata APIs</a></li>
+                <li><a href="#download-settings">Download Settings</a></li>
+                <li><a href="#transcoding">Transcoding (Pro)</a></li>
+                <li><a href="#activity-log">Activity Log</a></li>
                 <li><a href="#display-settings">Display Settings</a></li>
                 <li><a href="#backup-restore">Backup & Restore</a></li>
                 <li><a href="#download-resume">Download Resume (Pro)</a></li>
@@ -214,6 +219,221 @@
                 <div class="tip-content">
                     <h3>Recursive Downloads</h3>
                     <p>When you download a collection, JellyLooter automatically resolves all nested items (series → seasons → episodes) and queues them in your preferred order.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Folder Naming -->
+        <div class="card" id="folder-naming">
+            <h2>📁 Folder Naming Formats</h2>
+            
+            <div class="tip">
+                <span class="tip-icon">🏷️</span>
+                <div class="tip-content">
+                    <h3>Why Use Provider IDs?</h3>
+                    <p>Including IMDB/TVDB/TMDB IDs in folder names helps Jellyfin, Plex, Sonarr, and Radarr correctly identify your media - especially for anime, foreign films, or titles with common names.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">📋</span>
+                <div class="tip-content">
+                    <h3>Available Formats</h3>
+                    <p>Choose from 6 naming formats in <strong>Settings → Advanced Settings</strong>:<br>
+                    <code>Standard</code> - Movie (2010) / Show Name<br>
+                    <code>IDs (Space)</code> - Movie (2010) tt1234567 12345<br>
+                    <code>IDs (Braces)</code> - Movie (2010) {imdb-tt1234567} {tmdb-12345}<br>
+                    <code>IDs (Brackets)</code> - Movie (2010) [imdb-tt1234567]<br>
+                    <code>TMDB Only</code> - Movie (2010) {tmdb-12345}<br>
+                    <code>IMDB Only</code> - Movie (2010) tt1234567</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">👀</span>
+                <div class="tip-content">
+                    <h3>Live Preview</h3>
+                    <p>The settings page shows a live preview of how your folders will be named for both movies and TV shows as you select different formats.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Metadata APIs -->
+        <div class="card" id="metadata-apis">
+            <h2>🔍 Metadata API Integration</h2>
+            
+            <div class="tip">
+                <span class="tip-icon">🔑</span>
+                <div class="tip-content">
+                    <h3>API Keys</h3>
+                    <p>Get free API keys from these providers to enable metadata lookup:<br>
+                    <a href="https://www.themoviedb.org/settings/api" target="_blank" style="color:var(--jf-primary)">TMDB</a> - Best for movies & TV, includes IMDB IDs<br>
+                    <a href="https://thetvdb.com/api-information" target="_blank" style="color:var(--jf-primary)">TVDB</a> - Best for TV shows & anime<br>
+                    <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" style="color:var(--jf-primary)">OMDb</a> - IMDB data fallback (1,000/day limit)</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">⚙️</span>
+                <div class="tip-content">
+                    <h3>Lookup Timing</h3>
+                    <p>Choose when metadata is fetched in <strong>Settings → Advanced Settings</strong>:<br>
+                    <strong>On Browse</strong> - Slower browsing, but IDs shown before download<br>
+                    <strong>On Download</strong> - Faster browsing, IDs fetched at download time</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">💎</span>
+                <div class="tip-content">
+                    <h3>Metadata Caching (Pro)</h3>
+                    <p>Pro users get automatic metadata caching - once an item is looked up, the result is stored locally for instant access on repeat browsing.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">🔄</span>
+                <div class="tip-content">
+                    <h3>Fallback Chain</h3>
+                    <p>JellyLooter first checks the remote server for IDs. If missing, it queries TMDB → TVDB → OMDb until it finds what it needs.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Download Settings -->
+        <div class="card" id="download-settings">
+            <h2>⬇️ Download Settings</h2>
+            
+            <div class="tip">
+                <span class="tip-icon">🔄</span>
+                <div class="tip-content">
+                    <h3>Auto-Retry Failed Downloads</h3>
+                    <p>Enable in Advanced Settings to automatically retry downloads that fail due to connection errors, timeouts, or server issues. Configure:<br>
+                    <strong>Retry attempts</strong> - How many times to retry (1-10, default 3)<br>
+                    <strong>Retry delay</strong> - Seconds between retries (5-300, default 30)</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">⚡</span>
+                <div class="tip-content">
+                    <h3>Download Limit Override (Pro)</h3>
+                    <p>Pro users can enable "Override download limit" to allow more than 10 concurrent downloads (up to 50). <strong>⚠️ Warning:</strong> High concurrent downloads can overload remote servers, cause rate limiting or bans, and affect other users on shared servers. Use responsibly.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">⏱️</span>
+                <div class="tip-content">
+                    <h3>Connection Settings</h3>
+                    <p><strong>Connection timeout</strong> - How long to wait for server response (default 30s)<br>
+                    <strong>Chunk size</strong> - Download buffer size in KB (default 64KB, higher = faster but more memory)</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Transcoding -->
+        <div class="card" id="transcoding">
+            <h2>🎬 Transcoding (Pro)</h2>
+            
+            <div class="tip">
+                <span class="tip-icon">🎛️</span>
+                <div class="tip-content">
+                    <h3>Transcode Presets</h3>
+                    <p>Choose from 6 encoding presets in Pro Settings:<br>
+                    <code>Original</code> - No transcoding, keep source file<br>
+                    <code>H.264</code> - Compatible with most devices (.mp4)<br>
+                    <code>H.265/HEVC</code> - Smaller files, modern devices (.mkv)<br>
+                    <code>AVI</code> - Legacy compatible MPEG-4 + MP3 (.avi)<br>
+                    <code>Mobile</code> - 720p H.264 for phones/tablets<br>
+                    <code>4K Optimized</code> - High quality H.265 for 4K content</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">⚡</span>
+                <div class="tip-content">
+                    <h3>Hardware Acceleration</h3>
+                    <p>JellyLooter supports NVIDIA NVENC, Intel QuickSync, and AMD VAAPI. For NVENC, use <code>Dockerfile.nvidia</code> and pass <code>--gpus all</code> to Docker. The app auto-detects available encoders and falls back to software if needed.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">🔀</span>
+                <div class="tip-content">
+                    <h3>Separate Workers</h3>
+                    <p>Downloads and transcodes run in parallel with separate worker pools. Configure 1-10 download workers and 1-5 transcode workers. This means downloads continue while files are being transcoded.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">💾</span>
+                <div class="tip-content">
+                    <h3>Cache Drive</h3>
+                    <p>Enable "Use cache drive" to transcode files to a fast SSD first, then move them to the final destination. This reduces wear on slower drives, improves performance with network storage (NAS/SMB/NFS), and keeps partial files separate from your media library.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">🗑️</span>
+                <div class="tip-content">
+                    <h3>Clear Cache</h3>
+                    <p>Use the "Clear Cache" button to remove partial/failed transcode files from the cache drive. The cache status shows how many files and total size are currently stored.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">⚖️</span>
+                <div class="tip-content">
+                    <h3>Skip if Larger</h3>
+                    <p>Enable "Skip if larger" to automatically keep the original file when transcoding would increase file size. This prevents wasted space from inefficient transcodes (e.g., highly compressed originals).</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">📊</span>
+                <div class="tip-content">
+                    <h3>Transcode Statistics</h3>
+                    <p>Track your transcoding efficiency: files processed, files skipped (larger), total space saved, and average reduction percentage. Stats persist across restarts and can be reset anytime.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">🚦</span>
+                <div class="tip-content">
+                    <h3>Queue Limit</h3>
+                    <p>The transcode queue is limited to 10 pending files to prevent memory issues. Downloads will pause if the queue is full and resume automatically when space is available.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Activity Log -->
+        <div class="card" id="activity-log">
+            <h2>📋 Activity Log</h2>
+            
+            <div class="tip">
+                <span class="tip-icon">📊</span>
+                <div class="tip-content">
+                    <h3>Basic vs Advanced View</h3>
+                    <p>Use the dropdown in the Activity Log panel to switch between views:<br>
+                    <strong>Basic</strong> - Shows only downloads: started, progress, completed, failed<br>
+                    <strong>Advanced</strong> - Shows everything: metadata lookups, cache operations, API calls, debug info</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">📋</span>
+                <div class="tip-content">
+                    <h3>Copy Logs</h3>
+                    <p>Click the clipboard button (📋) in the Activity Log header to copy all log lines to your clipboard. Useful for sharing logs when troubleshooting or reporting issues.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">📜</span>
+                <div class="tip-content">
+                    <h3>History View</h3>
+                    <p>Click the "History" button to see your download history - all completed downloads with filenames, sizes, and timestamps.</p>
                 </div>
             </div>
         </div>
@@ -512,6 +732,20 @@
                 
                 <p style="margin-bottom: 0;"><strong>You are solely responsible</strong> for ensuring your use of this software complies with all applicable laws and the terms of service of any media servers you access. By using JellyLooter, you agree to use it only for lawful purposes.</p>
             </div>
+        </div>
+        
+        <!-- Special Thanks -->
+        <div class="card" style="background: rgba(170,92,195,0.1); border-color: rgba(170,92,195,0.3);">
+            <h2 style="color: var(--jf-purple);">🙏 Special Thanks</h2>
+            <p style="color: var(--jf-text-muted); margin-bottom: 1rem;">A huge thank you to our beta testers and contributors who help make JellyLooter better:</p>
+            <div class="tip" style="background: var(--jf-bg-card);">
+                <span class="tip-icon">👤</span>
+                <div class="tip-content">
+                    <h3><a href="https://github.com/vwidmer" target="_blank" style="color: var(--jf-primary); text-decoration: none;">vwidmer</a></h3>
+                    <p>Beta testing, bug reports, and feature suggestions for transcoding, *arr integration, and download improvements</p>
+                </div>
+            </div>
+            <p style="color: var(--jf-text-muted); font-size: 0.85rem; margin-top: 1rem;">Want to be listed here? Contribute on <a href="https://github.com/jlightner86/jellylooter" target="_blank" style="color: var(--jf-primary);">GitHub</a> or help test new features!</p>
         </div>
         
         <div class="footer">

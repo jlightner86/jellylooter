@@ -90,6 +90,68 @@
 
         <div class="version">
             <div class="version-header">
+                <span class="version-number">v3.1.0</span>
+                <span class="version-date">December 2024</span>
+                <span class="version-tag">Feature Update</span>
+            </div>
+            <ul class="changes">
+                <li><span class="change-type new">New</span> 🔍 Library search - find movies/shows by name within any library</li>
+                <li><span class="change-type new">New</span> ⏰ Time format option - choose 12-hour (1:30 PM) or 24-hour (13:30)</li>
+                <li><span class="change-type new">New</span> 🔍 External metadata API support (TMDB, TVDB, OMDb) - lookup missing IDs</li>
+                <li><span class="change-type new">New</span> 📁 Folder naming format selector - 6 options including standard, IDs with spaces/braces/brackets, TMDB-only, IMDB-only</li>
+                <li><span class="change-type new">New</span> 📋 Basic/Advanced log view toggle - Basic shows downloads only, Advanced shows all logs</li>
+                <li><span class="change-type new">New</span> 📋 Copy logs button - copy activity log to clipboard (works over HTTP)</li>
+                <li><span class="change-type new">New</span> 🌍 Timezone selector in Advanced Settings - 30 timezone options</li>
+                <li><span class="change-type new">New</span> 📱 Mobile menu now includes Sync Now and Rebuild Cache buttons</li>
+                <li><span class="change-type new">New</span> 🐳 Dockerfile.nvidia with Jellyfin FFmpeg for NVIDIA GPU transcoding</li>
+                <li><span class="change-type new">New</span> ✕ Cancel button for individual downloads and transcodes</li>
+                <li><span class="change-type pro">Pro</span> 🎬 Full transcoding support - H.264, H.265/HEVC, AVI, Mobile, 4K presets</li>
+                <li><span class="change-type pro">Pro</span> 🎬 AVI encoding preset - legacy-compatible MPEG-4 + MP3 in AVI container</li>
+                <li><span class="change-type pro">Pro</span> ⚡ Download limit override - allow >10 concurrent downloads (up to 50)</li>
+                <li><span class="change-type new">New</span> 🔄 Auto-retry failed downloads - configurable attempts and delay</li>
+                <li><span class="change-type pro">Pro</span> 📡 *arr auto-import - automatically add series to Sonarr when downloading episodes</li>
+                <li><span class="change-type pro">Pro</span> 📡 Intelligent *arr path mapping - auto-detects path mappings from filesystem</li>
+                <li><span class="change-type pro">Pro</span> 💾 Metadata caching - stores lookups locally for faster repeat browsing</li>
+                <li><span class="change-type pro">Pro</span> 📊 Real-time transcode progress bar (shows percentage and speed)</li>
+                <li><span class="change-type pro">Pro</span> 🔀 Separate transcode workers - downloads continue while transcoding (configurable 1-5 workers)</li>
+                <li><span class="change-type pro">Pro</span> 📈 Transcode statistics - track files transcoded, space saved, and average reduction</li>
+                <li><span class="change-type pro">Pro</span> ⚖️ Skip if larger option - automatically keeps original if transcode increases file size</li>
+                <li><span class="change-type pro">Pro</span> 🚦 Transcode queue limit - max 10 files pending to prevent memory issues</li>
+                <li><span class="change-type pro">Pro</span> 💾 Transcode cache drive - transcode to fast SSD, then move to destination</li>
+                <li><span class="change-type pro">Pro</span> 🗑️ Clear transcode cache - remove partial/failed transcode files</li>
+                <li><span class="change-type fix">Fix</span> Transcode return code handling - validates output even if ffmpeg exits abnormally</li>
+                <li><span class="change-type fix">Fix</span> Transcode process now properly waits for completion (fixes "return code None")</li>
+                <li><span class="change-type fix">Fix</span> Transcode error logging - filters FFmpeg progress output from error logs</li>
+                <li><span class="change-type fix">Fix</span> Sonarr API lookup format - uses proper params instead of URL concatenation</li>
+                <li><span class="change-type fix">Fix</span> Episode folders now use series-level IDs instead of episode IDs</li>
+                <li><span class="change-type fix">Fix</span> Episode folders use show name only when series IDs unavailable (no more duplicate folders)</li>
+                <li><span class="change-type fix">Fix</span> Rebuild Cache now supports multi-local-server configurations</li>
+                <li><span class="change-type fix">Fix</span> Download statistics no longer reset to 0 during active downloads</li>
+                <li><span class="change-type fix">Fix</span> Metadata cache datetime.now() error fixed</li>
+                <li><span class="change-type fix">Fix</span> Custom themes now persist when navigating between pages</li>
+                <li><span class="change-type fix">Fix</span> Toast notifications now appear above license banner</li>
+                <li><span class="change-type fix">Fix</span> PRO badge now displays correctly in header</li>
+                <li><span class="change-type fix">Fix</span> Worker count max attribute updates after Pro activation</li>
+                <li><span class="change-type fix">Fix</span> License activation now forces immediate page reload</li>
+                <li><span class="change-type fix">Fix</span> Add Local Server form validation fixed</li>
+                <li><span class="change-type fix">Fix</span> Duplicate detection now includes Series (TVDB) and shows checkmarks</li>
+                <li><span class="change-type fix">Fix</span> Stop after current download now works correctly</li>
+                <li><span class="change-type fix">Fix</span> Download stats persist across restarts</li>
+                <li><span class="change-type improve">Improve</span> Activity log controls use icon-only buttons to save space</li>
+                <li><span class="change-type improve">Improve</span> Enhanced metadata logging (shows API lookup results and failures)</li>
+                <li><span class="change-type improve">Improve</span> Enhanced transcode logging (detailed error output for debugging)</li>
+                <li><span class="change-type improve">Improve</span> Transcode now verifies encoder availability before starting (libx265, libx264)</li>
+                <li><span class="change-type improve">Improve</span> Enhanced series ID fetching with detailed debug logs</li>
+                <li><span class="change-type improve">Improve</span> Mobile touch responsiveness (removed tap delay)</li>
+                <li><span class="change-type improve">Improve</span> Download stats update more frequently during active downloads</li>
+                <li><span class="change-type improve">Improve</span> Added hint to save settings before refreshing folder cache</li>
+                <li><span class="change-type improve">Improve</span> Dockerfile now includes libx265-dev and libx264-dev for transcoding</li>
+                <li><span class="change-type improve">Improve</span> Transcode validates output with ffprobe if process exits abnormally</li>
+            </ul>
+        </div>
+
+        <div class="version">
+            <div class="version-header">
                 <span class="version-number">v3.0.0</span>
                 <span class="version-date">{{ t.get('december', 'December') }} 2024</span>
                 <span class="version-tag major">Major Release</span>
@@ -169,6 +231,25 @@
                 <li><span class="change-type new">{{ t.get('new', 'New') }}</span> {{ t.get('ch_queue_order', 'Download queue ordering options') }}</li>
                 <li><span class="change-type new">{{ t.get('new', 'New') }}</span> {{ t.get('ch_multilang', 'Multi-language support (English, Spanish, German)') }}</li>
             </ul>
+        </div>
+
+        <!-- Special Thanks -->
+        <div class="version" style="background: rgba(170,92,195,0.1); border-color: rgba(170,92,195,0.3);">
+            <div class="version-header">
+                <span class="version-number" style="color: var(--jf-purple);">🙏 Special Thanks</span>
+            </div>
+            <p style="color: var(--jf-text-muted); font-size: 0.875rem; margin-bottom: 1rem;">
+                A huge thank you to our beta testers and contributors who help make JellyLooter better:
+            </p>
+            <ul class="changes">
+                <li style="color: var(--jf-text);">
+                    <a href="https://github.com/vwidmer" target="_blank" style="color: var(--jf-primary); text-decoration: none; font-weight: 600;">vwidmer</a> 
+                    - Beta testing, bug reports, and feature suggestions for transcoding, *arr integration, and download improvements
+                </li>
+            </ul>
+            <p style="color: var(--jf-text-muted); font-size: 0.8rem; margin-top: 1rem;">
+                Want to be listed here? Contribute on <a href="https://github.com/jlightner86/jellylooter" target="_blank" style="color: var(--jf-primary);">GitHub</a> or help test new features!
+            </p>
         </div>
 
         <!-- Legal Disclaimer -->

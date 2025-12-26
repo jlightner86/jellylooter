@@ -120,6 +120,19 @@
             display: none;
             vertical-align: middle;
         }
+        
+        .pro-badge-small {
+            background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
+            color: #000;
+            font-size: 0.6rem;
+            font-weight: 700;
+            padding: 0.15rem 0.4rem;
+            border-radius: 3px;
+            margin-left: 0.35rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            vertical-align: middle;
+        }
 
         .header-actions {
             display: flex;
@@ -374,6 +387,8 @@
                 color: var(--jf-text);
                 text-decoration: none;
                 cursor: pointer;
+                touch-action: manipulation;
+                -webkit-tap-highlight-color: transparent;
             }
             .mobile-menu-items a:hover,
             .mobile-menu-items button:hover {
@@ -737,6 +752,8 @@
             cursor: pointer;
             transition: var(--transition);
             white-space: nowrap;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .btn-primary {
@@ -1073,6 +1090,44 @@
             line-height: 40px;
             text-align: center;
         }
+        
+        /* Partial download - yellow checkmark */
+        .browser-item.partial { opacity: 0.75; }
+        
+        .browser-item.partial::after {
+            content: '◐';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            background: var(--jf-warning);
+            border-radius: 50%;
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: white;
+            z-index: 10;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+            line-height: 40px;
+            text-align: center;
+        }
+        
+        /* Episode count badge for partial series */
+        .episode-count-badge {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: var(--jf-warning);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            z-index: 11;
+            white-space: nowrap;
+        }
 
         .browser-item-poster {
             width: 100%;
@@ -1232,6 +1287,169 @@
             margin-right: 0.25rem;
         }
 
+        /* Skip Button */
+        .skip-btn {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 0.9rem;
+            cursor: pointer;
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 0.2s, transform 0.2s, background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .browser-item:hover .skip-btn {
+            opacity: 1;
+        }
+        
+        .skip-btn.skipped {
+            opacity: 1;
+            background: var(--jf-danger);
+            width: 32px;
+            height: 32px;
+            font-size: 1.1rem;
+        }
+
+        .skip-btn:hover {
+            transform: scale(1.1);
+            background: var(--jf-warning);
+        }
+        
+        .skip-btn.skipped:hover {
+            background: var(--jf-success);
+        }
+        
+        /* Skipped item overlay */
+        .browser-item.is-skipped {
+            position: relative;
+        }
+        
+        .browser-item.is-skipped::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(244, 67, 54, 0.25);
+            pointer-events: none;
+            border-radius: var(--radius);
+            z-index: 5;
+        }
+        
+        .browser-item.is-skipped .browser-item-poster {
+            filter: grayscale(50%) brightness(0.7);
+        }
+        
+        .browser-item.is-skipped .browser-item-title {
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+        
+        /* Skipped badge */
+        .skipped-badge {
+            position: absolute;
+            bottom: 35px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--jf-danger);
+            color: white;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            z-index: 11;
+            white-space: nowrap;
+        }
+
+        /* Skip List in Settings */
+        /* Path Mapping Rows */
+        .path-mapping-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            background: var(--jf-bg-card);
+            border-radius: var(--radius);
+            margin-bottom: 0.5rem;
+            border: 1px solid var(--jf-border);
+            position: relative;
+        }
+        
+        .path-mapping-row input {
+            flex: 1;
+            min-width: 0;
+            font-size: 0.8rem;
+            padding: 0.4rem 0.5rem;
+        }
+        
+        .path-mapping-row input[readonly] {
+            opacity: 0.7;
+            cursor: default;
+        }
+        
+        .path-mapping-row .mapping-arrow {
+            color: var(--jf-text-muted);
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+        
+        .path-mapping-row .btn-remove {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+        }
+        
+        .path-mapping-label {
+            font-size: 0.7rem;
+            color: var(--jf-text-muted);
+            margin-bottom: 0.25rem;
+        }
+        
+        .path-mapping-source {
+            position: absolute;
+            top: 2px;
+            right: 35px;
+            font-size: 0.65rem;
+            padding: 0.1rem 0.3rem;
+            border-radius: 3px;
+            background: var(--jf-primary);
+            color: white;
+        }
+
+        .skip-list-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            background: var(--jf-bg-input);
+            border-radius: var(--radius);
+            margin-bottom: 0.5rem;
+        }
+        
+        .skip-item-type {
+            font-size: 1.2rem;
+        }
+        
+        .skip-item-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
         .browser-item-placeholder {
             width: 100%;
             height: 100%;
@@ -1381,6 +1599,14 @@
             background: var(--jf-text-dim);
         }
 
+        .download-status.transcoding {
+            background: linear-gradient(90deg, #f59e0b, #ea580c);
+        }
+
+        .download-status.transcoding-pending {
+            background: #92400e;
+        }
+
         .download-progress {
             height: 6px;
             background: var(--jf-border);
@@ -1393,6 +1619,23 @@
             height: 100%;
             background: var(--jf-gradient);
             transition: width 0.3s;
+        }
+
+        .download-progress-bar.transcode {
+            background: linear-gradient(90deg, #f59e0b, #ea580c);
+        }
+
+        .download-header-right {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-xs {
+            padding: 0.15rem 0.4rem;
+            font-size: 0.7rem;
+            border-radius: 4px;
+            line-height: 1;
         }
 
         .download-meta {
@@ -2130,6 +2373,12 @@
             <button onclick="openMobileDownloads(); closeMobileMenu();">⬇️ Downloads <span id="mobile-download-badge" class="mobile-badge" style="display:none;">0</span></button>
             <button onclick="openMobileLog(); closeMobileMenu();">📋 Activity Log</button>
             <hr style="border: none; border-top: 1px solid var(--jf-border); margin: 0.5rem 0;">
+            <div class="mobile-menu-section">
+                <div class="mobile-menu-section-title">🔧 Actions</div>
+            </div>
+            <button onclick="mobileSync(); closeMobileMenu();">🔄 Sync Now</button>
+            <button onclick="mobileRebuildCache(); closeMobileMenu();">🗄️ Rebuild Cache</button>
+            <hr style="border: none; border-top: 1px solid var(--jf-border); margin: 0.5rem 0;">
             <button onclick="toggleTheme(); closeMobileMenu();">🌙 Toggle Theme</button>
             <a href="/changelog">📋 Changelog</a>
             <a href="/help">❓ Help</a>
@@ -2210,8 +2459,13 @@
                         </div>
                         
                         <!-- Search/Filter Box -->
-                        <div class="search-box" style="margin-bottom: 0.75rem;">
-                            <input type="text" class="form-input" id="library-search" data-i18n-placeholder="filter_items" placeholder="🔍 Filter items..." style="width: 100%;">
+                        <div class="search-box" id="search-box" style="margin-bottom: 0.75rem; display: none;">
+                            <div style="display: flex; gap: 0.5rem;">
+                                <input type="text" class="form-input" id="library-search" data-i18n-placeholder="search_library" placeholder="🔍 Search library..." style="flex: 1;" onkeypress="if(event.key==='Enter')searchLibrary()">
+                                <button class="btn btn-primary btn-sm" onclick="searchLibrary()" title="Search entire library">Search</button>
+                                <button class="btn btn-secondary btn-sm" onclick="clearSearch()" title="Clear search and go back">✕</button>
+                            </div>
+                            <div id="search-status" style="font-size: 0.75rem; color: var(--jf-text-muted); margin-top: 0.25rem; display: none;"></div>
                         </div>
                         
                         <!-- Interaction Hints -->
@@ -2274,7 +2528,7 @@
                         </div>
                         
                         <div class="control-bar">
-                            <button class="btn btn-primary" id="sync-now-btn">
+                            <button class="btn btn-primary" id="sync-now-btn" onclick="mobileSync()">
                                 <span>🔄</span> <span data-i18n="sync_now">Sync Now</span>
                             </button>
                             <div class="toggle-container" style="flex: 1; justify-content: flex-end;">
@@ -2283,6 +2537,20 @@
                                     <input type="checkbox" id="auto-sync-toggle" checked>
                                     <span class="toggle-slider"></span>
                                 </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Skip List Section -->
+                        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--jf-border);">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                                <h3 style="margin: 0; font-size: 0.95rem;">🚫 Skip List</h3>
+                                <button class="btn btn-xs btn-danger" onclick="clearSkipList()">Clear All</button>
+                            </div>
+                            <div class="form-hint" style="margin-bottom: 0.75rem;">
+                                Items in this list will be excluded from auto-sync. Click the ⏭️ button on a Series or Movie poster to add/remove.
+                            </div>
+                            <div id="skip-list-items" style="max-height: 200px; overflow-y: auto;">
+                                <div class="empty-state"><div class="empty-state-icon">✅</div><div>No items in skip list</div></div>
                             </div>
                         </div>
                     </div>
@@ -2369,6 +2637,86 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="toggle-container pro-feature-toggle" style="margin-bottom: 0.75rem;">
+                                <span class="toggle-label">⚡ Override download limit (allows &gt;10) <span class="pro-badge-small">PRO</span></span>
+                                <label class="toggle">
+                                    <input type="checkbox" id="override-download-limit" onchange="toggleDownloadLimitOverride()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div id="download-limit-warning" style="display: none; padding: 0.75rem; background: rgba(255, 59, 48, 0.15); border: 1px solid var(--jf-danger); border-radius: var(--radius); margin-bottom: 1rem;">
+                                <div style="font-size: 0.85rem; color: var(--jf-danger); font-weight: 600;">⚠️ WARNING: High concurrent downloads can:</div>
+                                <ul style="margin: 0.5rem 0 0 1rem; font-size: 0.8rem; color: var(--jf-text-muted);">
+                                    <li>Overload the remote server</li>
+                                    <li>Cause your account to be rate-limited or banned</li>
+                                    <li>Negatively affect other users on shared servers</li>
+                                    <li>Consume excessive bandwidth and system resources</li>
+                                </ul>
+                                <div style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--jf-warning);">Use with caution. You have been warned!</div>
+                            </div>
+                            <div class="toggle-container" style="margin-bottom: 0.75rem;">
+                                <span class="toggle-label">🔄 Auto-retry failed downloads</span>
+                                <label class="toggle">
+                                    <input type="checkbox" id="download-auto-retry" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Retry attempts</label>
+                                    <input type="number" class="form-input" id="download-retry-count" min="1" max="10" value="3">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Retry delay (seconds)</label>
+                                    <input type="number" class="form-input" id="download-retry-delay" min="5" max="300" value="30">
+                                </div>
+                            </div>
+                            <div class="form-hint" style="margin-bottom: 1rem;">
+                                Automatically retry downloads that fail due to connection errors or timeouts.
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" data-i18n="timezone">Timezone</label>
+                                <select class="form-input" id="timezone">
+                                    <option value="UTC">UTC</option>
+                                    <option value="America/New_York">Eastern Time (US)</option>
+                                    <option value="America/Chicago">Central Time (US)</option>
+                                    <option value="America/Denver">Mountain Time (US)</option>
+                                    <option value="America/Los_Angeles">Pacific Time (US)</option>
+                                    <option value="America/Phoenix">Arizona (US)</option>
+                                    <option value="America/Anchorage">Alaska (US)</option>
+                                    <option value="Pacific/Honolulu">Hawaii (US)</option>
+                                    <option value="America/Toronto">Eastern Time (Canada)</option>
+                                    <option value="America/Vancouver">Pacific Time (Canada)</option>
+                                    <option value="Europe/London">London (UK)</option>
+                                    <option value="Europe/Paris">Paris (France)</option>
+                                    <option value="Europe/Berlin">Berlin (Germany)</option>
+                                    <option value="Europe/Amsterdam">Amsterdam (Netherlands)</option>
+                                    <option value="Europe/Rome">Rome (Italy)</option>
+                                    <option value="Europe/Madrid">Madrid (Spain)</option>
+                                    <option value="Europe/Moscow">Moscow (Russia)</option>
+                                    <option value="Asia/Tokyo">Tokyo (Japan)</option>
+                                    <option value="Asia/Shanghai">Shanghai (China)</option>
+                                    <option value="Asia/Hong_Kong">Hong Kong</option>
+                                    <option value="Asia/Singapore">Singapore</option>
+                                    <option value="Asia/Seoul">Seoul (Korea)</option>
+                                    <option value="Asia/Kolkata">India (IST)</option>
+                                    <option value="Asia/Dubai">Dubai (UAE)</option>
+                                    <option value="Australia/Sydney">Sydney (Australia)</option>
+                                    <option value="Australia/Melbourne">Melbourne (Australia)</option>
+                                    <option value="Australia/Perth">Perth (Australia)</option>
+                                    <option value="Pacific/Auckland">Auckland (New Zealand)</option>
+                                    <option value="America/Sao_Paulo">São Paulo (Brazil)</option>
+                                    <option value="America/Mexico_City">Mexico City</option>
+                                </select>
+                                <div class="form-hint" data-i18n="timezone_hint">Affects log timestamps and scheduling</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Time Format</label>
+                                <select class="form-input" id="time-format">
+                                    <option value="12h">12-hour (1:30 PM)</option>
+                                    <option value="24h">24-hour (13:30)</option>
+                                </select>
+                            </div>
                             <div class="form-row">
                                 <div class="form-group">
                                     <label class="form-label" data-i18n="connection_timeout">Connection Timeout (s)</label>
@@ -2407,7 +2755,77 @@
                                     <span class="toggle-slider"></span>
                                 </label>
                             </div>
-                            <div class="toggle-container">
+                            <!-- Folder Naming Format -->
+                            <div class="form-group">
+                                <label class="form-label">📁 Folder Naming Format</label>
+                                <select class="form-input" id="folder-naming-format">
+                                    <option value="standard">Standard - Show Name / Movie (2010)</option>
+                                    <option value="ids_space">IDs (Space) - Show Name tt1234567 76885</option>
+                                    <option value="ids_braces">IDs (Braces) - Show Name {imdb-tt1234567} {tvdb-76885}</option>
+                                    <option value="ids_brackets">IDs (Brackets) - Show Name [imdb-tt1234567]</option>
+                                    <option value="tmdb_only">TMDB Only - Show Name {tmdb-12345}</option>
+                                    <option value="imdb_only">IMDB Only - Show Name tt1234567</option>
+                                </select>
+                            </div>
+                            <div class="form-hint" style="margin-top: -0.25rem; margin-bottom: 0.5rem;">
+                                Choose how folder names are formatted. IDs help Jellyfin/Plex/Sonarr/Radarr identify media correctly.
+                            </div>
+                            <div style="background: var(--jf-bg-input); padding: 0.75rem; border-radius: var(--radius); margin-bottom: 1rem; font-size: 0.8rem; font-family: monospace;">
+                                <strong>Preview:</strong><br>
+                                <span id="folder-format-preview-movie">Movie: Inception (2010)</span><br>
+                                <span id="folder-format-preview-show">Show: Breaking Bad</span>
+                            </div>
+                            
+                            <!-- Metadata API Settings -->
+                            <div style="margin-top: 1rem; padding: 1rem; background: var(--jf-bg-input); border-radius: var(--radius); border: 1px solid var(--jf-border);">
+                                <h4 style="font-size: 0.85rem; margin: 0 0 0.75rem 0;">🔍 Metadata API Keys (Optional)</h4>
+                                <div class="form-hint" style="margin-bottom: 0.75rem;">
+                                    When the remote server is missing IMDB/TVDB IDs, JellyLooter can look them up from external APIs. Get free API keys from:
+                                    <a href="https://www.themoviedb.org/settings/api" target="_blank" style="color: var(--jf-primary);">TMDB</a>,
+                                    <a href="https://thetvdb.com/api-information" target="_blank" style="color: var(--jf-primary);">TVDB</a>,
+                                    <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" style="color: var(--jf-primary);">OMDb</a>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">TMDB API Key</label>
+                                        <input type="password" class="form-input" id="tmdb-api-key" placeholder="Movies & TV metadata">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">TVDB API Key</label>
+                                        <input type="password" class="form-input" id="tvdb-api-key" placeholder="TV shows & anime">
+                                    </div>
+                                </div>
+                                <div class="form-group" style="margin-top: 0.5rem;">
+                                    <label class="form-label">OMDb API Key</label>
+                                    <input type="password" class="form-input" id="omdb-api-key" placeholder="IMDB data fallback">
+                                </div>
+                                <div class="toggle-container" style="margin-top: 0.75rem;">
+                                    <span class="toggle-label">🎬 IMDB Direct Lookup (no API key needed)</span>
+                                    <label class="toggle">
+                                        <input type="checkbox" id="imdb-lookup-enabled" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="form-hint" style="margin-top: 0.25rem;">
+                                    Uses IMDB's suggestion API as a fallback when other APIs don't return an IMDB ID.
+                                </div>
+                                <div class="toggle-container" style="margin-top: 0.75rem;">
+                                    <span class="toggle-label">🔎 Lookup metadata while browsing</span>
+                                    <label class="toggle">
+                                        <input type="checkbox" id="metadata-lookup-on-browse">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="form-hint" style="margin-top: 0.25rem;">
+                                    <strong>ON:</strong> Slower browsing, but IDs are shown before download.<br>
+                                    <strong>OFF:</strong> Faster browsing, IDs fetched only at download time.
+                                </div>
+                                <div class="pro-badge-inline" style="margin-top: 0.75rem; padding: 0.5rem; background: var(--jf-bg-card); border-radius: var(--radius); font-size: 0.8rem;">
+                                    ⭐ <strong>Pro Feature:</strong> Metadata caching - stores lookups locally for faster repeat browsing.
+                                </div>
+                            </div>
+                            
+                            <div class="toggle-container" style="margin-top: 1rem;">
                                 <span class="toggle-label" data-i18n="download_subtitles">📝 Download subtitles automatically</span>
                                 <label class="toggle">
                                     <input type="checkbox" id="download-subtitles" checked>
@@ -2513,13 +2931,88 @@
                                 </div>
                             </div>
                             
-                            <!-- Transcoding (Pro) - Coming Soon -->
+                            <!-- Transcoding (Pro) -->
                             <div class="pro-section" id="transcode-section">
-                                <h4 style="margin: 1rem 0 0.5rem; font-size: 0.9rem;">🎬 Transcoding <span style="font-size: 0.7rem; background: var(--jf-warning); color: #000; padding: 0.15rem 0.4rem; border-radius: 4px; margin-left: 0.5rem;">COMING SOON</span></h4>
-                                <div style="padding: 1rem; background: var(--jf-bg-input); border-radius: var(--radius); color: var(--jf-text-muted); font-size: 0.85rem;">
-                                    <p style="margin: 0;">🚧 Transcoding is temporarily disabled while we work on improving hardware acceleration support and stability.</p>
-                                    <p style="margin: 0.5rem 0 0 0;">This feature will automatically convert downloaded media to H.265/HEVC for smaller file sizes, with support for NVIDIA NVENC, Intel QuickSync, and AMD VAAPI hardware encoding.</p>
+                                <h4 style="margin: 1rem 0 0.5rem; font-size: 0.9rem;">🎬 Transcoding</h4>
+                                <p style="font-size: 0.8rem; color: var(--jf-text-muted); margin: 0 0 0.75rem;">Automatically convert downloaded media to your preferred format.</p>
+                                
+                                <div class="toggle-container">
+                                    <span class="toggle-label">Enable transcoding</span>
+                                    <label class="toggle">
+                                        <input type="checkbox" id="transcode-enabled-test">
+                                        <span class="toggle-slider"></span>
+                                    </label>
                                 </div>
+                                <div class="form-group" style="margin-top: 0.5rem;">
+                                    <label class="form-label">Encoder</label>
+                                    <select class="form-input" id="transcode-encoder-test">
+                                        <option value="software">Software (libx264/libx265)</option>
+                                        <option value="nvenc">NVIDIA NVENC</option>
+                                        <option value="qsv">Intel QuickSync</option>
+                                        <option value="vaapi">AMD VAAPI</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="margin-top: 0.5rem;">
+                                    <label class="form-label">Preset</label>
+                                    <select class="form-input" id="transcode-preset-test">
+                                        <option value="original">Original (no transcode)</option>
+                                        <option value="h264">H.264 (compatible)</option>
+                                        <option value="h265">H.265/HEVC (smaller)</option>
+                                        <option value="avi">AVI (legacy compatible)</option>
+                                        <option value="mobile">Mobile (720p)</option>
+                                        <option value="4k">4K Optimized</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="margin-top: 0.5rem;">
+                                    <label class="form-label">Concurrent Transcode Workers</label>
+                                    <input type="number" class="form-input" id="max-transcodes" min="1" max="5" value="1">
+                                    <div class="form-hint">Number of files to transcode simultaneously (1-5)</div>
+                                </div>
+                                <div class="toggle-container" style="margin-top: 0.5rem;">
+                                    <span class="toggle-label">Skip if transcoded file is larger</span>
+                                    <label class="toggle">
+                                        <input type="checkbox" id="transcode-skip-larger" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="form-hint">Keep original file if transcoding increases size</div>
+                                
+                                <!-- Cache Drive Option -->
+                                <div class="toggle-container" style="margin-top: 1rem;">
+                                    <span class="toggle-label">💾 Use cache drive for transcoding</span>
+                                    <label class="toggle">
+                                        <input type="checkbox" id="transcode-cache-enabled" onchange="toggleTranscodeCachePath()">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="form-hint">Transcode to fast SSD/local drive, then move to destination</div>
+                                <div id="transcode-cache-path-group" style="display: none; margin-top: 0.5rem;">
+                                    <label class="form-label">Cache Path</label>
+                                    <input type="text" class="form-input" id="transcode-cache-path" value="/tmp/transcode_cache" placeholder="/tmp/transcode_cache">
+                                    <div class="form-hint" style="font-size: 0.75rem;">
+                                        ⚡ <strong>Benefits:</strong> Faster I/O on SSD, reduces wear on destination drives, better for network storage
+                                    </div>
+                                    <div style="margin-top: 0.75rem; padding: 0.5rem; background: var(--jf-bg-card); border-radius: var(--radius); display: flex; align-items: center; justify-content: space-between;">
+                                        <div style="font-size: 0.8rem;">
+                                            <span style="color: var(--jf-text-muted);">Cache status:</span>
+                                            <span id="transcode-cache-status">Unknown</span>
+                                        </div>
+                                        <button class="btn btn-secondary btn-xs" onclick="clearTranscodeCache()" title="Clear partial/failed transcode files">🗑️ Clear Cache</button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Transcode Stats -->
+                                <div id="transcode-stats-display" style="margin-top: 1rem; padding: 0.75rem; background: var(--jf-bg-input); border-radius: var(--radius);">
+                                    <div style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem;">📊 Transcode Statistics</div>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.8rem;">
+                                        <div>Files transcoded:</div><div id="transcode-stat-files">0</div>
+                                        <div>Files skipped (larger):</div><div id="transcode-stat-skipped">0</div>
+                                        <div>Space saved:</div><div id="transcode-stat-saved" style="color: var(--jf-success);">0 B</div>
+                                        <div>Avg reduction:</div><div id="transcode-stat-percent">0%</div>
+                                    </div>
+                                    <button class="btn btn-secondary btn-xs" style="margin-top: 0.5rem;" onclick="resetTranscodeStats()">🔄 Reset Stats</button>
+                                </div>
+                                
                                 <!-- Hidden inputs to preserve settings -->
                                 <input type="hidden" id="transcode-enabled" value="false">
                                 <input type="hidden" id="transcode-encoder" value="software">
@@ -2574,12 +3067,24 @@
                                 <div class="form-hint" style="margin-bottom: 1rem; padding: 0.75rem; background: var(--jf-bg-input); border-radius: var(--radius);">
                                     <strong>Benefits:</strong>
                                     <ul style="margin: 0.5rem 0 0 1rem; font-size: 0.8rem;">
-                                        <li>Auto-trigger library scans after downloads</li>
+                                        <li>Auto-add movies/shows to *arr after download</li>
+                                        <li>Auto-trigger library scans to import files</li>
                                         <li>Use *arr naming conventions for folders</li>
-                                        <li>Mark items as available in your *arr library</li>
                                         <li>Sync metadata and organize files properly</li>
                                     </ul>
                                 </div>
+                                
+                                <div class="toggle-container" style="margin-bottom: 1rem;">
+                                    <span class="toggle-label">🔄 Auto-import to *arr after download</span>
+                                    <label class="toggle">
+                                        <input type="checkbox" id="arr-auto-import" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="form-hint" style="margin-bottom: 1rem;">
+                                    When enabled, downloads will be automatically added to Radarr/Sonarr and library scans triggered.
+                                </div>
+                                
                                 <div class="form-group">
                                     <label class="form-label">Sonarr URL</label>
                                     <input type="text" class="form-input" id="sonarr-url" placeholder="http://localhost:8989">
@@ -2599,6 +3104,29 @@
                                     <input type="password" class="form-input" id="radarr-key" placeholder="API key">
                                 </div>
                                 <button class="btn btn-secondary btn-sm" onclick="testArrConnection('radarr')">Test Radarr</button>
+                                
+                                <div style="margin-top: 1.5rem; padding: 1rem; background: var(--jf-bg-input); border-radius: var(--radius); border: 1px solid var(--jf-border);">
+                                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                                        <h5 style="margin: 0; font-size: 0.85rem; font-weight: 600;">🔀 Library Path Mappings</h5>
+                                        <button class="btn btn-secondary btn-sm" onclick="fetchArrPathMappings()">🔄 Auto-Detect Paths</button>
+                                    </div>
+                                    
+                                    <div class="form-hint" style="margin-bottom: 0.75rem; font-size: 0.8rem;">
+                                        Click "Auto-Detect Paths" to scan your filesystem and find where Sonarr/Radarr folders exist. ✅ = found, ⚠️ = not found.
+                                    </div>
+                                    
+                                    <div id="arr-path-mappings-status" style="margin-bottom: 0.75rem; font-size: 0.8rem; color: var(--jf-text-muted);">
+                                        No mappings loaded. Save API keys and click "Auto-Detect Paths".
+                                    </div>
+                                    
+                                    <div id="arr-path-mappings" style="margin-bottom: 0.75rem;">
+                                        <!-- Mappings will be rendered here -->
+                                    </div>
+                                    
+                                    <button class="btn btn-secondary btn-sm" onclick="addPathMapping()" style="margin-right: 0.5rem;">
+                                        ➕ Add Manual Mapping
+                                    </button>
+                                </div>
                                 
                                 <div style="margin-top: 1rem; padding: 0.75rem; background: var(--jf-bg-input); border-radius: var(--radius);">
                                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
@@ -2791,9 +3319,14 @@
                         <span class="panel-title-icon">📋</span>
                         <span data-i18n="activity_log">Activity Log</span>
                     </h2>
-                    <div class="panel-controls" onclick="event.stopPropagation()">
-                        <button class="btn btn-secondary btn-sm" id="toggle-history-btn">📜 <span data-i18n="history">History</span></button>
-                        <button class="btn btn-secondary btn-sm" id="rebuild-cache-btn">🔄 <span data-i18n="rebuild_cache">Rebuild Cache</span></button>
+                    <div class="panel-controls" onclick="event.stopPropagation()" style="flex-wrap: wrap; gap: 0.25rem;">
+                        <select class="form-input" id="log-view-mode" style="width: auto; padding: 0.2rem 0.4rem; font-size: 0.7rem;">
+                            <option value="basic">Basic</option>
+                            <option value="advanced">Advanced</option>
+                        </select>
+                        <button class="btn btn-secondary btn-sm" onclick="copyLogs()" title="Copy Logs to Clipboard">📋</button>
+                        <button class="btn btn-secondary btn-sm" id="toggle-history-btn" title="Download History">📜</button>
+                        <button class="btn btn-secondary btn-sm" id="rebuild-cache-btn" onclick="mobileRebuildCache()" title="Rebuild Local Cache">🔄</button>
                     </div>
                 </div>
                 <div class="panel-body" style="padding: 0;">
@@ -3084,10 +3617,13 @@
         let config = {};
         let currentServerId = null;
         let currentParentId = 'root';
+        let currentLibraryId = null;  // The library we're browsing in
+        let currentBaseUrl = '';      // Current server's base URL
         let browserPath = [{ id: 'root', name: '🏠 Home' }];
         let selectedItems = new Set();
         let pendingDownloadPath = '/storage';
         let baseUrl = '';
+        let skipList = [];  // Items to skip in auto-sync
         
         // Pagination state
         let currentPage = 1;
@@ -3103,13 +3639,53 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadConfig();
             loadUser();
+            loadSkipList();
             initTheme();
             setupEventListeners();
             startStatusPolling();
             startLogPolling();
             setupSearch();
             setupKeyboardShortcuts();
+            loadTranscodeSettingsOnLoad();
         });
+        
+        // Load transcode settings on page load
+        async function loadTranscodeSettingsOnLoad() {
+            try {
+                const response = await api('transcode_test_mode');
+                
+                // Load settings into controls
+                const transcodeEnabledEl = document.getElementById('transcode-enabled-test');
+                const transcodeEncoderEl = document.getElementById('transcode-encoder-test');
+                const transcodePresetEl = document.getElementById('transcode-preset-test');
+                const maxTranscodesEl = document.getElementById('max-transcodes');
+                const skipLargerEl = document.getElementById('transcode-skip-larger');
+                const cacheEnabledEl = document.getElementById('transcode-cache-enabled');
+                const cachePathEl = document.getElementById('transcode-cache-path');
+                const cachePathGroupEl = document.getElementById('transcode-cache-path-group');
+                
+                if (transcodeEnabledEl) transcodeEnabledEl.checked = response.transcode_enabled;
+                if (transcodeEncoderEl) transcodeEncoderEl.value = response.transcode_encoder;
+                if (transcodePresetEl) transcodePresetEl.value = response.transcode_preset;
+                if (maxTranscodesEl) maxTranscodesEl.value = response.max_concurrent_transcodes || 1;
+                if (skipLargerEl) skipLargerEl.checked = response.transcode_skip_larger !== false;
+                if (cacheEnabledEl) cacheEnabledEl.checked = response.transcode_cache_enabled || false;
+                if (cachePathEl) cachePathEl.value = response.transcode_cache_path || '/tmp/transcode_cache';
+                if (cachePathGroupEl) cachePathGroupEl.style.display = response.transcode_cache_enabled ? 'block' : 'none';
+                
+                // Load transcode stats and cache status
+                setTimeout(() => {
+                    if (typeof loadTranscodeStats === 'function') {
+                        loadTranscodeStats();
+                    }
+                    if (response.transcode_cache_enabled && typeof loadTranscodeCacheStatus === 'function') {
+                        loadTranscodeCacheStatus();
+                    }
+                }, 100);
+            } catch (e) {
+                console.error('Error loading transcode settings:', e);
+            }
+        }
         
         // Keyboard Shortcuts
         function setupKeyboardShortcuts() {
@@ -3212,22 +3788,109 @@
         
         // Track pause state for keyboard shortcut
         let is_paused = false;
+        let searchActive = false;
+        let searchParentId = null;  // Store the parent ID when search started
         
-        // Search/Filter
+        // Search functionality
         function setupSearch() {
             const searchInput = document.getElementById('library-search');
-            let debounceTimer;
             
-            searchInput.addEventListener('input', (e) => {
-                clearTimeout(debounceTimer);
-                debounceTimer = setTimeout(() => {
-                    filterText = e.target.value.toLowerCase();
-                    filterCurrentItems();
-                }, 200);
+            // Enter key triggers search
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    searchLibrary();
+                }
             });
         }
         
+        async function searchLibrary() {
+            const searchInput = document.getElementById('library-search');
+            const query = searchInput.value.trim();
+            
+            if (!query) {
+                showToast('Enter a search term', 'info');
+                return;
+            }
+            
+            if (query.length < 2) {
+                showToast('Search term must be at least 2 characters', 'info');
+                return;
+            }
+            
+            if (!currentServerId) {
+                showToast('Select a server first', 'warning');
+                return;
+            }
+            
+            // Store current parent so we can return to it
+            if (!searchActive) {
+                searchParentId = currentParentId;
+            }
+            
+            const statusEl = document.getElementById('search-status');
+            statusEl.style.display = 'block';
+            statusEl.textContent = `Searching for "${query}"...`;
+            
+            try {
+                const result = await api('search', 'POST', {
+                    query: query,
+                    server_id: currentServerId,
+                    parent_id: currentLibraryId,  // Search within current library
+                    limit: 100
+                });
+                
+                if (result.error) {
+                    statusEl.textContent = `Error: ${result.error}`;
+                    return;
+                }
+                
+                searchActive = true;
+                currentItems = result.items || [];
+                
+                // Store base URL for image loading
+                if (result.base_url) {
+                    currentBaseUrl = result.base_url;
+                }
+                
+                if (currentItems.length === 0) {
+                    statusEl.textContent = `No results found for "${query}"`;
+                } else {
+                    statusEl.innerHTML = `Found <strong>${currentItems.length}</strong> result(s) for "<strong>${escapeHtml(query)}</strong>" • <a href="#" onclick="clearSearch(); return false;">Clear search</a>`;
+                }
+                
+                // Hide pagination during search (showing all results)
+                document.getElementById('pagination-controls').style.display = 'none';
+                
+                renderBrowserItems(currentItems);
+                
+            } catch (err) {
+                statusEl.textContent = `Search failed: ${err.message}`;
+            }
+        }
+        
+        function clearSearch() {
+            const searchInput = document.getElementById('library-search');
+            searchInput.value = '';
+            
+            const statusEl = document.getElementById('search-status');
+            statusEl.style.display = 'none';
+            
+            searchActive = false;
+            
+            // Go back to where we were before search
+            if (searchParentId) {
+                currentParentId = searchParentId;
+                browseRemote();
+            } else if (currentLibraryId) {
+                currentParentId = currentLibraryId;
+                browseRemote();
+            }
+            searchParentId = null;
+        }
+        
         function filterCurrentItems() {
+            // Deprecated - now using server-side search
+            const filterText = document.getElementById('library-search').value.toLowerCase();
             if (!filterText) {
                 renderBrowserItems(currentItems);
                 return;
@@ -3270,6 +3933,128 @@
             document.getElementById('mobile-menu').classList.remove('open');
             document.getElementById('mobile-menu-overlay').classList.remove('open');
             document.body.style.overflow = '';
+        }
+        
+        // Mobile action functions
+        function mobileSync() {
+            showToast('Starting sync...', 'info');
+            api('sync', 'POST').then(() => {
+                showToast('Sync started!', 'success');
+            }).catch(() => {
+                showToast('Sync failed', 'error');
+            });
+        }
+        
+        function mobileRebuildCache() {
+            showToast('Rebuilding cache...', 'info');
+            api('rebuild_cache', 'POST').then(() => {
+                showToast('Cache rebuild started!', 'success');
+            }).catch(() => {
+                showToast('Cache rebuild failed', 'error');
+            });
+        }
+        
+        function copyLogs() {
+            console.log('copyLogs called');
+            const logContainer = document.getElementById('log-container');
+            if (!logContainer) {
+                console.log('No log container found');
+                showToast('No logs to copy', 'error');
+                return;
+            }
+            
+            // Get all log lines as text - handle both .log-line divs and direct text
+            let logLines = '';
+            const logLineElements = logContainer.querySelectorAll('.log-line');
+            console.log('Found log-line elements:', logLineElements.length);
+            
+            if (logLineElements.length > 0) {
+                logLines = Array.from(logLineElements)
+                    .map(line => line.textContent.trim())
+                    .filter(line => line && line !== 'Waiting for activity...' && line !== 'No download history yet...')
+                    .join('\n');
+            } else {
+                // Fallback: get inner text
+                logLines = logContainer.innerText.trim();
+            }
+            
+            console.log('Log lines to copy:', logLines.length, 'chars');
+            
+            if (!logLines) {
+                showToast('No logs to copy', 'info');
+                return;
+            }
+            
+            // Always use the fallback method first since it's more reliable over HTTP
+            copyLogsFallback(logLines);
+        }
+        
+        function copyLogsFallback(text) {
+            console.log('Using fallback copy method');
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.setAttribute('readonly', '');
+            textarea.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;';
+            document.body.appendChild(textarea);
+            
+            // iOS Safari workaround
+            const range = document.createRange();
+            range.selectNodeContents(textarea);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            textarea.setSelectionRange(0, textarea.value.length);
+            
+            let success = false;
+            try {
+                success = document.execCommand('copy');
+                console.log('execCommand result:', success);
+            } catch (e) {
+                console.error('execCommand error:', e);
+            }
+            
+            document.body.removeChild(textarea);
+            selection.removeAllRanges();
+            
+            if (success) {
+                showToast(`Copied ${text.split('\n').length} log lines!`, 'success');
+            } else {
+                // Try clipboard API as last resort
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        showToast(`Copied ${text.split('\n').length} log lines!`, 'success');
+                    }).catch(() => {
+                        showToast('Copy failed - please select and copy manually', 'error');
+                    });
+                } else {
+                    showToast('Copy failed - please select and copy manually', 'error');
+                }
+            }
+        }
+        
+        function toggleDownloadLimitOverride() {
+            const checkbox = document.getElementById('override-download-limit');
+            const warning = document.getElementById('download-limit-warning');
+            const maxInput = document.getElementById('max-downloads');
+            
+            // Pro feature check
+            if (checkbox.checked && config.license_tier !== 'pro' && config.license_tier !== 'trial') {
+                checkbox.checked = false;
+                showToast('Download limit override requires a Pro license', 'warning');
+                return;
+            }
+            
+            if (checkbox.checked) {
+                warning.style.display = 'block';
+                maxInput.max = 50;  // Allow up to 50
+                showToast('Download limit override enabled - use responsibly!', 'warning');
+            } else {
+                warning.style.display = 'none';
+                maxInput.max = 10;
+                if (parseInt(maxInput.value) > 10) {
+                    maxInput.value = 10;
+                }
+            }
         }
 
         // API Helper
@@ -3362,8 +4147,104 @@
             updateLocalServerInfo();
             updateMappingsList();
             
+            // Apply custom theme if set (Pro feature)
+            if (config.custom_theme && config.custom_theme !== 'default') {
+                // Apply silently (without toast) on initial load
+                applyThemePresetSilent(config.custom_theme);
+            }
+            
             // Load and apply translations
             await loadTranslations(config.language || 'en');
+        }
+        
+        async function loadSkipList() {
+            try {
+                const result = await api('skip_list');
+                skipList = result.skip_list || [];
+                updateSkipListDisplay();
+            } catch (e) {
+                console.error('Failed to load skip list:', e);
+                skipList = [];
+            }
+        }
+        
+        async function toggleSkip(itemId, itemName, itemType) {
+            const isCurrentlySkipped = skipList.some(s => s.id === itemId);
+            
+            try {
+                let result;
+                if (isCurrentlySkipped) {
+                    result = await api('skip_list/remove', 'POST', { id: itemId });
+                    showToast(`Removed from skip list: ${itemName}`, 'info');
+                } else {
+                    result = await api('skip_list/add', 'POST', { 
+                        id: itemId, 
+                        name: itemName, 
+                        type: itemType,
+                        server_id: currentServerId 
+                    });
+                    showToast(`Added to skip list: ${itemName}`, 'success');
+                }
+                
+                if (result.success) {
+                    skipList = result.skip_list;
+                    updateSkipListDisplay();
+                    // Re-render current items to update skip buttons
+                    renderItems(currentItems);
+                }
+            } catch (e) {
+                showToast('Failed to update skip list', 'error');
+            }
+        }
+        
+        async function clearSkipList() {
+            if (!confirm('Clear all items from skip list? This will allow them to be included in auto-sync again.')) {
+                return;
+            }
+            
+            try {
+                const result = await api('skip_list/clear', 'POST');
+                if (result.success) {
+                    skipList = [];
+                    updateSkipListDisplay();
+                    renderItems(currentItems);
+                    showToast('Skip list cleared', 'success');
+                }
+            } catch (e) {
+                showToast('Failed to clear skip list', 'error');
+            }
+        }
+        
+        function updateSkipListDisplay() {
+            const container = document.getElementById('skip-list-items');
+            if (!container) return;
+            
+            if (skipList.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><div>No items in skip list</div></div>';
+                return;
+            }
+            
+            container.innerHTML = skipList.map(item => `
+                <div class="skip-list-item">
+                    <span class="skip-item-type">${item.type === 'Series' ? '📺' : '🎬'}</span>
+                    <span class="skip-item-name">${escapeHtml(item.name)}</span>
+                    <button class="btn btn-xs btn-danger" onclick="removeFromSkipList('${item.id}')">✕</button>
+                </div>
+            `).join('');
+        }
+        
+        async function removeFromSkipList(itemId) {
+            try {
+                const result = await api('skip_list/remove', 'POST', { id: itemId });
+                if (result.success) {
+                    skipList = result.skip_list;
+                    updateSkipListDisplay();
+                    renderItems(currentItems);
+                    showToast('Removed from skip list', 'info');
+                }
+            } catch (e) {
+                showToast('Failed to remove from skip list', 'error');
+            }
         }
         
         async function loadTranslations(lang) {
@@ -3498,7 +4379,34 @@
         function updateSettingsForm() {
             document.getElementById('speed-limit').value = config.speed_limit_kbs || 0;
             document.getElementById('sync-time').value = config.sync_time || '04:00';
+            document.getElementById('timezone').value = config.timezone || 'UTC';
+            document.getElementById('time-format').value = config.time_format || '12h';
             document.getElementById('max-downloads').value = config.max_concurrent_downloads || 2;
+            // Download limit override (Pro feature)
+            const overrideEl = document.getElementById('override-download-limit');
+            if (overrideEl) {
+                const isPro = config.license_tier === 'pro' || config.license_tier === 'trial';
+                overrideEl.disabled = !isPro;
+                if (!isPro) {
+                    overrideEl.checked = false;
+                    overrideEl.parentElement.parentElement.style.opacity = '0.5';
+                } else {
+                    overrideEl.checked = config.override_download_limit || false;
+                    overrideEl.parentElement.parentElement.style.opacity = '1';
+                    if (config.override_download_limit) {
+                        document.getElementById('download-limit-warning').style.display = 'block';
+                        document.getElementById('max-downloads').max = 50;
+                    }
+                }
+            }
+            // Retry settings
+            const retryEl = document.getElementById('download-auto-retry');
+            if (retryEl) retryEl.checked = config.download_auto_retry !== false;
+            const retryCountEl = document.getElementById('download-retry-count');
+            if (retryCountEl) retryCountEl.value = config.download_retry_count || 3;
+            const retryDelayEl = document.getElementById('download-retry-delay');
+            if (retryDelayEl) retryDelayEl.value = config.download_retry_delay || 30;
+            
             document.getElementById('auto-sync-toggle').checked = config.auto_sync_enabled !== false;
             document.getElementById('connection-timeout').value = config.connection_timeout || 30;
             document.getElementById('chunk-size').value = config.chunk_size_kb || 64;
@@ -3506,6 +4414,13 @@
             document.getElementById('show-notifications').checked = config.show_notifications !== false;
             document.getElementById('show-ratings').checked = config.show_ratings !== false;
             document.getElementById('show-quality').checked = config.show_quality !== false;
+            document.getElementById('folder-naming-format').value = config.folder_naming_format || 'standard';
+            updateFolderFormatPreview();
+            document.getElementById('tmdb-api-key').value = config.tmdb_api_key || '';
+            document.getElementById('tvdb-api-key').value = config.tvdb_api_key || '';
+            document.getElementById('omdb-api-key').value = config.omdb_api_key || '';
+            document.getElementById('imdb-lookup-enabled').checked = config.imdb_lookup_enabled !== false;  // Default true
+            document.getElementById('metadata-lookup-on-browse').checked = config.metadata_lookup_on_browse || false;
             document.getElementById('download-subtitles').checked = config.download_subtitles !== false;
             document.getElementById('subtitle-languages').value = (config.subtitle_languages || ['eng', 'spa', 'ger']).join(', ');
             document.getElementById('theme-toggle-settings').checked = (config.theme || 'dark') === 'dark';
@@ -3537,19 +4452,85 @@
                 hint.style.display = 'none';
             }
         }
+        
+        function updateFolderFormatPreview() {
+            const format = document.getElementById('folder-naming-format').value;
+            const moviePreview = document.getElementById('folder-format-preview-movie');
+            const showPreview = document.getElementById('folder-format-preview-show');
+            
+            // Example IDs
+            const movieName = 'Inception';
+            const movieYear = '2010';
+            const movieImdb = 'tt1375666';
+            const movieTmdb = '27205';
+            
+            const showName = 'Breaking Bad';
+            const showImdb = 'tt0903747';
+            const showTvdb = '81189';
+            const showTmdb = '1396';
+            
+            let movieFolder, showFolder;
+            
+            switch (format) {
+                case 'standard':
+                    movieFolder = `${movieName} (${movieYear})`;
+                    showFolder = showName;
+                    break;
+                case 'ids_space':
+                    movieFolder = `${movieName} (${movieYear}) ${movieImdb} ${movieTmdb}`;
+                    showFolder = `${showName} ${showImdb} ${showTvdb}`;
+                    break;
+                case 'ids_braces':
+                    movieFolder = `${movieName} (${movieYear}) {imdb-${movieImdb}} {tmdb-${movieTmdb}}`;
+                    showFolder = `${showName} {imdb-${showImdb}} {tvdb-${showTvdb}}`;
+                    break;
+                case 'ids_brackets':
+                    movieFolder = `${movieName} (${movieYear}) [imdb-${movieImdb}]`;
+                    showFolder = `${showName} [imdb-${showImdb}] [tvdb-${showTvdb}]`;
+                    break;
+                case 'tmdb_only':
+                    movieFolder = `${movieName} (${movieYear}) {tmdb-${movieTmdb}}`;
+                    showFolder = `${showName} {tmdb-${showTmdb}}`;
+                    break;
+                case 'imdb_only':
+                    movieFolder = `${movieName} (${movieYear}) ${movieImdb}`;
+                    showFolder = `${showName} ${showImdb}`;
+                    break;
+                default:
+                    movieFolder = `${movieName} (${movieYear})`;
+                    showFolder = showName;
+            }
+            
+            moviePreview.textContent = `Movie: ${movieFolder}`;
+            showPreview.textContent = `Show: ${showFolder}`;
+        }
 
         async function saveSettings() {
             config.speed_limit_kbs = parseInt(document.getElementById('speed-limit').value) || 0;
             config.sync_time = document.getElementById('sync-time').value || '04:00';
+            config.timezone = document.getElementById('timezone').value || 'UTC';
+            config.time_format = document.getElementById('time-format').value || '12h';
             
-            // Enforce tier limit on max downloads
+            // Enforce tier limit on max downloads (unless override enabled)
             let maxDownloads = parseInt(document.getElementById('max-downloads').value) || 2;
             const tier = config.license_tier || 'free';
-            if (tier === 'free' && maxDownloads > 2) {
-                maxDownloads = 2;
-                showToast('Free tier limited to 2 concurrent downloads', 'warning');
+            const overrideLimit = document.getElementById('override-download-limit')?.checked || false;
+            
+            if (!overrideLimit) {
+                if (tier === 'free' && maxDownloads > 2) {
+                    maxDownloads = 2;
+                    showToast('Free tier limited to 2 concurrent downloads', 'warning');
+                } else if (maxDownloads > 10) {
+                    maxDownloads = 10;
+                }
             }
             config.max_concurrent_downloads = maxDownloads;
+            config.override_download_limit = overrideLimit;
+            
+            // Retry settings
+            config.download_auto_retry = document.getElementById('download-auto-retry')?.checked !== false;
+            config.download_retry_count = parseInt(document.getElementById('download-retry-count')?.value) || 3;
+            config.download_retry_delay = parseInt(document.getElementById('download-retry-delay')?.value) || 30;
             
             config.connection_timeout = parseInt(document.getElementById('connection-timeout').value) || 30;
             config.chunk_size_kb = parseInt(document.getElementById('chunk-size').value) || 64;
@@ -3557,6 +4538,16 @@
             config.show_notifications = document.getElementById('show-notifications').checked;
             config.show_ratings = document.getElementById('show-ratings').checked;
             config.show_quality = document.getElementById('show-quality').checked;
+            config.folder_naming_format = document.getElementById('folder-naming-format').value;
+            // Metadata API keys (only save if changed, to avoid re-encrypting)
+            const tmdbKey = document.getElementById('tmdb-api-key').value;
+            const tvdbKey = document.getElementById('tvdb-api-key').value;
+            const omdbKey = document.getElementById('omdb-api-key').value;
+            if (tmdbKey) config.tmdb_api_key = tmdbKey;
+            if (tvdbKey) config.tvdb_api_key = tvdbKey;
+            if (omdbKey) config.omdb_api_key = omdbKey;
+            config.imdb_lookup_enabled = document.getElementById('imdb-lookup-enabled').checked;
+            config.metadata_lookup_on_browse = document.getElementById('metadata-lookup-on-browse').checked;
             config.download_subtitles = document.getElementById('download-subtitles').checked;
             // Parse subtitle languages from comma-separated string
             const subLangs = document.getElementById('subtitle-languages').value;
@@ -3729,6 +4720,20 @@
             document.getElementById('cancel-all-btn').addEventListener('click', () => {
                 if (confirm('Cancel all downloads?')) api('cancel', 'POST', { all: true });
             });
+            
+            // Cancel single download/transcode
+            window.cancelSingleDownload = async function(taskId) {
+                try {
+                    const result = await api('cancel', 'POST', { task_id: taskId });
+                    if (result.type === 'transcode') {
+                        showToast('Transcode cancelled', 'warning');
+                    } else {
+                        showToast('Download cancelled', 'warning');
+                    }
+                } catch (e) {
+                    console.error('Cancel failed:', e);
+                }
+            };
 
             // Selection controls
             document.getElementById('download-selected-btn').addEventListener('click', () => {
@@ -3750,6 +4755,9 @@
 
             // Save settings
             document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
+            
+            // Folder naming format preview
+            document.getElementById('folder-naming-format').addEventListener('change', updateFolderFormatPreview);
             
             // Save language button
             document.getElementById('save-language-btn').addEventListener('click', saveLanguage);
@@ -3795,12 +4803,14 @@
             if (showingHistory) {
                 logContainer.style.display = 'none';
                 historyContainer.style.display = 'block';
-                btn.textContent = '📋 Activity';
+                btn.textContent = '📋';
+                btn.title = 'Back to Activity Log';
                 loadHistory();
             } else {
                 logContainer.style.display = 'block';
                 historyContainer.style.display = 'none';
-                btn.textContent = '📜 History';
+                btn.textContent = '📜';
+                btn.title = 'Download History';
             }
         }
         
@@ -3845,6 +4855,11 @@
             // Clear search when browsing new folder
             document.getElementById('library-search').value = '';
             filterText = '';
+            document.getElementById('search-status').style.display = 'none';
+            searchActive = false;
+            
+            // Show/hide search box based on level (hide at root)
+            document.getElementById('search-box').style.display = currentParentId === 'root' ? 'none' : 'block';
 
             const data = await api('browse_remote', 'POST', {
                 server_id: currentServerId,
@@ -3854,6 +4869,7 @@
             });
 
             baseUrl = data.base_url;
+            currentBaseUrl = data.base_url;  // Store for search results
             totalItems = data.total || 0;
             totalPages = data.total_pages || 1;
             
@@ -3953,8 +4969,19 @@
                 if (item.IsFolder) classes.push('folder');
                 if (item.Type === 'Series') classes.push('series'); // Series looks like media, not pure folder
                 if (item.Type === 'Movie' || item.Type === 'Episode') classes.push('media-item');
-                if (item.ExistsLocally) classes.push('exists');
+                
+                // Handle exists status: 'full', 'partial', or false
+                if (item.ExistsLocally === 'full' || item.ExistsLocally === true) {
+                    classes.push('exists');
+                } else if (item.ExistsLocally === 'partial') {
+                    classes.push('partial');
+                }
+                
                 if (selectedItems.has(item.Id)) classes.push('selected');
+                
+                // Check if item is in skip list
+                const isSkipped = skipList.some(s => s.id === item.Id);
+                if (isSkipped) classes.push('is-skipped');
                 
                 // Tooltip text - show name, and for folders add hint
                 const tooltipText = item.IsFolder 
@@ -4030,6 +5057,28 @@
                         <span>⬇️</span> Download All
                     </button>`;
                 }
+                
+                // Skip button for Series and Movies (for auto-sync)
+                let skipBtnHtml = '';
+                let skippedBadgeHtml = '';
+                let episodeCountBadgeHtml = '';
+                if (item.Type === 'Series' || item.Type === 'Movie') {
+                    skipBtnHtml = `<button class="skip-btn ${isSkipped ? 'skipped' : ''}" 
+                        onclick="event.stopPropagation(); toggleSkip('${item.Id}', '${escapeHtml(item.Name)}', '${item.Type}')" 
+                        title="${isSkipped ? 'Click to remove from skip list' : 'Skip in auto-sync'}">
+                        ${isSkipped ? '✕' : '⏭️'}
+                    </button>`;
+                    
+                    if (isSkipped) {
+                        skippedBadgeHtml = `<div class="skipped-badge">SKIPPED</div>`;
+                    }
+                }
+                
+                // Episode count badge for partial series
+                if (item.Type === 'Series' && item.ExistsLocally === 'partial' && item.LocalEpisodeCount > 0) {
+                    const totalEps = item.RecursiveItemCount || item.ChildCount || '?';
+                    episodeCountBadgeHtml = `<div class="episode-count-badge">${item.LocalEpisodeCount}/${totalEps} episodes</div>`;
+                }
 
                 return `
                     <div class="${classes.join(' ')}" 
@@ -4043,6 +5092,9 @@
                          oncontextmenu="handleItemContext(event, '${item.Id}')">
                         ${ratingBadgeHtml}
                         ${contentRatingHtml}
+                        ${skipBtnHtml}
+                        ${skippedBadgeHtml}
+                        ${episodeCountBadgeHtml}
                         ${imgSrc ? 
                             `<img class="browser-item-poster" src="${imgSrc}" loading="lazy" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                              <div class="browser-item-placeholder" style="display:none;">${icon}</div>` :
@@ -4127,18 +5179,41 @@
         }
 
         function navigateTo(id, name) {
+            // If we're at root, this is a library - track it
+            if (currentParentId === 'root') {
+                currentLibraryId = id;
+            }
             currentParentId = id;
             currentPage = 1;
             browserPath.push({ id, name });
             clearSelection();
+            
+            // Clear search when navigating
+            searchActive = false;
+            document.getElementById('search-status').style.display = 'none';
+            
             browseRemote();
         }
 
         function navigateToPath(index) {
             browserPath = browserPath.slice(0, index + 1);
             currentParentId = browserPath[browserPath.length - 1].id;
+            
+            // If going back to root, clear library ID
+            if (currentParentId === 'root') {
+                currentLibraryId = null;
+            } else if (index === 1) {
+                // If going back to index 1, that's the library level
+                currentLibraryId = browserPath[1].id;
+            }
+            
             currentPage = 1;
             clearSelection();
+            
+            // Clear search when navigating
+            searchActive = false;
+            document.getElementById('search-status').style.display = 'none';
+            
             browseRemote();
         }
 
@@ -4467,8 +5542,9 @@
             const container = document.getElementById('download-queue');
             const active = Object.values(status.active || {});
             const pending = status.pending || [];
+            const pendingTranscodes = status.pending_transcodes || [];
 
-            if (active.length === 0 && pending.length === 0) {
+            if (active.length === 0 && pending.length === 0 && pendingTranscodes.length === 0) {
                 container.innerHTML = `<div class="queue-empty"><div class="queue-empty-icon">📭</div><p>${t('no_active_downloads')}</p></div>`;
                 return;
             }
@@ -4476,14 +5552,18 @@
             container.innerHTML = [
                 ...active.map(d => {
                     const eta = calculateETA(d);
+                    const isTranscode = d.transcode || d.status?.includes('Transcoding');
                     return `
                     <div class="download-item">
                         <div class="download-header">
                             <span class="download-name" title="${escapeHtml(d.filename)}">${escapeHtml(d.filename)}</span>
-                            <span class="download-status ${d.status === 'Paused' ? 'paused' : ''}">${d.status}</span>
+                            <div class="download-header-right">
+                                <span class="download-status ${d.status === 'Paused' ? 'paused' : ''} ${isTranscode ? 'transcoding' : ''}">${d.status}</span>
+                                <button class="btn btn-danger btn-xs" onclick="cancelSingleDownload('${d.id}')" title="Cancel">✕</button>
+                            </div>
                         </div>
                         <div class="download-progress">
-                            <div class="download-progress-bar" style="width: ${d.percent}%"></div>
+                            <div class="download-progress-bar ${isTranscode ? 'transcode' : ''}" style="width: ${d.percent}%"></div>
                         </div>
                         <div class="download-meta">
                             <span>${d.speed}${eta ? ' • ' + eta : ''}</span>
@@ -4495,7 +5575,21 @@
                     <div class="download-item">
                         <div class="download-header">
                             <span class="download-name" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</span>
-                            <span class="download-status pending">Pending</span>
+                            <div class="download-header-right">
+                                <span class="download-status pending">Pending</span>
+                                <button class="btn btn-danger btn-xs" onclick="cancelSingleDownload('${p.id}')" title="Cancel">✕</button>
+                            </div>
+                        </div>
+                    </div>
+                `),
+                ...pendingTranscodes.map(p => `
+                    <div class="download-item">
+                        <div class="download-header">
+                            <span class="download-name" title="${escapeHtml(p.name)}">🔄 ${escapeHtml(p.name)}</span>
+                            <div class="download-header-right">
+                                <span class="download-status transcoding-pending">Queued (${p.preset})</span>
+                                <button class="btn btn-danger btn-xs" onclick="cancelSingleDownload('${p.id}')" title="Cancel">✕</button>
+                            </div>
                         </div>
                     </div>
                 `)
@@ -4665,6 +5759,35 @@
         }
 
         // Log Polling
+        let logViewMode = 'basic';
+        
+        // Basic log patterns - only show these in basic mode
+        const basicLogPatterns = [
+            /^⬇️/,          // Download starting
+            /^✓/,           // Success
+            /^✗/,           // Error
+            /^📥/,          // Queued
+            /^🔄/,          // Syncing/Transcoding
+            /^⏸️/,          // Paused
+            /^▶️/,          // Resumed
+            /^\d+%/,        // Progress
+            /Downloading:/,
+            /Download complete/i,
+            /Complete:/,
+            /Queued:/,
+            /Started:/,
+            /Cancelled/,
+            /Failed/,
+            /Error/,
+            /paused/i,
+            /resumed/i
+        ];
+        
+        function isBasicLogLine(line) {
+            if (!line || line.trim() === '') return false;
+            return basicLogPatterns.some(pattern => pattern.test(line));
+        }
+        
         function startLogPolling() {
             async function poll() {
                 try {
@@ -4673,12 +5796,24 @@
                     const container = document.getElementById('log-container');
                     
                     if (text.trim()) {
-                        container.innerHTML = text.split('\n').map(line => {
-                            let cls = '';
-                            if (line.includes('✓') || line.includes('Complete')) cls = 'success';
-                            if (line.includes('✗') || line.includes('Error') || line.includes('Failed')) cls = 'error';
-                            return `<div class="log-line"><span class="${cls}">${escapeHtml(line)}</span></div>`;
-                        }).join('');
+                        const lines = text.split('\n');
+                        const viewMode = document.getElementById('log-view-mode')?.value || 'basic';
+                        
+                        // Filter lines based on view mode
+                        const filteredLines = viewMode === 'basic' 
+                            ? lines.filter(line => isBasicLogLine(line))
+                            : lines;
+                        
+                        if (filteredLines.length === 0 && viewMode === 'basic') {
+                            container.innerHTML = '<div class="log-line" style="color: var(--jf-text-muted);">Waiting for downloads... (switch to Advanced for all logs)</div>';
+                        } else {
+                            container.innerHTML = filteredLines.map(line => {
+                                let cls = '';
+                                if (line.includes('✓') || line.includes('Complete')) cls = 'success';
+                                if (line.includes('✗') || line.includes('Error') || line.includes('Failed')) cls = 'error';
+                                return `<div class="log-line"><span class="${cls}">${escapeHtml(line)}</span></div>`;
+                            }).join('');
+                        }
                     }
                 } catch (err) {
                     console.error('Log poll error:', err);
@@ -5076,6 +6211,16 @@
             document.getElementById('sonarr-key').value = config.sonarr_api_key || '';
             document.getElementById('radarr-url').value = config.radarr_url || '';
             document.getElementById('radarr-key').value = config.radarr_api_key || '';
+            document.getElementById('arr-auto-import').checked = config.arr_auto_import !== false;
+            
+            // Load path mappings
+            arrPathMappings = config.arr_path_mappings || [];
+            // Migrate old single mapping if present
+            if (arrPathMappings.length === 0 && config.arr_path_mapping_from && config.arr_path_mapping_to) {
+                arrPathMappings = [{ remotePath: config.arr_path_mapping_from, localPath: config.arr_path_mapping_to }];
+            }
+            renderPathMappings();
+            updatePathMappingsStatus();
             
             // Theme
             if (config.custom_theme) {
@@ -5139,10 +6284,14 @@
             config.notify_on_complete = document.getElementById('notify-complete').checked;
             config.notify_on_error = document.getElementById('notify-error').checked;
             
-            // Transcoding (disabled - always set to off)
-            config.transcode_enabled = false;
-            config.transcode_encoder = 'software';
-            config.transcode_preset = 'original';
+            // Transcoding
+            config.transcode_enabled = document.getElementById('transcode-enabled-test').checked;
+            config.transcode_encoder = document.getElementById('transcode-encoder-test').value;
+            config.transcode_preset = document.getElementById('transcode-preset-test').value;
+            config.max_concurrent_transcodes = parseInt(document.getElementById('max-transcodes').value) || 1;
+            config.transcode_skip_larger = document.getElementById('transcode-skip-larger').checked;
+            config.transcode_cache_enabled = document.getElementById('transcode-cache-enabled').checked;
+            config.transcode_cache_path = document.getElementById('transcode-cache-path').value || '/tmp/transcode_cache';
             config.transcode_custom_args = '';
             
             // Scheduling
@@ -5158,6 +6307,9 @@
             config.sonarr_api_key = document.getElementById('sonarr-key').value;
             config.radarr_url = document.getElementById('radarr-url').value;
             config.radarr_api_key = document.getElementById('radarr-key').value;
+            config.arr_auto_import = document.getElementById('arr-auto-import').checked;
+            // Only save non-empty mappings
+            config.arr_path_mappings = arrPathMappings.filter(m => m.remotePath || m.localPath);
             
             // Theme
             config.custom_theme = document.getElementById('custom-theme-select').value;
@@ -5224,6 +6376,11 @@
         };
         
         function applyThemePreset(preset) {
+            applyThemePresetSilent(preset);
+            showToast(`Applied ${preset} theme`, 'success');
+        }
+        
+        function applyThemePresetSilent(preset) {
             const theme = THEME_PRESETS[preset] || THEME_PRESETS.default;
             const root = document.documentElement;
             
@@ -5247,8 +6404,6 @@
             if (theme.special) {
                 applySpecialEffects(theme.special);
             }
-            
-            showToast(`Applied ${preset} theme`, 'success');
         }
         
         function removeSpecialEffects() {
@@ -5405,6 +6560,126 @@
                     const statusEl = document.getElementById('arr-cache-status');
                     if (statusEl) statusEl.textContent = 'Could not load cache status';
                 });
+        }
+        
+        // --- Path Mappings ---
+        let arrPathMappings = [];
+        
+        function renderPathMappings() {
+            const container = document.getElementById('arr-path-mappings');
+            if (!container) return;
+            
+            if (arrPathMappings.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+            
+            container.innerHTML = arrPathMappings.map((mapping, index) => {
+                const accessible = mapping.accessible !== false; // Default to true for manual mappings
+                const accessIcon = mapping.source ? (accessible ? '✅' : '⚠️') : '';
+                const borderColor = mapping.source ? (accessible ? 'var(--jf-success)' : 'var(--jf-warning)') : 'var(--jf-border)';
+                
+                return `
+                <div class="path-mapping-row" style="border-color: ${borderColor};">
+                    ${mapping.source ? `<span class="path-mapping-source">${mapping.source}</span>` : ''}
+                    <div style="flex: 2; display: flex; flex-direction: column; gap: 0.25rem;">
+                        <div class="path-mapping-label">${accessIcon} JellyLooter Path (where you download to)</div>
+                        <input type="text" class="form-input" placeholder="/storage/data/media/tv" value="${escapeHtml(mapping.remotePath || '')}"
+                            onchange="updatePathMapping(${index}, 'remotePath', this.value)">
+                    </div>
+                    <span class="mapping-arrow">→</span>
+                    <div style="flex: 2; display: flex; flex-direction: column; gap: 0.25rem;">
+                        <div class="path-mapping-label">*arr Path (what Sonarr/Radarr sees)</div>
+                        <input type="text" class="form-input" placeholder="/tv" value="${escapeHtml(mapping.localPath || '')}"
+                            onchange="updatePathMapping(${index}, 'localPath', this.value)" ${mapping.source ? 'readonly' : ''}>
+                    </div>
+                    <button class="btn btn-danger btn-remove" onclick="removePathMapping(${index})" title="Remove">✕</button>
+                </div>
+            `}).join('');
+        }
+        
+        function addPathMapping() {
+            arrPathMappings.push({ remotePath: '', localPath: '', source: '' });
+            renderPathMappings();
+        }
+        
+        function removePathMapping(index) {
+            arrPathMappings.splice(index, 1);
+            renderPathMappings();
+            updatePathMappingsStatus();
+        }
+        
+        function updatePathMapping(index, field, value) {
+            if (arrPathMappings[index]) {
+                arrPathMappings[index][field] = value;
+            }
+        }
+        
+        function updatePathMappingsStatus() {
+            const statusEl = document.getElementById('arr-path-mappings-status');
+            if (!statusEl) return;
+            
+            if (arrPathMappings.length === 0) {
+                statusEl.innerHTML = 'No mappings configured. Click "Fetch Root Folders" to auto-load from *arr.';
+            } else {
+                const fromSonarr = arrPathMappings.filter(m => m.source === 'Sonarr').length;
+                const fromRadarr = arrPathMappings.filter(m => m.source === 'Radarr').length;
+                const fromBoth = arrPathMappings.filter(m => m.source === 'Both').length;
+                const manual = arrPathMappings.filter(m => !m.source).length;
+                const accessible = arrPathMappings.filter(m => m.accessible !== false).length;
+                
+                const parts = [];
+                if (fromSonarr) parts.push(`${fromSonarr} Sonarr`);
+                if (fromRadarr) parts.push(`${fromRadarr} Radarr`);
+                if (fromBoth) parts.push(`${fromBoth} shared`);
+                if (manual) parts.push(`${manual} manual`);
+                
+                const accessStatus = accessible === arrPathMappings.length 
+                    ? '✅ All paths accessible' 
+                    : `⚠️ ${accessible}/${arrPathMappings.length} paths accessible`;
+                
+                statusEl.innerHTML = `<span style="color: var(--jf-success);">${arrPathMappings.length} folder(s): ${parts.join(', ')}</span> • ${accessStatus}`;
+            }
+        }
+        
+        async function fetchArrPathMappings() {
+            const statusEl = document.getElementById('arr-path-mappings-status');
+            if (statusEl) statusEl.innerHTML = '<span style="color: var(--jf-primary);">⏳ Fetching root folders and building mappings...</span>';
+            
+            try {
+                const result = await api('fetch_arr_path_mappings', 'POST');
+                
+                if (result.success) {
+                    const fetched = result.mappings || [];
+                    
+                    if (fetched.length === 0) {
+                        if (statusEl) statusEl.innerHTML = '<span style="color: var(--jf-warning);">⚠️ No root folders found in *arr. Check your *arr configuration.</span>';
+                    } else {
+                        // Keep existing manual mappings, replace fetched ones
+                        const manualMappings = arrPathMappings.filter(m => !m.source);
+                        arrPathMappings = [...fetched, ...manualMappings];
+                        renderPathMappings();
+                        updatePathMappingsStatus();
+                        
+                        // Show accessibility info
+                        const accessible = result.accessible_count || 0;
+                        const base = result.jellylooter_base || 'not detected';
+                        if (accessible === fetched.length) {
+                            showToast(`✅ Loaded ${fetched.length} folder(s) - all paths accessible!`, 'success');
+                        } else if (accessible > 0) {
+                            showToast(`Loaded ${fetched.length} folder(s), ${accessible} accessible. Check paths marked ⚠️`, 'warning', 5000);
+                        } else {
+                            showToast(`Loaded ${fetched.length} folder(s). Paths may need editing - JellyLooter base: ${base}`, 'info', 5000);
+                        }
+                    }
+                } else {
+                    if (statusEl) statusEl.innerHTML = `<span style="color: var(--jf-danger);">❌ ${result.error || 'Failed to fetch'}</span>`;
+                    showToast(result.error || 'Failed to fetch root folders', 'error');
+                }
+            } catch (e) {
+                if (statusEl) statusEl.innerHTML = '<span style="color: var(--jf-danger);">❌ Error fetching. Check API keys.</span>';
+                showToast('Failed to fetch root folders', 'error');
+            }
         }
         
         // --- Stop After Current ---
@@ -5615,6 +6890,81 @@
         
         // Initialize license banner on load
         document.addEventListener('DOMContentLoaded', initLicenseBanner);
+        
+        // Transcode Settings Functions
+        function toggleTranscodeCachePath() {
+            const enabled = document.getElementById('transcode-cache-enabled').checked;
+            document.getElementById('transcode-cache-path-group').style.display = enabled ? 'block' : 'none';
+        }
+        
+        async function loadTranscodeStats() {
+            try {
+                const stats = await api('transcode_stats');
+                document.getElementById('transcode-stat-files').textContent = stats.files_transcoded || 0;
+                document.getElementById('transcode-stat-skipped').textContent = stats.files_skipped_larger || 0;
+                document.getElementById('transcode-stat-saved').textContent = stats.total_space_saved_human || '0 B';
+                document.getElementById('transcode-stat-percent').textContent = (stats.percent_saved || 0) + '%';
+            } catch (e) {
+                console.error('Failed to load transcode stats:', e);
+            }
+        }
+        
+        async function resetTranscodeStats() {
+            if (!confirm('Reset all transcode statistics?')) return;
+            try {
+                await api('transcode_stats/reset', 'POST');
+                showToast('Transcode stats reset', 'info');
+                loadTranscodeStats();
+            } catch (e) {
+                showToast('Failed to reset stats', 'error');
+            }
+        }
+        
+        async function clearTranscodeCache() {
+            const cachePath = document.getElementById('transcode-cache-path').value || '/tmp/transcode_cache';
+            if (!confirm(`Clear all partial/failed transcode files from:\n${cachePath}\n\nThis cannot be undone.`)) return;
+            
+            try {
+                const result = await api('transcode_cache/clear', 'POST', { path: cachePath });
+                if (result.success) {
+                    showToast(`Cleared ${result.files_deleted} files (${result.space_freed_human})`, 'success');
+                    loadTranscodeCacheStatus();
+                } else {
+                    showToast(result.error || 'Failed to clear cache', 'error');
+                }
+            } catch (e) {
+                showToast('Failed to clear cache', 'error');
+            }
+        }
+        
+        async function loadTranscodeCacheStatus() {
+            const statusEl = document.getElementById('transcode-cache-status');
+            if (!statusEl) return;
+            
+            const cachePath = document.getElementById('transcode-cache-path').value || '/tmp/transcode_cache';
+            
+            try {
+                const result = await api('transcode_cache/status', 'POST', { path: cachePath });
+                if (result.exists) {
+                    if (result.file_count > 0) {
+                        statusEl.innerHTML = `<span style="color: var(--jf-warning);">${result.file_count} files (${result.total_size_human})</span>`;
+                    } else {
+                        statusEl.innerHTML = `<span style="color: var(--jf-success);">Empty</span>`;
+                    }
+                } else {
+                    statusEl.innerHTML = `<span style="color: var(--jf-text-muted);">Not created yet</span>`;
+                }
+            } catch (e) {
+                statusEl.textContent = 'Error';
+            }
+        }
+        
+        // Load cache status when cache is enabled
+        document.getElementById('transcode-cache-enabled')?.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                setTimeout(loadTranscodeCacheStatus, 100);
+            }
+        });
     </script>
     
     <!-- License Banner -->
