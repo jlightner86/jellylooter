@@ -1,0 +1,65 @@
+# NVIDIA GPU-enabled Dockerfile for JellyLooter
+# Supports NVENC hardware transcoding with compatible NVIDIA GPUs
+#
+# Build: docker build -f Dockerfile.nvidia -t jellylooter:nvidia .
+# Run:   docker run -d --runtime=nvidia --gpus all -p 5000:5000 \
+#          -v /path/to/config:/config -v /path/to/storage:/storage \
+#          jellylooter:nvidia
+
+FROM nvidia/cuda:12.2.0-runtime-ubuntu22.04
+
+WORKDIR /app
+
+# Install Python and base dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    wget \
+    xz-utils \
+    ca-certificates \
+    tzdata \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Jellyfin's FFmpeg which has full NVENC/QSV/VAAPI support
+# This is the same ffmpeg used by Jellyfin for hardware transcoding
+# Falls back to apt ffmpeg if download fails
+RUN wget -q --timeout=30 -O /tmp/ffmpeg.tar.xz \
+    "https://repo.jellyfin.org/files/ffmpeg/linux/6.0.1-4/amd64/jellyfin-ffmpeg6_6.0.1-4-bookworm_portable_linux64-gpl.tar.xz" \
+    && mkdir -p /opt/ffmpeg \
+    && tar -xf /tmp/ffmpeg.tar.xz -C /opt/ffmpeg --strip-components=1 \
+    && ln -sf /opt/ffmpeg/ffmpeg /usr/local/bin/ffmpeg \
+    && ln -sf /opt/ffmpeg/ffprobe /usr/local/bin/ffprobe \
+    && rm /tmp/ffmpeg.tar.xz \
+    && echo "Jellyfin FFmpeg installed successfully" \
+    || (echo "Jellyfin FFmpeg download failed, installing apt ffmpeg as fallback..." \
+        && apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*)
+
+# Verify ffmpeg and list available encoders
+RUN ffmpeg -version && echo "---" && ffmpeg -encoders 2>/dev/null | grep -E "hevc_nvenc|h264_nvenc" || echo "Note: NVENC encoders may not be listed but could still work"
+
+# Create symlink for python
+RUN ln -sf /usr/bin/python3 /usr/bin/python
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application
+COPY looter_app.py .
+
+# Copy templates (required)
+COPY templates/ templates/
+
+# Create directories
+RUN mkdir -p /config /storage static
+
+EXPOSE 5000
+
+# Set timezone (can be overridden with -e TZ=America/New_York)
+ENV TZ=UTC
+ENV PYTHONUNBUFFERED=1
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+
+# Use gevent for async if available, fallback to default
+CMD ["python", "looter_app.py"]

@@ -1,111 +1,97 @@
-# JellyLooter v3.0.0 Release Notes
+# JellyLooter v3.1.0 Release Notes
 
 **Release Date:** December 2024
 
-This is a major release introducing poster overlays, Pro features, enhanced security, and performance improvements.
+This release adds library search, time format options, AVI encoding, improved *arr integration, transcode cache drive support, download retry logic, and numerous bug fixes.
 
 ---
 
 ## 🆕 New Features
 
-### ⭐ Poster Overlays (NEW!)
-- **Rating badges** - IMDB/TMDB ratings displayed on posters (e.g., ⭐ 8.5)
-- **Quality badges** - Resolution (4K, 1080p, 720p), HDR, Dolby Vision, Atmos
-- **Content ratings** - PG-13, R, TV-MA displayed on posters
-- **Toggleable** - Enable/disable in Settings → Advanced Settings
+### 🔍 Library Search
+- **Search within any library** - Find movies/shows by name without scrolling through pages
+- **Server-side search** - Returns up to 100 results instantly
+- **Smart UI** - Search box appears when inside a library, hidden at root level
+- **Clear search** - One-click return to normal browsing with pagination
 
-### ⌨️ Keyboard Shortcuts
-- Press `?` anytime to see all shortcuts
-- Quick tabs: `1` Browse, `2` Sync, `3` Settings
-- Downloads: `P` pause/resume, `D` download selected, `Ctrl+A` select all
-- Navigation: `/` focus search, `Esc` clear selection, `R` refresh
+### ⏰ Time Format Options
+- **12-hour format** - Display times as "1:30:45 PM" (default, standard time)
+- **24-hour format** - Display times as "13:30:45" (military time)
+- **Proper timezone support** - 30+ timezone options with accurate log timestamps
+- **Startup verification** - Logs timezone status on container start
 
-### 📊 Download Statistics Widget
-- Real-time download speed display
-- Total downloaded tracker
-- Today's download count
-- Queue status at a glance
+### 🎬 AVI Encoding Preset (Pro)
+- **Legacy-compatible encoding** - MPEG-4 video + MP3 audio in AVI container
+- **Broad device support** - Works with older media players and devices
+- **Software encoding** - Uses mpeg4 codec (no GPU acceleration needed)
 
-### 📦 Collection/Playlist Support
-- "Download All" button on collections and playlists
-- One-click to queue all movies/episodes in a collection
-- Automatic recursive resolution of nested items
+### 📡 Enhanced *arr Integration (Pro)
+- **Auto-add series to Sonarr** - Automatically adds new series when downloading episodes
+- **Smart root folder detection** - Matches download path to Sonarr/Radarr root folders
+- **Intelligent path mapping** - Scans filesystem to auto-detect path mappings
+- **Multiple fallback strategies** - TVDB → IMDB → Title search
+- **Detailed logging** - See exactly what's happening at each step
 
-### 💾 Backup & Restore
-- **Export config** - Download settings as JSON (API keys masked)
-- **Import config** - Restore settings, preserves existing API keys
-- Found in Settings → Advanced Settings → Backup & Restore
+### 💾 Transcode Cache Drive (Pro)
+- **Transcode to fast storage first** - Use an SSD or local drive for transcoding, then move to final destination
+- **Reduces NAS/network storage load** - All the small I/O happens on fast local storage
+- **Keeps partial files separate** - Failed transcodes stay in cache, not cluttering your media folders
+- **Cache status indicator** - Shows file count and total size in cache
+- **Clear cache button** - Remove partial/failed transcode files with one click
 
-### 🏥 Health Check Endpoint
-- Access at `/health` or `/api/health` (no auth required)
-- Perfect for Docker healthchecks and monitoring
-- Returns: version, uptime, queue status, disk space, server health
+### 🔄 Auto-Retry Failed Downloads
+- **Automatic retry on connection errors** - Retries on timeout, connection reset, server errors (502/503/504)
+- **Configurable attempts** - Set retry count from 1-10 (default: 3)
+- **Configurable delay** - Set delay between retries from 5-300 seconds (default: 30)
+- **Visual countdown** - Shows retry status in download queue (e.g., "Retry in 25s (2/3)")
 
-### Licensing System
-- **Free tier:** 2 remote servers, 1 local server, 2 concurrent downloads
-- **Trial:** 14 days of full Pro features (user-activated)
-- **Pro ($10 lifetime):** Unlimited everything, no ads
+### ⚡ Download Limit Override (Pro)
+- **Allow >10 concurrent downloads** - Override the safety limit up to 50 downloads
+- **Prominent warnings** - Clear warnings about server overload, rate limiting, and bandwidth impact
+- **Use responsibly** - Can affect other users on shared servers
 
-### Pro Features
-- Unlimited remote and local servers
-- **10 concurrent downloads** (vs 2 for free)
-- **🔄 Download resume** - Interrupted downloads can be resumed
-- Notifications (Discord, Telegram, 80+ services via Apprise)
-- **GPU Transcoding** - NVIDIA NVENC, Intel QuickSync, AMD VAAPI
-- **Transcode Presets** - H.264, H.265, Mobile, 4K Optimized, Custom
-- Download scheduling (only during off-peak hours)
-- Bandwidth scheduling (full speed nights, throttled days)
-- **Custom themes** - 14 presets (including seasonal) + custom colors
-- ***arr integration** - Sonarr/Radarr folder naming
-- **Multiple local servers** for duplicate detection
-- Analytics dashboard
-- No ads/banners
-
-### UI Improvements
-- Single-click to select shows/folders
-- Double-click to navigate into folders
-- Interaction hints below filter bar
-- Hover tooltips on all items
-- Mobile: Downloads & Stats in hamburger menu
-- License banner for free users
-- Movie downloads now use folder with year (e.g., "Inception (2010)/")
-- Transcoding status shown in download queue
-- Collapsible panels (click header to collapse)
-- Automatic subtitle download (SRT, ASS, VTT)
-
----
-
-## 🔒 Security Hardening
-
-- **bcrypt password hashing** - Secure password storage
-- **Rate limiting** - 5 login attempts per minute
-- **Path traversal protection** - Blocks directory escape attacks
-- **Input validation** - URL and API key format checking
-- **Security headers** - X-Frame-Options, X-Content-Type-Options, CSP
-- **Session timeout** - Configurable auto-logout
-- **Reverse proxy support** - X-Forwarded-* headers
-- **API keys encrypted at rest** - Sensitive data protected
-- **Backup license system** - License recovery from library folders
-
----
-
-## ⚡ Performance Improvements
-
-- **Config caching** - Reduced disk reads
-- **2-second polling** - Down from 1 second
-- **Ring buffer logging** - Max 500 entries, prevents memory bloat
-- **Delta updates** - Only sync changed data
-- **Deque for history** - Efficient fixed-size collections
-- ***arr cache** - Background refresh of Sonarr/Radarr folder names
+### 📋 Copy Logs Button
+- **One-click copy** - Copy entire activity log to clipboard
+- **HTTP support** - Works over HTTP (not just HTTPS) using execCommand fallback
+- **Easy sharing** - Share logs for troubleshooting or bug reports
 
 ---
 
 ## 🐛 Bug Fixes
 
-- Fixed folder names not showing in browser
-- Fixed mobile bottom sheet issues
-- Improved poster image display
-- Fixed download panel button tooltips
+### Transcoding Fixes
+- **Fixed "return code None" errors** - Now properly waits for ffmpeg to finish with `process.wait()`
+- **Output validation** - If ffmpeg exits abnormally, validates output with ffprobe before discarding
+- **Salvages 90%+ complete transcodes** - Files that are substantially complete are kept if valid
+- **Filtered error logging** - FFmpeg progress output no longer appears as errors
+- **Better error logging** - Detailed diagnostics for transcode failures
+
+### *arr Integration Fixes
+- **Fixed Sonarr API format** - Uses proper `params` instead of URL concatenation
+- **IMDB fallback** - If TVDB lookup fails, tries IMDB
+- **Title search fallback** - Extracts series name from folder path if ID lookups fail
+
+### Other Fixes
+- **Timezone support** - Added tzdata package to Docker images
+- **Search endpoint** - Fixed `get_auth_headers` error
+- **Clipboard API** - Works over HTTP using execCommand fallback
+- Episode folders now use series-level IDs instead of episode IDs
+- Episode folders use show name only when series IDs unavailable (no duplicate folders)
+- Transcode now runs for Pro users (previously only worked in test mode)
+- Rebuild Cache now supports multi-local-server configurations
+- Download statistics no longer reset to 0 during active downloads
+- Download stats persist across container restarts
+
+---
+
+## ⚡ Improvements
+
+- **Transcode validates output with ffprobe** - Checks file integrity before replacing original
+- **Enhanced retry logic** - Handles chunked encoding errors, broken pipes, connection refused
+- **Activity log controls** - Icon-only buttons save space
+- **Enhanced metadata logging** - Shows API lookup results and failures
+- **Enhanced transcode logging** - Detailed error output for debugging
+- **Transcode worker management** - Workers start/stop when settings change (no restart needed)
 
 ---
 
@@ -113,37 +99,86 @@ This is a major release introducing poster overlays, Pro features, enhanced secu
 
 ### Docker
 ```bash
-docker pull ghcr.io/friendlymedia/jellylooter:3.0.0
+docker pull ghcr.io/jlightner86/jellylooter:3.1.0
 ```
 
-### Upgrade from v2.x
+### Upgrade from v3.0.x
 1. Pull the new image
 2. Restart the container
 3. Your config will be migrated automatically
-4. If using username/password auth on remote servers, re-test connections
+4. New settings have sensible defaults
 
 ---
 
-## ⚠️ Breaking Changes
+## ⚙️ New Configuration Options
 
-None - v3.0.0 is backward compatible with v2.x configs.
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `time_format` | `12h` | Time display format (12h or 24h) |
+| `transcode_cache_enabled` | `false` | Use cache drive for transcoding |
+| `transcode_cache_path` | `/tmp/transcode_cache` | Path to cache drive |
+| `download_auto_retry` | `true` | Auto-retry failed downloads |
+| `download_retry_count` | `3` | Number of retry attempts |
+| `download_retry_delay` | `30` | Seconds between retries |
+| `override_download_limit` | `false` | Allow >10 concurrent downloads |
+
+### Transcode Presets
+| Preset | Codec | Container | Use Case |
+|--------|-------|-----------|----------|
+| Original | - | - | No transcoding |
+| H.264 | libx264/h264_nvenc | .mp4 | Compatible with most devices |
+| H.265/HEVC | libx265/hevc_nvenc | .mkv | Smaller files, modern devices |
+| AVI | mpeg4 | .avi | Legacy device compatibility |
+| Mobile | libx264 | .mp4 | 720p for phones/tablets |
+| 4K Optimized | libx265/hevc_nvenc | .mkv | High quality 4K content |
 
 ---
 
-## 📋 Dependencies
+## 🙏 Special Thanks
 
-New dependencies in v3.0.0:
-- bcrypt (password hashing)
-- flask-limiter (rate limiting)
-- flask-wtf (CSRF protection)
-- apprise (notifications - Pro)
-- gevent (async support)
-- ffmpeg (transcoding - Pro, included in Docker image)
+A huge thank you to our beta testers and contributors:
+
+- **[vwidmer](https://github.com/vwidmer)** - Beta testing, bug reports, and feature suggestions for transcoding, *arr integration, and download improvements
 
 ---
 
-## 🙏 Support
+## 📋 Full Changelog
 
+### New Features
+- 🔍 Library search functionality
+- ⏰ Time format option (12h/24h)
+- 🎬 AVI encoding preset (Pro)
+- 📡 Auto-add series to Sonarr (Pro)
+- 📡 Intelligent path mapping auto-detection (Pro)
+- 💾 Transcode cache drive support (Pro)
+- 🗑️ Clear transcode cache button (Pro)
+- 🔄 Auto-retry failed downloads with configurable attempts/delay
+- ⚡ Download limit override - up to 50 concurrent (Pro)
+- 📋 Copy logs button in Activity Log
+
+### Bug Fixes
+- Fixed transcode "return code None" with proper process.wait()
+- Fixed transcode output validation with ffprobe
+- Fixed transcode error logging (filters progress output)
+- Fixed Sonarr API lookup format
+- Fixed timezone support (added tzdata)
+- Fixed clipboard copy over HTTP
+- Fixed episode folder naming (uses series IDs, not episode IDs)
+- Fixed download stats persistence
+- Fixed multi-local-server cache rebuild
+
+### Improvements
+- Enhanced transcode error handling and logging
+- Enhanced *arr integration logging
+- Improved retry logic for connection failures
+- Transcode workers start when settings change
+- Activity log UI improvements
+
+---
+
+## 🔗 Links
+
+- **GitHub:** [github.com/jlightner86/jellylooter](https://github.com/jlightner86/jellylooter)
 - **Pro License:** [lightwave43.gumroad.com/l/rmtmrr](https://lightwave43.gumroad.com/l/rmtmrr)
 - **Donations:** [Ko-fi](https://ko-fi.com/jellyloot)
 

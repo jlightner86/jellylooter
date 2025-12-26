@@ -6,3 +6,4 @@ flask-limiter>=3.5.0
 flask-wtf>=1.2.0
 gevent>=23.9.0
 apprise>=1.6.0
+tzdata>=2024.1
