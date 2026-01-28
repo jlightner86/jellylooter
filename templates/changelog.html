@@ -90,6 +90,40 @@
 
         <div class="version">
             <div class="version-header">
+                <span class="version-number">v3.2.0</span>
+                <span class="version-date">January 2025</span>
+                <span class="version-tag major">Major Release</span>
+            </div>
+            <ul class="changes">
+                <li><span class="change-type new">New</span> 🔌 External API integration - control JellyLooter from NZB360, Organizr, Home Assistant</li>
+                <li><span class="change-type new">New</span> 🔑 API key authentication - generate secure keys for external access</li>
+                <li><span class="change-type new">New</span> 📡 REST API endpoints for queue, servers, history, and statistics</li>
+                <li><span class="change-type new">New</span> 📖 Built-in API documentation at /api/v1/docs</li>
+                <li><span class="change-type security">Security</span> 🔒 API keys encrypted at rest, never exposed in responses</li>
+                <li><span class="change-type security">Security</span> 🛡️ Brute force protection - 10 failed attempts = 5 min lockout</li>
+                <li><span class="change-type new">New</span> 📊 Dashboard layouts - 6 options: Classic, Compact, Cards, List, Minimal, Large Posters</li>
+                <li><span class="change-type new">New</span> 🎨 Layout preview in settings shows how each layout looks</li>
+                <li><span class="change-type pro">Pro</span> ⚡ Resource limits - control CPU threads, process priority, I/O priority, memory buffer</li>
+                <li><span class="change-type pro">Pro</span> 🧠 CPU thread limiting for transcoding (1-16 threads or auto)</li>
+                <li><span class="change-type pro">Pro</span> 📊 Process priority control (low/normal/high via nice)</li>
+                <li><span class="change-type pro">Pro</span> 💾 I/O priority control (idle/low/normal via ionice)</li>
+                <li><span class="change-type new">New</span> 📦 Download buffer size control (8-256 MB)</li>
+                <li><span class="change-type pro">Pro</span> 📡 Per-server workers - download from multiple servers simultaneously</li>
+                <li><span class="change-type new">New</span> 📈 Enhanced download statistics - persistent tracking, per-server breakdown</li>
+                <li><span class="change-type improve">Improve</span> ⚙️ Tabbed settings interface - cleaner organization with General, Servers, Downloads, Security, Pro tabs</li>
+                <li><span class="change-type new">New</span> 💾 Transcode savings widget - shows space saved in main UI when transcoding enabled</li>
+                <li><span class="change-type new">New</span> 🔄 Reset stats button - clear download statistics from UI</li>
+                <li><span class="change-type fix">Fix</span> 📋 Basic logs now show download activity properly (timestamp-aware patterns)</li>
+                <li><span class="change-type fix">Fix</span> 📊 Download stats now persist across restarts and track accurately</li>
+                <li><span class="change-type fix">Fix</span> Fixed Sonarr series_provider_ids not being passed correctly</li>
+                <li><span class="change-type fix">Fix</span> Fixed episode IDs incorrectly used instead of series IDs for Sonarr</li>
+                <li><span class="change-type improve">Improve</span> Added SeriesId to Fields request for better episode handling</li>
+                <li><span class="change-type improve">Improve</span> Enhanced logging for series provider ID resolution</li>
+            </ul>
+        </div>
+
+        <div class="version">
+            <div class="version-header">
                 <span class="version-number">v3.1.0</span>
                 <span class="version-date">December 2024</span>
                 <span class="version-tag">Feature Update</span>

@@ -266,9 +266,39 @@
             grid-template-columns: 1fr 380px;
             gap: 1.5rem;
         }
+        
+        .left-column {
+            min-width: 0; /* Prevent grid blowout */
+        }
+        
+        .right-column {
+            position: sticky;
+            top: 80px;
+            height: fit-content;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+            padding-bottom: 2rem;
+        }
+        
+        .right-column::-webkit-scrollbar {
+            width: 6px;
+        }
+        .right-column::-webkit-scrollbar-track {
+            background: var(--jf-bg-input);
+            border-radius: 3px;
+        }
+        .right-column::-webkit-scrollbar-thumb {
+            background: var(--jf-border);
+            border-radius: 3px;
+        }
 
         @media (max-width: 1200px) {
             .main-container { grid-template-columns: 1fr; }
+            .right-column {
+                position: static;
+                max-height: none;
+                order: -1; /* Show downloads/stats ABOVE content on smaller screens */
+            }
         }
         
         /* Mobile Responsiveness */
@@ -1002,6 +1032,241 @@
             padding: 0.25rem;
             align-content: start;
         }
+        
+        /* ============================================
+           DASHBOARD LAYOUTS
+           ============================================ */
+        
+        /* COMPACT Layout - smaller items, tighter spacing, more items visible */
+        .dashboard-compact .browser-grid,
+        .browser-grid.layout-compact {
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 0.5rem;
+        }
+        .dashboard-compact .browser-item { border-radius: 6px; }
+        .dashboard-compact .browser-item-title { 
+            font-size: 0.65rem; 
+            padding: 0.25rem 0.35rem;
+        }
+        .dashboard-compact .rating-badge { 
+            font-size: 0.55rem; 
+            padding: 0.1rem 0.2rem;
+            top: 4px;
+            left: 4px;
+        }
+        .dashboard-compact .quality-badges { 
+            gap: 0.1rem;
+            bottom: 22px;
+            right: 3px;
+        }
+        .dashboard-compact .quality-badge { 
+            font-size: 0.45rem; 
+            padding: 0.08rem 0.15rem;
+        }
+        .dashboard-compact .content-rating-badge {
+            font-size: 0.5rem;
+            padding: 0.1rem 0.15rem;
+            top: 4px;
+            right: 4px;
+        }
+        
+        /* CARDS Layout - horizontal cards with more info visible */
+        .dashboard-cards .browser-grid,
+        .browser-grid.layout-cards {
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 0.75rem;
+        }
+        .dashboard-cards .browser-item {
+            aspect-ratio: 2.5/1;
+            display: flex;
+            flex-direction: row;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .dashboard-cards .browser-item-poster {
+            width: 80px;
+            min-width: 80px;
+            height: 100%;
+            object-fit: cover;
+            position: relative;
+        }
+        .dashboard-cards .browser-item-placeholder {
+            width: 80px;
+            min-width: 80px;
+            height: 100%;
+        }
+        .dashboard-cards .browser-item-title {
+            position: relative;
+            bottom: auto;
+            left: auto;
+            right: auto;
+            padding: 0.5rem 0.6rem;
+            background: transparent;
+            font-size: 0.8rem;
+            white-space: normal;
+            line-height: 1.3;
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+        .dashboard-cards .rating-badge {
+            position: absolute;
+            top: auto;
+            bottom: 8px;
+            left: 8px;
+        }
+        .dashboard-cards .quality-badges {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            top: auto;
+        }
+        .dashboard-cards .content-rating-badge {
+            top: 8px;
+            right: auto;
+            left: 90px;
+        }
+        
+        /* LIST Layout - vertical list view for fast browsing */
+        .dashboard-list .browser-grid,
+        .browser-grid.layout-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .dashboard-list .browser-item {
+            aspect-ratio: auto;
+            height: 50px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            border-radius: 6px;
+            padding-right: 0.5rem;
+        }
+        .dashboard-list .browser-item-poster {
+            width: 35px;
+            min-width: 35px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 4px 0 0 4px;
+            position: relative;
+        }
+        .dashboard-list .browser-item-placeholder {
+            width: 35px;
+            min-width: 35px;
+            height: 50px;
+            border-radius: 4px 0 0 4px;
+            font-size: 1rem;
+        }
+        .dashboard-list .browser-item-title {
+            position: relative;
+            bottom: auto;
+            left: auto;
+            right: auto;
+            padding: 0 0.75rem;
+            background: none;
+            font-size: 0.85rem;
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .dashboard-list .rating-badge { 
+            position: relative;
+            top: auto;
+            left: auto;
+            margin-right: 0.5rem;
+            font-size: 0.7rem;
+        }
+        .dashboard-list .quality-badges { 
+            position: relative;
+            bottom: auto;
+            right: auto;
+            margin-right: 0.5rem;
+        }
+        .dashboard-list .quality-badge {
+            font-size: 0.55rem;
+        }
+        .dashboard-list .content-rating-badge {
+            position: relative;
+            top: auto;
+            right: auto;
+            margin-right: 0.5rem;
+            font-size: 0.6rem;
+        }
+        .dashboard-list .collection-download-btn { display: none; }
+        .dashboard-list .skip-btn { 
+            position: relative;
+            top: auto;
+            right: auto;
+        }
+        
+        /* MINIMAL Layout - posters only, maximum density, hover for details */
+        .dashboard-minimal .browser-grid,
+        .browser-grid.layout-minimal {
+            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+            gap: 0.35rem;
+        }
+        .dashboard-minimal .browser-item {
+            border-radius: 4px;
+        }
+        .dashboard-minimal .browser-item-title { 
+            opacity: 0;
+            transition: opacity 0.2s;
+            font-size: 0.6rem;
+            padding: 0.2rem;
+        }
+        .dashboard-minimal .browser-item:hover .browser-item-title { 
+            opacity: 1;
+        }
+        .dashboard-minimal .rating-badge { 
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .dashboard-minimal .quality-badges { 
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .dashboard-minimal .content-rating-badge { 
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .dashboard-minimal .browser-item:hover { 
+            transform: scale(1.08);
+            z-index: 10;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        }
+        .dashboard-minimal .browser-item:hover .rating-badge,
+        .dashboard-minimal .browser-item:hover .quality-badges,
+        .dashboard-minimal .browser-item:hover .content-rating-badge { 
+            opacity: 1;
+        }
+        .dashboard-minimal .collection-download-btn {
+            opacity: 0;
+        }
+        .dashboard-minimal .browser-item:hover .collection-download-btn {
+            opacity: 1;
+        }
+        
+        /* POSTER Layout - large posters with emphasis on artwork */
+        .dashboard-poster .browser-grid,
+        .browser-grid.layout-poster {
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 1.25rem;
+        }
+        .dashboard-poster .browser-item {
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .dashboard-poster .browser-item:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+        }
+        .dashboard-poster .browser-item-title {
+            font-size: 0.85rem;
+            padding: 0.5rem;
+            font-weight: 600;
+        }
 
         .pagination-controls {
             display: flex;
@@ -1729,7 +1994,8 @@
             background: var(--jf-bg-input);
             border-radius: var(--radius);
             padding: 1rem;
-            max-height: 300px;
+            min-height: 200px;
+            max-height: 400px;
             overflow-y: auto;
             line-height: 1.6;
         }
@@ -2052,6 +2318,61 @@
         }
 
         .settings-section-title span { color: var(--jf-primary); }
+
+        /* Settings Tabs */
+        .settings-tabs {
+            display: flex;
+            gap: 0.25rem;
+            border-bottom: 2px solid var(--jf-border);
+            margin-bottom: 1.5rem;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        .settings-tabs::-webkit-scrollbar { display: none; }
+        
+        .settings-tab {
+            padding: 0.75rem 1rem;
+            background: transparent;
+            border: none;
+            color: var(--jf-text-muted);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .settings-tab:hover {
+            color: var(--jf-text);
+            background: var(--jf-bg-input);
+        }
+        .settings-tab.active {
+            color: var(--jf-primary);
+            border-bottom-color: var(--jf-primary);
+        }
+        .settings-tab .tab-icon {
+            margin-right: 0.5rem;
+        }
+        
+        .settings-tab-content {
+            display: none;
+        }
+        .settings-tab-content.active {
+            display: block;
+        }
+        
+        @media (max-width: 600px) {
+            .settings-tab {
+                padding: 0.6rem 0.75rem;
+                font-size: 0.8rem;
+            }
+            .settings-tab .tab-icon {
+                margin-right: 0.25rem;
+            }
+        }
 
         /* ========== Seasonal Theme Effects ========== */
         #theme-effects {
@@ -2567,218 +2888,317 @@
                         </h2>
                     </div>
                     <div class="panel-body">
-                        <!-- Appearance Section -->
-                        <div class="settings-section">
-                            <div class="settings-section-title"><span>🎨</span> <span data-i18n="appearance">Appearance</span></div>
-                            <div class="toggle-container">
-                                <span class="toggle-label" data-i18n="dark_theme">Dark Theme</span>
-                                <label class="toggle">
-                                    <input type="checkbox" id="theme-toggle-settings" checked>
-                                    <span class="toggle-slider"></span>
-                                </label>
-                            </div>
-                            <div class="form-hint" data-i18n="theme_hint">Switch between dark and light themes</div>
-                            
-                            <div class="form-group" style="margin-top: 1rem;">
-                                <label class="form-label">🌐 <span data-i18n="language">Language</span></label>
-                                <div style="display: flex; gap: 0.5rem;">
-                                    <select class="form-input" id="language-select" style="flex: 1;">
-                                        <option value="en">English</option>
-                                        <option value="es">Español</option>
-                                        <option value="de">Deutsch</option>
-                                    </select>
-                                    <button class="btn btn-primary" id="save-language-btn" data-i18n="save">Save</button>
-                                </div>
-                                <div class="form-hint" data-i18n="language_hint">Interface language (page will refresh)</div>
-                            </div>
-                        </div>
-
-                        <!-- Remote Servers Section -->
-                        <div class="settings-section">
-                            <div class="settings-section-title"><span>📡</span> <span data-i18n="remote_servers">Remote Servers</span></div>
-                            <div class="server-list" id="settings-server-list"></div>
-                            <button class="btn btn-primary" style="width: 100%; margin-top: 0.75rem;" id="add-server-btn">
-                                + <span data-i18n="add_remote_server">Add Remote Server</span>
+                        <!-- Settings Tabs Navigation -->
+                        <div class="settings-tabs" id="settings-tabs">
+                            <button class="settings-tab active" data-settings-tab="general">
+                                <span class="tab-icon">🎨</span>General
+                            </button>
+                            <button class="settings-tab" data-settings-tab="servers">
+                                <span class="tab-icon">📡</span>Servers
+                            </button>
+                            <button class="settings-tab" data-settings-tab="downloads">
+                                <span class="tab-icon">⬇️</span>Downloads
+                            </button>
+                            <button class="settings-tab" data-settings-tab="security">
+                                <span class="tab-icon">🔒</span>Security
+                            </button>
+                            <button class="settings-tab" data-settings-tab="pro">
+                                <span class="tab-icon">⭐</span>Pro
                             </button>
                         </div>
-
-                        <!-- Local Server Section -->
-                        <div class="settings-section">
-                            <div class="settings-section-title"><span>🏠</span> <span data-i18n="local_server">Local Server</span> (<span data-i18n="duplicate_detection">Duplicate Detection</span>)</div>
-                            <div id="local-server-info">
-                                <div class="empty-state" style="padding: 1.5rem;">
-                                    <p data-i18n="no_local_server">No local server configured. Add one to detect existing content.</p>
-                                    <button class="btn btn-secondary btn-sm" style="margin-top: 0.75rem;" id="add-local-btn" data-i18n="configure_local">Configure Local Server</button>
+                        
+                        <!-- GENERAL TAB -->
+                        <div class="settings-tab-content active" id="settings-general">
+                            <!-- Appearance -->
+                            <div class="settings-section">
+                                <div class="settings-section-title"><span>🎨</span> <span data-i18n="appearance">Appearance</span></div>
+                                <div class="toggle-container">
+                                    <span class="toggle-label" data-i18n="dark_theme">Dark Theme</span>
+                                    <label class="toggle">
+                                        <input type="checkbox" id="theme-toggle-settings" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
                                 </div>
-                            </div>
-                        </div>
-
-                        <!-- Advanced Settings -->
-                        <button class="advanced-toggle" id="advanced-toggle">
-                            <span class="advanced-toggle-icon">▼</span>
-                            <span data-i18n="advanced_settings">Advanced Settings</span>
-                        </button>
-                        <div class="advanced-content" id="advanced-content">
-                            <div class="form-group">
-                                <label class="form-label" data-i18n="speed_limit">Speed Limit (KB/s)</label>
-                                <input type="number" class="form-input" id="speed-limit" min="0" placeholder="0 = unlimited">
-                                <div class="form-hint" data-i18n="speed_limit_hint">Set to 0 for unlimited speed</div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label class="form-label" data-i18n="sync_time">Sync Time</label>
-                                    <input type="time" class="form-input" id="sync-time" value="04:00">
+                                <div class="form-hint" data-i18n="theme_hint">Switch between dark and light themes</div>
+                                
+                                <div class="form-group" style="margin-top: 1rem;">
+                                    <label class="form-label">🌐 <span data-i18n="language">Language</span></label>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        <select class="form-input" id="language-select" style="flex: 1;">
+                                            <option value="en">English</option>
+                                            <option value="es">Español</option>
+                                            <option value="de">Deutsch</option>
+                                        </select>
+                                        <button class="btn btn-primary" id="save-language-btn" data-i18n="save">Save</button>
+                                    </div>
+                                    <div class="form-hint" data-i18n="language_hint">Interface language (page will refresh)</div>
                                 </div>
-                                <div class="form-group">
-                                    <label class="form-label" data-i18n="max_downloads">Max Downloads</label>
-                                    <input type="number" class="form-input" id="max-downloads" min="1" max="10" value="2">
-                                    <div class="form-hint" id="max-downloads-hint" style="display: none;">
-                                        <span style="color: var(--jf-warning);">⚠️ Free tier limited to 2 concurrent downloads</span>
+                                
+                                <div class="form-group" style="margin-top: 1rem;">
+                                    <label class="form-label">📊 Dashboard Layout</label>
+                                    <select class="form-input" id="dashboard-layout-select">
+                                        <option value="classic">Classic (Default)</option>
+                                        <option value="compact">Compact (2x density)</option>
+                                        <option value="cards">Cards (Horizontal)</option>
+                                        <option value="list">List View (Fastest)</option>
+                                        <option value="minimal">Minimal (Posters only)</option>
+                                        <option value="poster">Large Posters (Artwork focus)</option>
+                                    </select>
+                                    <div class="form-hint">Choose how your media library is displayed</div>
+                                    <div id="dashboard-layout-preview" style="margin-top: 0.5rem; padding: 0.5rem; background: var(--jf-bg-input); border-radius: var(--radius); font-size: 0.75rem; color: var(--jf-text-muted);">
+                                        Preview: Classic layout with large posters and full details
                                     </div>
                                 </div>
                             </div>
-                            <div class="toggle-container pro-feature-toggle" style="margin-bottom: 0.75rem;">
-                                <span class="toggle-label">⚡ Override download limit (allows &gt;10) <span class="pro-badge-small">PRO</span></span>
-                                <label class="toggle">
-                                    <input type="checkbox" id="override-download-limit" onchange="toggleDownloadLimitOverride()">
-                                    <span class="toggle-slider"></span>
-                                </label>
-                            </div>
-                            <div id="download-limit-warning" style="display: none; padding: 0.75rem; background: rgba(255, 59, 48, 0.15); border: 1px solid var(--jf-danger); border-radius: var(--radius); margin-bottom: 1rem;">
-                                <div style="font-size: 0.85rem; color: var(--jf-danger); font-weight: 600;">⚠️ WARNING: High concurrent downloads can:</div>
-                                <ul style="margin: 0.5rem 0 0 1rem; font-size: 0.8rem; color: var(--jf-text-muted);">
-                                    <li>Overload the remote server</li>
-                                    <li>Cause your account to be rate-limited or banned</li>
-                                    <li>Negatively affect other users on shared servers</li>
-                                    <li>Consume excessive bandwidth and system resources</li>
-                                </ul>
-                                <div style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--jf-warning);">Use with caution. You have been warned!</div>
-                            </div>
-                            <div class="toggle-container" style="margin-bottom: 0.75rem;">
-                                <span class="toggle-label">🔄 Auto-retry failed downloads</span>
-                                <label class="toggle">
-                                    <input type="checkbox" id="download-auto-retry" checked>
-                                    <span class="toggle-slider"></span>
-                                </label>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label class="form-label">Retry attempts</label>
-                                    <input type="number" class="form-input" id="download-retry-count" min="1" max="10" value="3">
+                            
+                            <!-- Display Options -->
+                            <div class="settings-section">
+                                <div class="settings-section-title"><span>👁️</span> Display Options</div>
+                                <div class="toggle-container">
+                                    <span class="toggle-label" data-i18n="show_ratings">Show ratings on posters</span>
+                                    <label class="toggle">
+                                        <input type="checkbox" id="show-ratings" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
                                 </div>
-                                <div class="form-group">
-                                    <label class="form-label">Retry delay (seconds)</label>
-                                    <input type="number" class="form-input" id="download-retry-delay" min="5" max="300" value="30">
+                                <div class="toggle-container">
+                                    <span class="toggle-label" data-i18n="show_quality">Show quality badges (4K, HDR, etc)</span>
+                                    <label class="toggle">
+                                        <input type="checkbox" id="show-quality" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
                                 </div>
-                            </div>
-                            <div class="form-hint" style="margin-bottom: 1rem;">
-                                Automatically retry downloads that fail due to connection errors or timeouts.
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label" data-i18n="timezone">Timezone</label>
-                                <select class="form-input" id="timezone">
-                                    <option value="UTC">UTC</option>
-                                    <option value="America/New_York">Eastern Time (US)</option>
-                                    <option value="America/Chicago">Central Time (US)</option>
-                                    <option value="America/Denver">Mountain Time (US)</option>
-                                    <option value="America/Los_Angeles">Pacific Time (US)</option>
-                                    <option value="America/Phoenix">Arizona (US)</option>
-                                    <option value="America/Anchorage">Alaska (US)</option>
-                                    <option value="Pacific/Honolulu">Hawaii (US)</option>
-                                    <option value="America/Toronto">Eastern Time (Canada)</option>
-                                    <option value="America/Vancouver">Pacific Time (Canada)</option>
-                                    <option value="Europe/London">London (UK)</option>
-                                    <option value="Europe/Paris">Paris (France)</option>
-                                    <option value="Europe/Berlin">Berlin (Germany)</option>
-                                    <option value="Europe/Amsterdam">Amsterdam (Netherlands)</option>
-                                    <option value="Europe/Rome">Rome (Italy)</option>
-                                    <option value="Europe/Madrid">Madrid (Spain)</option>
-                                    <option value="Europe/Moscow">Moscow (Russia)</option>
-                                    <option value="Asia/Tokyo">Tokyo (Japan)</option>
-                                    <option value="Asia/Shanghai">Shanghai (China)</option>
-                                    <option value="Asia/Hong_Kong">Hong Kong</option>
-                                    <option value="Asia/Singapore">Singapore</option>
-                                    <option value="Asia/Seoul">Seoul (Korea)</option>
-                                    <option value="Asia/Kolkata">India (IST)</option>
-                                    <option value="Asia/Dubai">Dubai (UAE)</option>
-                                    <option value="Australia/Sydney">Sydney (Australia)</option>
-                                    <option value="Australia/Melbourne">Melbourne (Australia)</option>
-                                    <option value="Australia/Perth">Perth (Australia)</option>
-                                    <option value="Pacific/Auckland">Auckland (New Zealand)</option>
-                                    <option value="America/Sao_Paulo">São Paulo (Brazil)</option>
-                                    <option value="America/Mexico_City">Mexico City</option>
-                                </select>
-                                <div class="form-hint" data-i18n="timezone_hint">Affects log timestamps and scheduling</div>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Time Format</label>
-                                <select class="form-input" id="time-format">
-                                    <option value="12h">12-hour (1:30 PM)</option>
-                                    <option value="24h">24-hour (13:30)</option>
-                                </select>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label class="form-label" data-i18n="connection_timeout">Connection Timeout (s)</label>
-                                    <input type="number" class="form-input" id="connection-timeout" min="5" max="120" value="30">
+                                <div class="toggle-container">
+                                    <span class="toggle-label" data-i18n="confirm_downloads">Confirm before downloading</span>
+                                    <label class="toggle">
+                                        <input type="checkbox" id="confirm-downloads">
+                                        <span class="toggle-slider"></span>
+                                    </label>
                                 </div>
-                                <div class="form-group">
-                                    <label class="form-label" data-i18n="chunk_size">Chunk Size (KB)</label>
-                                    <input type="number" class="form-input" id="chunk-size" min="16" max="1024" value="64">
+                                <div class="toggle-container">
+                                    <span class="toggle-label" data-i18n="show_notifications">Show notifications</span>
+                                    <label class="toggle">
+                                        <input type="checkbox" id="show-notifications" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
                                 </div>
-                            </div>
-                            <div class="toggle-container">
-                                <span class="toggle-label" data-i18n="confirm_downloads">Confirm before downloading</span>
-                                <label class="toggle">
-                                    <input type="checkbox" id="confirm-downloads">
-                                    <span class="toggle-slider"></span>
-                                </label>
-                            </div>
-                            <div class="toggle-container">
-                                <span class="toggle-label" data-i18n="show_notifications">Show notifications</span>
-                                <label class="toggle">
-                                    <input type="checkbox" id="show-notifications" checked>
-                                    <span class="toggle-slider"></span>
-                                </label>
-                            </div>
-                            <div class="toggle-container">
-                                <span class="toggle-label" data-i18n="show_ratings">Show ratings on posters</span>
-                                <label class="toggle">
-                                    <input type="checkbox" id="show-ratings" checked>
-                                    <span class="toggle-slider"></span>
-                                </label>
-                            </div>
-                            <div class="toggle-container">
-                                <span class="toggle-label" data-i18n="show_quality">Show quality badges (4K, HDR, etc)</span>
-                                <label class="toggle">
-                                    <input type="checkbox" id="show-quality" checked>
-                                    <span class="toggle-slider"></span>
-                                </label>
-                            </div>
-                            <!-- Folder Naming Format -->
-                            <div class="form-group">
-                                <label class="form-label">📁 Folder Naming Format</label>
-                                <select class="form-input" id="folder-naming-format">
-                                    <option value="standard">Standard - Show Name / Movie (2010)</option>
-                                    <option value="ids_space">IDs (Space) - Show Name tt1234567 76885</option>
-                                    <option value="ids_braces">IDs (Braces) - Show Name {imdb-tt1234567} {tvdb-76885}</option>
-                                    <option value="ids_brackets">IDs (Brackets) - Show Name [imdb-tt1234567]</option>
-                                    <option value="tmdb_only">TMDB Only - Show Name {tmdb-12345}</option>
-                                    <option value="imdb_only">IMDB Only - Show Name tt1234567</option>
-                                </select>
-                            </div>
-                            <div class="form-hint" style="margin-top: -0.25rem; margin-bottom: 0.5rem;">
-                                Choose how folder names are formatted. IDs help Jellyfin/Plex/Sonarr/Radarr identify media correctly.
-                            </div>
-                            <div style="background: var(--jf-bg-input); padding: 0.75rem; border-radius: var(--radius); margin-bottom: 1rem; font-size: 0.8rem; font-family: monospace;">
-                                <strong>Preview:</strong><br>
-                                <span id="folder-format-preview-movie">Movie: Inception (2010)</span><br>
-                                <span id="folder-format-preview-show">Show: Breaking Bad</span>
                             </div>
                             
-                            <!-- Metadata API Settings -->
-                            <div style="margin-top: 1rem; padding: 1rem; background: var(--jf-bg-input); border-radius: var(--radius); border: 1px solid var(--jf-border);">
-                                <h4 style="font-size: 0.85rem; margin: 0 0 0.75rem 0;">🔍 Metadata API Keys (Optional)</h4>
+                            <!-- Time & Date -->
+                            <div class="settings-section">
+                                <div class="settings-section-title"><span>🕐</span> Time & Date</div>
+                                <div class="form-group">
+                                    <label class="form-label" data-i18n="timezone">Timezone</label>
+                                    <select class="form-input" id="timezone">
+                                        <option value="UTC">UTC</option>
+                                        <option value="America/New_York">Eastern Time (US)</option>
+                                        <option value="America/Chicago">Central Time (US)</option>
+                                        <option value="America/Denver">Mountain Time (US)</option>
+                                        <option value="America/Los_Angeles">Pacific Time (US)</option>
+                                        <option value="America/Phoenix">Arizona (US)</option>
+                                        <option value="America/Anchorage">Alaska (US)</option>
+                                        <option value="Pacific/Honolulu">Hawaii (US)</option>
+                                        <option value="America/Toronto">Eastern Time (Canada)</option>
+                                        <option value="America/Vancouver">Pacific Time (Canada)</option>
+                                        <option value="Europe/London">London (UK)</option>
+                                        <option value="Europe/Paris">Paris (France)</option>
+                                        <option value="Europe/Berlin">Berlin (Germany)</option>
+                                        <option value="Europe/Amsterdam">Amsterdam (Netherlands)</option>
+                                        <option value="Europe/Rome">Rome (Italy)</option>
+                                        <option value="Europe/Madrid">Madrid (Spain)</option>
+                                        <option value="Europe/Moscow">Moscow (Russia)</option>
+                                        <option value="Asia/Tokyo">Tokyo (Japan)</option>
+                                        <option value="Asia/Shanghai">Shanghai (China)</option>
+                                        <option value="Asia/Hong_Kong">Hong Kong</option>
+                                        <option value="Asia/Singapore">Singapore</option>
+                                        <option value="Asia/Seoul">Seoul (Korea)</option>
+                                        <option value="Asia/Kolkata">India (IST)</option>
+                                        <option value="Asia/Dubai">Dubai (UAE)</option>
+                                        <option value="Australia/Sydney">Sydney (Australia)</option>
+                                        <option value="Australia/Melbourne">Melbourne (Australia)</option>
+                                        <option value="Australia/Perth">Perth (Australia)</option>
+                                        <option value="Pacific/Auckland">Auckland (New Zealand)</option>
+                                        <option value="America/Sao_Paulo">São Paulo (Brazil)</option>
+                                        <option value="America/Mexico_City">Mexico City</option>
+                                    </select>
+                                    <div class="form-hint" data-i18n="timezone_hint">Affects log timestamps and scheduling</div>
+                                </div>
+                                <div class="form-group" style="margin-top: 0.75rem;">
+                                    <label class="form-label">Time Format</label>
+                                    <select class="form-input" id="time-format">
+                                        <option value="12h">12-hour (1:30 PM)</option>
+                                        <option value="24h">24-hour (13:30)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <button class="btn btn-primary" style="width: 100%; margin-top: 1rem;" id="save-general-btn">Save General Settings</button>
+                        </div>
+                        
+                        <!-- SERVERS TAB -->
+                        <div class="settings-tab-content" id="settings-servers">
+                            <!-- Remote Servers -->
+                            <div class="settings-section">
+                                <div class="settings-section-title"><span>📡</span> <span data-i18n="remote_servers">Remote Servers</span></div>
+                                <div class="server-list" id="settings-server-list"></div>
+                                <button class="btn btn-primary" style="width: 100%; margin-top: 0.75rem;" id="add-server-btn" onclick="openModal('server-modal')">
+                                    + <span data-i18n="add_remote_server">Add Remote Server</span>
+                                </button>
+                            </div>
+                            
+                            <!-- Local Server -->
+                            <div class="settings-section">
+                                <div class="settings-section-title"><span>🏠</span> <span data-i18n="local_server">Local Server</span> (<span data-i18n="duplicate_detection">Duplicate Detection</span>)</div>
+                                <div id="local-server-info">
+                                    <div class="empty-state" style="padding: 1.5rem;">
+                                        <p data-i18n="no_local_server">No local server configured. Add one to detect existing content.</p>
+                                        <button class="btn btn-secondary btn-sm" style="margin-top: 0.75rem;" id="add-local-btn" onclick="openModal('local-modal')" data-i18n="configure_local">Configure Local Server</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- API Integration -->
+                            <div class="settings-section">
+                                <div class="settings-section-title"><span>🔌</span> API Integration</div>
+                                <div class="form-hint" style="margin-bottom: 0.75rem;">Allow external apps like NZB360, Organizr, or custom scripts to control JellyLooter</div>
+                                
+                                <div class="toggle-container">
+                                    <span class="toggle-label">Enable API Access</span>
+                                    <label class="toggle">
+                                        <input type="checkbox" id="api-enabled-toggle">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                
+                                <div id="api-key-section" style="margin-top: 1rem; display: none;">
+                                    <div class="form-group">
+                                        <label class="form-label">API Key</label>
+                                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                            <input type="password" class="form-input" id="api-key-display" readonly placeholder="No API key generated" style="flex: 1; font-family: monospace; font-size: 0.85rem;">
+                                            <button class="btn btn-secondary btn-sm" id="copy-api-key-btn" title="Copy to clipboard">📋</button>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                                        <button class="btn btn-primary btn-sm" id="generate-api-key-btn">🔑 Generate New Key</button>
+                                        <button class="btn btn-secondary btn-sm" id="revoke-api-key-btn">🗑️ Revoke Key</button>
+                                    </div>
+                                    <div class="form-hint" style="margin-top: 0.5rem;">
+                                        ⚠️ <strong>Keys are shown only once!</strong> Copy immediately after generating.<br>
+                                        Use header <code>X-Api-Key: your_key</code> (recommended) or <code>?apikey=your_key</code>
+                                    </div>
+                                    <div style="margin-top: 0.5rem; padding: 0.5rem; background: rgba(255,193,7,0.1); border: 1px solid rgba(255,193,7,0.3); border-radius: var(--radius); font-size: 0.75rem;">
+                                        🔒 <strong>Security:</strong> Keys are encrypted at rest. 10 failed attempts = 5 min lockout.
+                                    </div>
+                                    <div style="margin-top: 0.75rem; padding: 0.5rem; background: var(--jf-bg-input); border-radius: var(--radius);">
+                                        <div style="font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem;">📖 API Documentation</div>
+                                        <a href="/api/v1/docs" target="_blank" style="color: var(--jf-primary); font-size: 0.8rem; text-decoration: none;">/api/v1/docs</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- DOWNLOADS TAB -->
+                        <div class="settings-tab-content" id="settings-downloads">
+                            <!-- Speed & Limits -->
+                            <div class="settings-section">
+                                <div class="settings-section-title"><span>⚡</span> Speed & Limits</div>
+                                <div class="form-group">
+                                    <label class="form-label" data-i18n="speed_limit">Speed Limit (KB/s)</label>
+                                    <input type="number" class="form-input" id="speed-limit" min="0" placeholder="0 = unlimited">
+                                    <div class="form-hint" data-i18n="speed_limit_hint">Set to 0 for unlimited speed</div>
+                                </div>
+                                <div class="form-row" style="margin-top: 0.75rem;">
+                                    <div class="form-group">
+                                        <label class="form-label" data-i18n="sync_time">Sync Time</label>
+                                        <input type="time" class="form-input" id="sync-time" value="04:00">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" data-i18n="max_downloads">Max Downloads</label>
+                                        <input type="number" class="form-input" id="max-downloads" min="1" max="10" value="2">
+                                        <div class="form-hint">Total concurrent downloads across all servers. <em>If Per-Server Workers is enabled in Pro Settings, this setting is overridden.</em></div>
+                                        <div class="form-hint" id="max-downloads-hint" style="display: none;">
+                                            <span style="color: var(--jf-warning);">⚠️ Free tier limited to 2 concurrent downloads</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="toggle-container pro-feature-toggle" style="margin-top: 0.75rem;">
+                                    <span class="toggle-label">⚡ Override download limit (allows &gt;10) <span class="pro-badge-small">PRO</span></span>
+                                    <label class="toggle">
+                                        <input type="checkbox" id="override-download-limit" onchange="toggleDownloadLimitOverride()">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div id="download-limit-warning" style="display: none; padding: 0.75rem; background: rgba(255, 59, 48, 0.15); border: 1px solid var(--jf-danger); border-radius: var(--radius); margin-top: 0.5rem;">
+                                    <div style="font-size: 0.85rem; color: var(--jf-danger); font-weight: 600;">⚠️ WARNING: High concurrent downloads can:</div>
+                                    <ul style="margin: 0.5rem 0 0 1rem; font-size: 0.8rem; color: var(--jf-text-muted);">
+                                        <li>Overload the remote server</li>
+                                        <li>Cause your account to be rate-limited or banned</li>
+                                        <li>Negatively affect other users on shared servers</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <!-- Auto-Retry -->
+                            <div class="settings-section">
+                                <div class="settings-section-title"><span>🔄</span> Auto-Retry</div>
+                                <div class="toggle-container">
+                                    <span class="toggle-label">Auto-retry failed downloads</span>
+                                    <label class="toggle">
+                                        <input type="checkbox" id="download-auto-retry" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="form-row" style="margin-top: 0.75rem;">
+                                    <div class="form-group">
+                                        <label class="form-label">Retry attempts</label>
+                                        <input type="number" class="form-input" id="download-retry-count" min="1" max="10" value="3">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Retry delay (seconds)</label>
+                                        <input type="number" class="form-input" id="download-retry-delay" min="5" max="300" value="30">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Connection -->
+                            <div class="settings-section">
+                                <div class="settings-section-title"><span>🌐</span> Connection</div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label" data-i18n="connection_timeout">Connection Timeout (s)</label>
+                                        <input type="number" class="form-input" id="connection-timeout" min="5" max="120" value="30">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" data-i18n="chunk_size">Chunk Size (KB)</label>
+                                        <input type="number" class="form-input" id="chunk-size" min="16" max="1024" value="64">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Folder Naming -->
+                            <div class="settings-section">
+                                <div class="settings-section-title"><span>📁</span> Folder Naming</div>
+                                <div class="form-group">
+                                    <label class="form-label">Folder Naming Format</label>
+                                    <select class="form-input" id="folder-naming-format">
+                                        <option value="standard">Standard - Show Name / Movie (2010)</option>
+                                        <option value="ids_space">IDs (Space) - Show Name tt1234567 76885</option>
+                                        <option value="ids_braces">IDs (Braces) - Show Name {imdb-tt1234567} {tvdb-76885}</option>
+                                        <option value="ids_brackets">IDs (Brackets) - Show Name [imdb-tt1234567]</option>
+                                        <option value="tmdb_only">TMDB Only - Show Name {tmdb-12345}</option>
+                                        <option value="imdb_only">IMDB Only - Show Name tt1234567</option>
+                                    </select>
+                                </div>
+                                <div style="background: var(--jf-bg-input); padding: 0.75rem; border-radius: var(--radius); margin-top: 0.5rem; font-size: 0.8rem; font-family: monospace;">
+                                    <strong>Preview:</strong><br>
+                                    <span id="folder-format-preview-movie">Movie: Inception (2010)</span><br>
+                                    <span id="folder-format-preview-show">Show: Breaking Bad</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Metadata API Keys -->
+                            <div class="settings-section">
+                                <div class="settings-section-title"><span>🔍</span> Metadata API Keys</div>
                                 <div class="form-hint" style="margin-bottom: 0.75rem;">
                                     When the remote server is missing IMDB/TVDB IDs, JellyLooter can look them up from external APIs. Get free API keys from:
                                     <a href="https://www.themoviedb.org/settings/api" target="_blank" style="color: var(--jf-primary);">TMDB</a>,
@@ -2806,47 +3226,21 @@
                                         <span class="toggle-slider"></span>
                                     </label>
                                 </div>
-                                <div class="form-hint" style="margin-top: 0.25rem;">
-                                    Uses IMDB's suggestion API as a fallback when other APIs don't return an IMDB ID.
-                                </div>
-                                <div class="toggle-container" style="margin-top: 0.75rem;">
+                                <div class="toggle-container" style="margin-top: 0.5rem;">
                                     <span class="toggle-label">🔎 Lookup metadata while browsing</span>
                                     <label class="toggle">
                                         <input type="checkbox" id="metadata-lookup-on-browse">
                                         <span class="toggle-slider"></span>
                                     </label>
                                 </div>
-                                <div class="form-hint" style="margin-top: 0.25rem;">
-                                    <strong>ON:</strong> Slower browsing, but IDs are shown before download.<br>
-                                    <strong>OFF:</strong> Faster browsing, IDs fetched only at download time.
-                                </div>
-                                <div class="pro-badge-inline" style="margin-top: 0.75rem; padding: 0.5rem; background: var(--jf-bg-card); border-radius: var(--radius); font-size: 0.8rem;">
-                                    ⭐ <strong>Pro Feature:</strong> Metadata caching - stores lookups locally for faster repeat browsing.
-                                </div>
                             </div>
                             
-                            <div class="toggle-container" style="margin-top: 1rem;">
-                                <span class="toggle-label" data-i18n="download_subtitles">📝 Download subtitles automatically</span>
-                                <label class="toggle">
-                                    <input type="checkbox" id="download-subtitles" checked>
-                                    <span class="toggle-slider"></span>
-                                </label>
-                            </div>
-                            <div class="form-group" id="subtitle-languages-group" style="margin-top: 0.5rem;">
-                                <label class="form-label" data-i18n="subtitle_languages">Subtitle Languages (ISO codes)</label>
-                                <input type="text" class="form-input" id="subtitle-languages" value="eng, spa, ger" placeholder="eng, spa, ger, fre">
-                                <div class="form-hint" data-i18n="subtitle_hint">Comma-separated language codes. Use "all" to download all available subtitles.</div>
-                            </div>
-                            <button class="btn btn-primary" style="width: 100%; margin-top: 1rem;" id="save-settings-btn" data-i18n="save_settings">Save Settings</button>
-                            
-                            <!-- Config Backup/Restore -->
-                            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--jf-border);">
-                                <h4 style="font-size: 0.9rem; margin-bottom: 0.75rem;">💾 Backup & Restore</h4>
-                                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                                    <button class="btn btn-secondary btn-sm" onclick="exportConfig()">
-                                        📤 Export Config
-                                    </button>
-                                    <label class="btn btn-secondary btn-sm" style="cursor: pointer;">
+                            <!-- Backup & Restore -->
+                            <div class="settings-section">
+                                <div class="settings-section-title"><span>💾</span> Backup & Restore</div>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <button class="btn btn-secondary" onclick="exportConfig()">📤 Export Config</button>
+                                    <label class="btn btn-secondary" style="cursor: pointer;">
                                         📥 Import Config
                                         <input type="file" id="import-config-file" accept=".json" style="display: none;" onchange="importConfig(event)">
                                     </label>
@@ -2855,53 +3249,52 @@
                                     Export saves settings (API keys masked). Import restores settings while preserving existing API keys.
                                 </div>
                             </div>
+                            
+                            <button class="btn btn-primary" style="width: 100%; margin-top: 1rem;" id="save-downloads-btn">Save Download Settings</button>
                         </div>
                         
-                        <!-- Security Settings -->
-                        <button class="advanced-toggle" id="security-toggle" style="margin-top: 1rem;">
-                            <span class="advanced-toggle-icon">▼</span>
-                            <span data-i18n="security_settings">🔒 Security Settings</span>
-                        </button>
-                        <div class="advanced-content" id="security-content" style="display: none;">
-                            <div class="toggle-container">
-                                <span class="toggle-label" data-i18n="enable_auth">Enable Authentication</span>
-                                <label class="toggle">
-                                    <input type="checkbox" id="auth-enabled">
-                                    <span class="toggle-slider"></span>
-                                </label>
+                        <!-- SECURITY TAB -->
+                        <div class="settings-tab-content" id="settings-security">
+                            <div class="settings-section">
+                                <div class="settings-section-title"><span>🔐</span> Authentication</div>
+                                <div class="toggle-container">
+                                    <span class="toggle-label" data-i18n="enable_auth">Enable Authentication</span>
+                                    <label class="toggle">
+                                        <input type="checkbox" id="auth-enabled">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="form-hint" data-i18n="auth_hint">Require login to access JellyLooter</div>
+                                
+                                <div class="form-group" style="margin-top: 1rem;">
+                                    <label class="form-label" data-i18n="session_timeout">Session Timeout (minutes)</label>
+                                    <input type="number" class="form-input" id="session-timeout" min="5" max="1440" value="30">
+                                </div>
                             </div>
-                            <div class="form-hint" data-i18n="auth_hint">Require login to access JellyLooter</div>
                             
-                            <div class="form-group" style="margin-top: 1rem;">
-                                <label class="form-label" data-i18n="session_timeout">Session Timeout (minutes)</label>
-                                <input type="number" class="form-input" id="session-timeout" min="5" max="1440" value="30">
-                            </div>
-                            
-                            <div class="toggle-container" style="margin-top: 1rem;">
-                                <span class="toggle-label" data-i18n="trust_proxy">Trust X-Forwarded headers</span>
-                                <label class="toggle">
-                                    <input type="checkbox" id="trust-proxy">
-                                    <span class="toggle-slider"></span>
-                                </label>
-                            </div>
-                            <div class="form-hint" data-i18n="trust_proxy_hint">Enable if using a reverse proxy (Nginx, Traefik, etc.) to get correct client IPs</div>
-                            
-                            <div class="form-group" style="margin-top: 1rem;">
-                                <label class="form-label" data-i18n="trusted_proxies">Trusted Proxy IPs</label>
-                                <input type="text" class="form-input" id="trusted-proxies" placeholder="172.17.0.0/16, 10.0.0.0/8">
-                                <div class="form-hint" data-i18n="trusted_proxies_hint">Comma-separated list of IP ranges allowed to set X-Forwarded headers</div>
+                            <div class="settings-section">
+                                <div class="settings-section-title"><span>🌐</span> Reverse Proxy</div>
+                                <div class="toggle-container">
+                                    <span class="toggle-label" data-i18n="trust_proxy">Trust X-Forwarded headers</span>
+                                    <label class="toggle">
+                                        <input type="checkbox" id="trust-proxy">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="form-hint" data-i18n="trust_proxy_hint">Enable if using a reverse proxy (Nginx, Traefik, etc.) to get correct client IPs</div>
+                                
+                                <div class="form-group" style="margin-top: 1rem;">
+                                    <label class="form-label" data-i18n="trusted_proxies">Trusted Proxy IPs</label>
+                                    <input type="text" class="form-input" id="trusted-proxies" placeholder="172.17.0.0/16, 10.0.0.0/8">
+                                    <div class="form-hint" data-i18n="trusted_proxies_hint">Comma-separated list of IP ranges allowed to set X-Forwarded headers</div>
+                                </div>
                             </div>
                             
                             <button class="btn btn-primary" style="width: 100%; margin-top: 1rem;" id="save-security-btn" data-i18n="save_security">Save Security Settings</button>
                         </div>
                         
-                        <!-- Pro Settings -->
-                        <button class="advanced-toggle pro-settings-toggle" id="pro-toggle" style="margin-top: 1rem;">
-                            <span class="advanced-toggle-icon">▼</span>
-                            <span data-i18n="pro_features">⭐ Pro Settings</span>
-                            <span class="pro-badge" id="pro-badge" style="display: none;">PRO</span>
-                        </button>
-                        <div class="advanced-content" id="pro-content" style="display: none;">
+                        <!-- PRO TAB -->
+                        <div class="settings-tab-content" id="settings-pro">
                             <!-- License Status -->
                             <div class="license-status-box" id="license-status-box">
                                 <div id="license-status-text">Loading...</div>
@@ -2909,40 +3302,46 @@
                             
                             <!-- Notifications (Pro) -->
                             <div class="pro-section" id="notifications-section">
-                                <h4 style="margin: 1rem 0 0.5rem; font-size: 0.9rem;" data-i18n="notifications">🔔 Notifications</h4>
-                                <div class="form-group">
-                                    <label class="form-label" data-i18n="notification_urls">Notification URLs (Apprise)</label>
-                                    <textarea class="form-input" id="notification-urls" rows="3" placeholder="discord://webhook_id/webhook_token&#10;telegram://bot_token/chat_id"></textarea>
-                                    <div class="form-hint"><span data-i18n="notification_hint">One URL per line.</span> <a href="https://github.com/caronc/apprise/wiki" target="_blank">Apprise docs</a></div>
-                                </div>
-                                <div class="toggle-container">
-                                    <span class="toggle-label" data-i18n="notify_complete">Notify on download complete</span>
-                                    <label class="toggle">
-                                        <input type="checkbox" id="notify-complete" checked>
-                                        <span class="toggle-slider"></span>
-                                    </label>
-                                </div>
-                                <div class="toggle-container">
-                                    <span class="toggle-label">Notify on errors</span>
-                                    <label class="toggle">
-                                        <input type="checkbox" id="notify-error" checked>
-                                        <span class="toggle-slider"></span>
-                                    </label>
+                                <div class="settings-section">
+                                    <div class="settings-section-title"><span>🔔</span> <span data-i18n="notifications">Notifications</span></div>
+                                    <div class="form-group">
+                                        <label class="form-label" data-i18n="notification_urls">Notification URLs (Apprise)</label>
+                                        <textarea class="form-input" id="notification-urls" rows="3" placeholder="discord://webhook_id/webhook_token&#10;telegram://bot_token/chat_id"></textarea>
+                                        <div class="form-hint">One URL per line. Supports Discord, Telegram, Email, Slack, and <a href="https://github.com/caronc/apprise#supported-notifications" target="_blank" style="color: var(--jf-primary);">80+ services</a></div>
+                                    </div>
+                                    <div class="form-row" style="margin-top: 0.5rem;">
+                                        <div class="toggle-container" style="flex: 1;">
+                                            <span class="toggle-label" data-i18n="notify_complete">On download complete</span>
+                                            <label class="toggle">
+                                                <input type="checkbox" id="notify-complete" checked>
+                                                <span class="toggle-slider"></span>
+                                            </label>
+                                        </div>
+                                        <div class="toggle-container" style="flex: 1;">
+                                            <span class="toggle-label" data-i18n="notify_error">On error</span>
+                                            <label class="toggle">
+                                                <input type="checkbox" id="notify-error" checked>
+                                                <span class="toggle-slider"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-secondary btn-sm" style="margin-top: 0.75rem;" id="test-notification-btn">🔔 Test Notification</button>
                                 </div>
                             </div>
                             
                             <!-- Transcoding (Pro) -->
                             <div class="pro-section" id="transcode-section">
-                                <h4 style="margin: 1rem 0 0.5rem; font-size: 0.9rem;">🎬 Transcoding</h4>
-                                <p style="font-size: 0.8rem; color: var(--jf-text-muted); margin: 0 0 0.75rem;">Automatically convert downloaded media to your preferred format.</p>
-                                
-                                <div class="toggle-container">
-                                    <span class="toggle-label">Enable transcoding</span>
-                                    <label class="toggle">
-                                        <input type="checkbox" id="transcode-enabled-test">
-                                        <span class="toggle-slider"></span>
-                                    </label>
-                                </div>
+                                <div class="settings-section">
+                                    <div class="settings-section-title"><span>🎬</span> Transcoding</div>
+                                    <p style="font-size: 0.8rem; color: var(--jf-text-muted); margin: 0 0 0.75rem;">Automatically convert downloaded media to your preferred format.</p>
+                                    
+                                    <div class="toggle-container">
+                                        <span class="toggle-label">Enable transcoding</span>
+                                        <label class="toggle">
+                                            <input type="checkbox" id="transcode-enabled-test">
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                    </div>
                                 <div class="form-group" style="margin-top: 0.5rem;">
                                     <label class="form-label">Encoder</label>
                                     <select class="form-input" id="transcode-encoder-test">
@@ -3018,6 +3417,124 @@
                                 <input type="hidden" id="transcode-encoder" value="software">
                                 <input type="hidden" id="transcode-preset" value="original">
                                 <input type="hidden" id="transcode-custom" value="">
+                            </div>
+                            
+                            <!-- Resource Limits -->
+                            <div class="pro-section" id="resource-section">
+                                <h4 style="margin: 1rem 0 0.5rem; font-size: 0.9rem;">⚡ Resource Limits</h4>
+                                <p style="font-size: 0.8rem; color: var(--jf-text-muted); margin: 0 0 0.75rem;">Control CPU, memory, and I/O usage to prevent system overload.</p>
+                                
+                                <div class="toggle-container">
+                                    <span class="toggle-label">Enable resource limits</span>
+                                    <label class="toggle">
+                                        <input type="checkbox" id="resource-limits-enabled">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                
+                                <div id="resource-limits-options" style="display: none; margin-top: 0.75rem;">
+                                    <div class="form-group">
+                                        <label class="form-label">🧠 CPU Threads for Transcoding</label>
+                                        <select class="form-input" id="cpu-limit-threads">
+                                            <option value="0">Auto (use all available)</option>
+                                            <option value="1">1 thread</option>
+                                            <option value="2">2 threads</option>
+                                            <option value="4">4 threads</option>
+                                            <option value="6">6 threads</option>
+                                            <option value="8">8 threads</option>
+                                            <option value="12">12 threads</option>
+                                            <option value="16">16 threads</option>
+                                        </select>
+                                        <div class="form-hint">Limit FFmpeg CPU threads (lower = less CPU, slower transcode)</div>
+                                    </div>
+                                    
+                                    <div class="form-group" style="margin-top: 0.5rem;">
+                                        <label class="form-label">📊 Process Priority (CPU)</label>
+                                        <select class="form-input" id="cpu-priority">
+                                            <option value="low">Low - Background task</option>
+                                            <option value="normal" selected>Normal - Standard priority</option>
+                                            <option value="high">High - Faster but may impact system</option>
+                                        </select>
+                                        <div class="form-hint">Controls nice level for transcoding processes</div>
+                                    </div>
+                                    
+                                    <div class="form-group" style="margin-top: 0.5rem;">
+                                        <label class="form-label">💾 I/O Priority (Disk)</label>
+                                        <select class="form-input" id="io-priority">
+                                            <option value="idle">Idle - Only when system is idle</option>
+                                            <option value="low">Low - Reduced disk priority</option>
+                                            <option value="normal" selected>Normal - Standard priority</option>
+                                        </select>
+                                        <div class="form-hint">Controls ionice level for disk-intensive operations</div>
+                                    </div>
+                                    
+                                    <div class="form-group" style="margin-top: 0.5rem;">
+                                        <label class="form-label">📦 Download Buffer Size</label>
+                                        <select class="form-input" id="memory-buffer-mb">
+                                            <option value="8">8 MB - Minimal RAM</option>
+                                            <option value="16">16 MB - Low RAM</option>
+                                            <option value="32">32 MB - Moderate</option>
+                                            <option value="64" selected>64 MB - Balanced</option>
+                                            <option value="128">128 MB - Fast</option>
+                                            <option value="256">256 MB - Maximum speed</option>
+                                        </select>
+                                        <div class="form-hint">Larger = faster downloads, more RAM usage</div>
+                                    </div>
+                                    
+                                    <div style="margin-top: 0.75rem; padding: 0.5rem; background: var(--jf-bg-input); border-radius: var(--radius); font-size: 0.75rem;">
+                                        <strong>💡 Tips:</strong>
+                                        <ul style="margin: 0.25rem 0 0 1rem; padding: 0;">
+                                            <li>For NAS/low-power devices: Low CPU, Idle I/O, 16MB buffer</li>
+                                            <li>For shared systems: Normal CPU, Low I/O, 32MB buffer</li>
+                                            <li>For maximum speed: High CPU, Normal I/O, 256MB buffer</li>
+                                        </ul>
+                                    </div>
+                                    
+                                    <div style="margin-top: 0.5rem; padding: 0.5rem; background: rgba(255,193,7,0.1); border: 1px solid rgba(255,193,7,0.3); border-radius: var(--radius); font-size: 0.75rem;">
+                                        🐳 <strong>Docker users:</strong> For hard limits, also set <code>--memory</code> and <code>--cpus</code> in your container config.
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Per-Server Workers (Pro) -->
+                            <div class="pro-section" id="per-server-section">
+                                <h4 style="margin: 1rem 0 0.5rem; font-size: 0.9rem;">📡 Per-Server Workers</h4>
+                                <p style="font-size: 0.8rem; color: var(--jf-text-muted); margin: 0 0 0.75rem;">When enabled, each server gets its own download workers instead of sharing a global pool. This replaces the "Max Downloads" setting.</p>
+                                
+                                <div class="toggle-container">
+                                    <span class="toggle-label">Enable per-server workers</span>
+                                    <label class="toggle">
+                                        <input type="checkbox" id="per-server-workers-enabled">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                
+                                <div id="per-server-options" style="display: none; margin-top: 0.75rem;">
+                                    <div class="form-group">
+                                        <label class="form-label">Workers per server</label>
+                                        <select class="form-input" id="per-server-worker-count">
+                                            <option value="1">1 worker per server</option>
+                                            <option value="2" selected>2 workers per server</option>
+                                            <option value="3">3 workers per server</option>
+                                            <option value="4">4 workers per server</option>
+                                            <option value="5">5 workers per server</option>
+                                            <option value="6">6 workers per server</option>
+                                            <option value="8">8 workers per server</option>
+                                            <option value="10">10 workers per server</option>
+                                        </select>
+                                        <div class="form-hint">Each server gets its own download workers (matches your concurrent download limit)</div>
+                                    </div>
+                                    
+                                    <div style="margin-top: 0.5rem; padding: 0.5rem; background: rgba(0, 164, 220, 0.1); border: 1px solid rgba(0, 164, 220, 0.2); border-radius: var(--radius); font-size: 0.75rem;">
+                                        <strong>📡 How it works:</strong>
+                                        <ul style="margin: 0.25rem 0 0 1rem; padding: 0;">
+                                            <li>Each remote server gets dedicated worker threads</li>
+                                            <li>Downloads from Server A won't block Server B</li>
+                                            <li>Total concurrent downloads = servers × workers per server</li>
+                                            <li>Example: 3 servers × 4 workers = 12 simultaneous downloads</li>
+                                        </ul>
+                                    </div>
+                                </div>
                             </div>
                             
                             <!-- Scheduling (Pro) -->
@@ -3264,8 +3781,8 @@
                         <div class="stat-label">Total Downloaded</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value" id="stat-today">0</div>
-                        <div class="stat-label">Today</div>
+                        <div class="stat-value" id="stat-session">0</div>
+                        <div class="stat-label">This Session</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-value" id="stat-speed">0 KB/s</div>
@@ -3275,6 +3792,19 @@
                         <div class="stat-value" id="stat-queue">0</div>
                         <div class="stat-label">In Queue</div>
                     </div>
+                </div>
+                <!-- Transcode Space Saved (shown when transcoding enabled) -->
+                <div id="transcode-savings-widget" style="display: none; margin-top: 0.5rem; padding: 0.5rem; background: rgba(0, 164, 220, 0.1); border-radius: var(--radius); border: 1px solid rgba(0, 164, 220, 0.2);">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 0.75rem; color: var(--jf-text-muted);">💾 Transcode Savings</span>
+                        <span id="transcode-savings-value" style="font-size: 0.9rem; font-weight: 600; color: var(--jf-success);">0 B</span>
+                    </div>
+                    <div style="font-size: 0.65rem; color: var(--jf-text-muted); margin-top: 0.25rem;">
+                        <span id="transcode-files-count">0</span> files transcoded (<span id="transcode-reduction-percent">0</span>% avg reduction)
+                    </div>
+                </div>
+                <div style="text-align: right; margin-top: 0.35rem;">
+                    <button class="btn btn-xs" style="font-size: 0.65rem; padding: 0.15rem 0.4rem; opacity: 0.6;" onclick="resetDownloadStats()" title="Reset statistics">🔄 Reset Stats</button>
                 </div>
             </div>
 
@@ -3613,6 +4143,12 @@
     </style>
 
     <script>
+        // Global error handler for debugging
+        window.onerror = function(msg, url, line, col, error) {
+            console.error('JavaScript Error:', msg, 'at', url, 'line', line, col, error);
+            return false;
+        };
+        
         // State
         let config = {};
         let currentServerId = null;
@@ -3637,16 +4173,18 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
-            loadConfig();
+            console.log('DOMContentLoaded fired');
+            initTheme();  // Apply dark/light first
+            loadConfig();  // Load config (will apply custom theme when done)
             loadUser();
             loadSkipList();
-            initTheme();
             setupEventListeners();
             startStatusPolling();
             startLogPolling();
             setupSearch();
             setupKeyboardShortcuts();
             loadTranscodeSettingsOnLoad();
+            console.log('DOMContentLoaded complete');
         });
         
         // Load transcode settings on page load
@@ -3911,7 +4449,8 @@
         function setTheme(theme) {
             document.documentElement.setAttribute('data-theme', theme);
             localStorage.setItem('theme', theme);
-            document.getElementById('theme-toggle-settings').checked = theme === 'dark';
+            const themeToggleEl = document.getElementById('theme-toggle-settings');
+            if (themeToggleEl) themeToggleEl.checked = theme === 'dark';
         }
 
         function toggleTheme() {
@@ -4080,7 +4619,8 @@
 
         // Toast Notifications
         function showToast(message, type = 'success') {
-            if (!config.show_notifications) return;
+            // Always show error toasts, respect setting for success/warning toasts
+            if (type !== 'error' && !config.show_notifications) return;
             
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -4140,21 +4680,50 @@
         let translations = {};
         
         async function loadConfig() {
-            config = await api('config');
-            updateServerSelect();
-            updateSettingsForm();
-            updateServerList();
-            updateLocalServerInfo();
-            updateMappingsList();
-            
-            // Apply custom theme if set (Pro feature)
-            if (config.custom_theme && config.custom_theme !== 'default') {
-                // Apply silently (without toast) on initial load
-                applyThemePresetSilent(config.custom_theme);
+            try {
+                config = await api('config');
+                
+                // Deduplicate servers if needed (silently)
+                if (config.servers && config.servers.length > 0) {
+                    const uniqueServers = [];
+                    const seenUrls = new Set();
+                    config.servers.forEach(server => {
+                        const normalizedUrl = server.url.replace(/\/$/, '').toLowerCase();
+                        if (!seenUrls.has(normalizedUrl)) {
+                            seenUrls.add(normalizedUrl);
+                            uniqueServers.push(server);
+                        }
+                    });
+                    if (uniqueServers.length < config.servers.length) {
+                        console.warn('Removed duplicate servers:', config.servers.length, '->', uniqueServers.length);
+                        config.servers = uniqueServers;
+                        // Save deduplicated config back to server (fire and forget)
+                        api('config', 'POST', config).catch(e => console.error('Failed to save deduped config', e));
+                    }
+                }
+                
+                console.log('Config loaded, servers:', (config.servers || []).length);
+                
+                updateServerSelect();
+                updateSettingsForm();
+                updateServerList();
+                updateLocalServerInfo();
+                updateMappingsList();
+                
+                // Apply custom theme if set (Pro feature)
+                if (config.custom_theme && typeof config.custom_theme === 'string' && config.custom_theme !== 'default') {
+                    console.log('Applying theme:', config.custom_theme);
+                    localStorage.setItem('customTheme', config.custom_theme);
+                    applyThemePresetSilent(config.custom_theme);
+                } else {
+                    localStorage.removeItem('customTheme');
+                }
+                
+                // Load and apply translations
+                await loadTranslations(config.language || 'en');
+            } catch (err) {
+                console.error('loadConfig error:', err);
             }
-            
-            // Load and apply translations
-            await loadTranslations(config.language || 'en');
         }
         
         async function loadSkipList() {
@@ -4298,6 +4867,12 @@
 
         function updateServerList() {
             const container = document.getElementById('settings-server-list');
+            console.log('updateServerList called, container:', container);
+            console.log('config.servers:', config.servers);
+            if (!container) {
+                console.error('settings-server-list container not found!');
+                return;
+            }
             if (!config.servers || config.servers.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state" style="padding: 1.5rem;">
@@ -4317,6 +4892,7 @@
                     <button class="btn btn-icon btn-sm btn-danger" onclick="removeServer('${server.id}')" data-tooltip="${t('remove')}">🗑️</button>
                 </div>
             `).join('');
+            console.log('Server list HTML set');
         }
 
         async function removeServer(id) {
@@ -4329,6 +4905,12 @@
 
         function updateLocalServerInfo() {
             const container = document.getElementById('local-server-info');
+            console.log('updateLocalServerInfo called, container:', container);
+            console.log('config.local_server_url:', config.local_server_url);
+            if (!container) {
+                console.error('local-server-info container not found!');
+                return;
+            }
             if (config.local_server_url) {
                 container.innerHTML = `
                     <div class="server-item">
@@ -4351,10 +4933,9 @@
                 container.innerHTML = `
                     <div class="empty-state" style="padding: 1.5rem;">
                         <p>${t('no_local_server')}</p>
-                        <button class="btn btn-secondary btn-sm" style="margin-top: 0.75rem;" id="add-local-btn">${t('configure_local')}</button>
+                        <button class="btn btn-secondary btn-sm" style="margin-top: 0.75rem;" id="add-local-btn" onclick="openModal('local-modal')">${t('configure_local')}</button>
                     </div>
                 `;
-                document.getElementById('add-local-btn').addEventListener('click', () => openModal('local-modal'));
             }
         }
 
@@ -4377,11 +4958,16 @@
         }
 
         function updateSettingsForm() {
-            document.getElementById('speed-limit').value = config.speed_limit_kbs || 0;
-            document.getElementById('sync-time').value = config.sync_time || '04:00';
-            document.getElementById('timezone').value = config.timezone || 'UTC';
-            document.getElementById('time-format').value = config.time_format || '12h';
-            document.getElementById('max-downloads').value = config.max_concurrent_downloads || 2;
+            const speedLimitEl = document.getElementById('speed-limit');
+            if (speedLimitEl) speedLimitEl.value = config.speed_limit_kbs || 0;
+            const syncTimeEl = document.getElementById('sync-time');
+            if (syncTimeEl) syncTimeEl.value = config.sync_time || '04:00';
+            const timezoneEl = document.getElementById('timezone');
+            if (timezoneEl) timezoneEl.value = config.timezone || 'UTC';
+            const timeFormatEl = document.getElementById('time-format');
+            if (timeFormatEl) timeFormatEl.value = config.time_format || '12h';
+            const maxDownloadsEl = document.getElementById('max-downloads');
+            if (maxDownloadsEl) maxDownloadsEl.value = config.max_concurrent_downloads || 2;
             // Download limit override (Pro feature)
             const overrideEl = document.getElementById('override-download-limit');
             if (overrideEl) {
@@ -4394,8 +4980,9 @@
                     overrideEl.checked = config.override_download_limit || false;
                     overrideEl.parentElement.parentElement.style.opacity = '1';
                     if (config.override_download_limit) {
-                        document.getElementById('download-limit-warning').style.display = 'block';
-                        document.getElementById('max-downloads').max = 50;
+                        const warningEl = document.getElementById('download-limit-warning');
+                        if (warningEl) warningEl.style.display = 'block';
+                        if (maxDownloadsEl) maxDownloadsEl.max = 50;
                     }
                 }
             }
@@ -4407,33 +4994,105 @@
             const retryDelayEl = document.getElementById('download-retry-delay');
             if (retryDelayEl) retryDelayEl.value = config.download_retry_delay || 30;
             
-            document.getElementById('auto-sync-toggle').checked = config.auto_sync_enabled !== false;
-            document.getElementById('connection-timeout').value = config.connection_timeout || 30;
-            document.getElementById('chunk-size').value = config.chunk_size_kb || 64;
-            document.getElementById('confirm-downloads').checked = config.confirm_downloads || false;
-            document.getElementById('show-notifications').checked = config.show_notifications !== false;
-            document.getElementById('show-ratings').checked = config.show_ratings !== false;
-            document.getElementById('show-quality').checked = config.show_quality !== false;
-            document.getElementById('folder-naming-format').value = config.folder_naming_format || 'standard';
-            updateFolderFormatPreview();
-            document.getElementById('tmdb-api-key').value = config.tmdb_api_key || '';
-            document.getElementById('tvdb-api-key').value = config.tvdb_api_key || '';
-            document.getElementById('omdb-api-key').value = config.omdb_api_key || '';
-            document.getElementById('imdb-lookup-enabled').checked = config.imdb_lookup_enabled !== false;  // Default true
-            document.getElementById('metadata-lookup-on-browse').checked = config.metadata_lookup_on_browse || false;
-            document.getElementById('download-subtitles').checked = config.download_subtitles !== false;
-            document.getElementById('subtitle-languages').value = (config.subtitle_languages || ['eng', 'spa', 'ger']).join(', ');
-            document.getElementById('theme-toggle-settings').checked = (config.theme || 'dark') === 'dark';
-            document.getElementById('language-select').value = config.language || 'en';
+            const autoSyncEl = document.getElementById('auto-sync-toggle');
+            if (autoSyncEl) autoSyncEl.checked = config.auto_sync_enabled !== false;
+            const connTimeoutEl = document.getElementById('connection-timeout');
+            if (connTimeoutEl) connTimeoutEl.value = config.connection_timeout || 30;
+            const chunkSizeEl = document.getElementById('chunk-size');
+            if (chunkSizeEl) chunkSizeEl.value = config.chunk_size_kb || 64;
+            const confirmDownloadsEl = document.getElementById('confirm-downloads');
+            if (confirmDownloadsEl) confirmDownloadsEl.checked = config.confirm_downloads || false;
+            const showNotifEl = document.getElementById('show-notifications');
+            if (showNotifEl) showNotifEl.checked = config.show_notifications !== false;
+            const showRatingsEl = document.getElementById('show-ratings');
+            if (showRatingsEl) showRatingsEl.checked = config.show_ratings !== false;
+            const showQualityEl = document.getElementById('show-quality');
+            if (showQualityEl) showQualityEl.checked = config.show_quality !== false;
+            const folderFormatEl = document.getElementById('folder-naming-format');
+            if (folderFormatEl) {
+                folderFormatEl.value = config.folder_naming_format || 'standard';
+                updateFolderFormatPreview();
+            }
+            const tmdbKeyEl = document.getElementById('tmdb-api-key');
+            if (tmdbKeyEl) tmdbKeyEl.value = config.tmdb_api_key || '';
+            const tvdbKeyEl = document.getElementById('tvdb-api-key');
+            if (tvdbKeyEl) tvdbKeyEl.value = config.tvdb_api_key || '';
+            const omdbKeyEl = document.getElementById('omdb-api-key');
+            if (omdbKeyEl) omdbKeyEl.value = config.omdb_api_key || '';
+            const imdbLookupEl = document.getElementById('imdb-lookup-enabled');
+            if (imdbLookupEl) imdbLookupEl.checked = config.imdb_lookup_enabled !== false;
+            const metadataLookupEl = document.getElementById('metadata-lookup-on-browse');
+            if (metadataLookupEl) metadataLookupEl.checked = config.metadata_lookup_on_browse || false;
+            const downloadSubsEl = document.getElementById('download-subtitles');
+            if (downloadSubsEl) downloadSubsEl.checked = config.download_subtitles !== false;
+            const subtitleLangsEl = document.getElementById('subtitle-languages');
+            if (subtitleLangsEl) subtitleLangsEl.value = (config.subtitle_languages || ['eng', 'spa', 'ger']).join(', ');
+            const themeToggleSettingsEl = document.getElementById('theme-toggle-settings');
+            if (themeToggleSettingsEl) themeToggleSettingsEl.checked = (config.theme || 'dark') === 'dark';
+            const langSelectEl = document.getElementById('language-select');
+            if (langSelectEl) langSelectEl.value = config.language || 'en';
             
             // Security settings
-            document.getElementById('auth-enabled').checked = config.auth_enabled || false;
-            document.getElementById('session-timeout').value = config.session_timeout_minutes || 30;
-            document.getElementById('trust-proxy').checked = config.trust_proxy_headers || false;
-            document.getElementById('trusted-proxies').value = config.trusted_proxy_ips || '';
+            const authEnabledEl = document.getElementById('auth-enabled');
+            if (authEnabledEl) authEnabledEl.checked = config.auth_enabled || false;
+            const sessionTimeoutEl = document.getElementById('session-timeout');
+            if (sessionTimeoutEl) sessionTimeoutEl.value = config.session_timeout_minutes || 30;
+            const trustProxyEl = document.getElementById('trust-proxy');
+            if (trustProxyEl) trustProxyEl.checked = config.trust_proxy_headers || false;
+            const trustedProxiesEl = document.getElementById('trusted-proxies');
+            if (trustedProxiesEl) trustedProxiesEl.value = config.trusted_proxy_ips || '';
+            
+            // Dashboard layout
+            const dashboardLayoutEl = document.getElementById('dashboard-layout-select');
+            if (dashboardLayoutEl) {
+                dashboardLayoutEl.value = config.dashboard_layout || 'classic';
+                updateDashboardLayoutPreview();
+            }
+            
+            // API settings
+            const apiEnabledEl = document.getElementById('api-enabled-toggle');
+            if (apiEnabledEl) {
+                apiEnabledEl.checked = config.api_enabled || false;
+                const apiKeySection = document.getElementById('api-key-section');
+                if (apiKeySection) apiKeySection.style.display = config.api_enabled ? 'block' : 'none';
+                loadApiKeyStatus();
+            }
             
             // Apply tier limits to max downloads
             applyMaxDownloadsLimit();
+        }
+        
+        function updateDashboardLayoutPreview() {
+            const layoutEl = document.getElementById('dashboard-layout-select');
+            const preview = document.getElementById('dashboard-layout-preview');
+            if (!layoutEl || !preview) return;
+            const layout = layoutEl.value;
+            if (!preview) return;
+            
+            const descriptions = {
+                'classic': '📐 Classic layout with large posters, ratings, quality badges, and full details',
+                'compact': '📦 Compact grid - 2x more items visible, smaller posters with all badges',
+                'cards': '🃏 Horizontal cards showing poster alongside title - great for reading names',
+                'list': '📋 Vertical list with thumbnails - fastest scrolling and selection',
+                'minimal': '🖼️ Posters only - maximum density, hover to reveal badges and title',
+                'poster': '🎨 Large posters with emphasis on artwork - best for visual browsing'
+            };
+            
+            preview.textContent = descriptions[layout] || descriptions['classic'];
+        }
+        
+        async function loadApiKeyStatus() {
+            try {
+                const status = await api('v1/key/status');
+                const displayEl = document.getElementById('api-key-display');
+                if (displayEl) {
+                    // SECURITY: Never display the actual key - only show if one is set
+                    displayEl.value = status.api_key_set ? '••••••••••••••••••••••••••••••' : 'No API key generated';
+                    displayEl.placeholder = status.api_key_set ? 'Key is set (hidden for security)' : 'Generate a key to enable API access';
+                }
+            } catch (e) {
+                console.error('Failed to load API key status:', e);
+            }
         }
         
         function applyMaxDownloadsLimit() {
@@ -4454,9 +5113,11 @@
         }
         
         function updateFolderFormatPreview() {
-            const format = document.getElementById('folder-naming-format').value;
+            const formatEl = document.getElementById('folder-naming-format');
             const moviePreview = document.getElementById('folder-format-preview-movie');
             const showPreview = document.getElementById('folder-format-preview-show');
+            if (!formatEl) return;
+            const format = formatEl.value;
             
             // Example IDs
             const movieName = 'Inception';
@@ -4658,6 +5319,7 @@
 
         // Event Listeners
         function setupEventListeners() {
+            console.log('setupEventListeners called');
             // Mobile menu
             document.getElementById('mobile-menu-btn')?.addEventListener('click', openMobileMenu);
             document.getElementById('mobile-menu-close')?.addEventListener('click', closeMobileMenu);
@@ -4669,55 +5331,106 @@
             });
             
             // Theme toggle
-            document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
-            document.getElementById('theme-toggle-settings').addEventListener('change', (e) => {
-                setTheme(e.target.checked ? 'dark' : 'light');
-                config.theme = e.target.checked ? 'dark' : 'light';
-                api('config', 'POST', config);
-            });
+            const themeToggle = document.getElementById('theme-toggle');
+            const themeToggleSettings = document.getElementById('theme-toggle-settings');
+            if (themeToggle) themeToggle.addEventListener('click', toggleTheme);
+            if (themeToggleSettings) {
+                themeToggleSettings.addEventListener('change', (e) => {
+                    setTheme(e.target.checked ? 'dark' : 'light');
+                    config.theme = e.target.checked ? 'dark' : 'light';
+                    api('config', 'POST', config);
+                });
+            }
 
             // User dropdown
-            document.getElementById('user-btn').addEventListener('click', () => {
-                document.getElementById('user-dropdown').classList.toggle('active');
-            });
+            const userBtn = document.getElementById('user-btn');
+            if (userBtn) {
+                userBtn.addEventListener('click', () => {
+                    document.getElementById('user-dropdown')?.classList.toggle('active');
+                });
+            }
 
             document.addEventListener('click', (e) => {
                 if (!e.target.closest('.user-menu')) {
-                    document.getElementById('user-dropdown').classList.remove('active');
+                    document.getElementById('user-dropdown')?.classList.remove('active');
                 }
             });
 
             // Navigation tabs
             document.querySelectorAll('.nav-tab').forEach(tab => {
                 tab.addEventListener('click', () => {
+                    console.log('Nav tab clicked:', tab.dataset.tab);
                     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
                     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                     tab.classList.add('active');
-                    document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+                    const tabEl = document.getElementById(`tab-${tab.dataset.tab}`);
+                    if (tabEl) {
+                        tabEl.classList.add('active');
+                    } else {
+                        console.error('Tab content not found:', `tab-${tab.dataset.tab}`);
+                    }
+                    // Refresh settings data when switching to Settings tab
+                    if (tab.dataset.tab === 'settings') {
+                        updateServerList();
+                        updateLocalServerInfo();
+                    }
+                });
+            });
+
+            // Settings sub-tabs
+            document.querySelectorAll('.settings-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    console.log('Settings tab clicked:', tab.dataset.settingsTab);
+                    document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.settings-tab-content').forEach(c => c.classList.remove('active'));
+                    tab.classList.add('active');
+                    const tabId = tab.dataset.settingsTab;
+                    const tabEl = document.getElementById(`settings-${tabId}`);
+                    if (tabEl) {
+                        tabEl.classList.add('active');
+                    } else {
+                        console.error('Settings tab content not found:', `settings-${tabId}`);
+                    }
+                    // Refresh content when switching to specific tabs
+                    if (tabId === 'pro') {
+                        loadProSettings();
+                    } else if (tabId === 'servers') {
+                        // Refresh server lists when switching to servers tab
+                        updateServerList();
+                        updateLocalServerInfo();
+                    }
                 });
             });
 
             // Server select
-            document.getElementById('server-select').addEventListener('change', (e) => {
-                currentServerId = e.target.value;
-                if (currentServerId) {
-                    currentParentId = 'root';
-                    currentPage = 1;
-                    browserPath = [{ id: 'root', name: '🏠 Home' }];
-                    browseRemote();
-                }
-            });
+            const serverSelect = document.getElementById('server-select');
+            console.log('Setting up server-select listener, element:', serverSelect);
+            if (serverSelect) {
+                serverSelect.addEventListener('change', (e) => {
+                    console.log('Server selected:', e.target.value);
+                    currentServerId = e.target.value;
+                    if (currentServerId) {
+                        currentParentId = 'root';
+                        currentPage = 1;
+                        browserPath = [{ id: 'root', name: '🏠 Home' }];
+                        browseRemote();
+                    }
+                });
+            } else {
+                console.error('server-select element not found!');
+            }
 
             // Refresh button
-            document.getElementById('refresh-btn').addEventListener('click', browseRemote);
+            const refreshBtn = document.getElementById('refresh-btn');
+            if (refreshBtn) refreshBtn.addEventListener('click', browseRemote);
             
             // Pagination controls
             setupPaginationListeners();
 
             // Download controls
-            document.getElementById('pause-btn').addEventListener('click', () => api('pause', 'POST'));
-            document.getElementById('resume-btn').addEventListener('click', () => api('resume', 'POST'));
-            document.getElementById('cancel-all-btn').addEventListener('click', () => {
+            document.getElementById('pause-btn')?.addEventListener('click', () => api('pause', 'POST'));
+            document.getElementById('resume-btn')?.addEventListener('click', () => api('resume', 'POST'));
+            document.getElementById('cancel-all-btn')?.addEventListener('click', () => {
                 if (confirm('Cancel all downloads?')) api('cancel', 'POST', { all: true });
             });
             
@@ -4745,28 +5458,126 @@
             document.getElementById('select-all-btn').addEventListener('click', selectAllOnPage);
 
             // Add server button
-            document.getElementById('add-server-btn').addEventListener('click', () => openModal('server-modal'));
+            document.getElementById('add-server-btn')?.addEventListener('click', () => openModal('server-modal'));
 
             // Auth method toggle
-            document.getElementById('auth-method').addEventListener('change', (e) => {
-                document.getElementById('auth-key-fields').style.display = e.target.value === 'key' ? 'block' : 'none';
-                document.getElementById('auth-creds-fields').style.display = e.target.value === 'creds' ? 'block' : 'none';
+            document.getElementById('auth-method')?.addEventListener('change', (e) => {
+                const keyFields = document.getElementById('auth-key-fields');
+                const credsFields = document.getElementById('auth-creds-fields');
+                if (keyFields) keyFields.style.display = e.target.value === 'key' ? 'block' : 'none';
+                if (credsFields) credsFields.style.display = e.target.value === 'creds' ? 'block' : 'none';
             });
 
             // Save settings
-            document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
+            document.getElementById('save-settings-btn')?.addEventListener('click', saveSettings);
             
             // Folder naming format preview
-            document.getElementById('folder-naming-format').addEventListener('change', updateFolderFormatPreview);
+            document.getElementById('folder-naming-format')?.addEventListener('change', updateFolderFormatPreview);
             
             // Save language button
-            document.getElementById('save-language-btn').addEventListener('click', saveLanguage);
-
-            // Advanced toggle
-            document.getElementById('advanced-toggle').addEventListener('click', () => {
-                document.getElementById('advanced-toggle').classList.toggle('open');
-                document.getElementById('advanced-content').classList.toggle('open');
+            document.getElementById('save-language-btn')?.addEventListener('click', saveLanguage);
+            
+            // Dashboard layout selector
+            document.getElementById('dashboard-layout-select')?.addEventListener('change', async (e) => {
+                updateDashboardLayoutPreview();
+                config.dashboard_layout = e.target.value;
+                await api('config', 'POST', config);
+                applyDashboardLayout(e.target.value);
+                showToast('Dashboard layout saved', 'success');
             });
+            
+            // API enabled toggle
+            document.getElementById('api-enabled-toggle')?.addEventListener('change', async (e) => {
+                const section = document.getElementById('api-key-section');
+                section.style.display = e.target.checked ? 'block' : 'none';
+                config.api_enabled = e.target.checked;
+                await api('config', 'POST', config);
+                showToast(`API access ${e.target.checked ? 'enabled' : 'disabled'}`, 'info');
+            });
+            
+            // Generate API key button
+            document.getElementById('generate-api-key-btn')?.addEventListener('click', async () => {
+                if (!confirm('Generate a new API key? This will invalidate any previous key.\n\n⚠️ The key will only be shown ONCE. Make sure to copy it!')) return;
+                try {
+                    const result = await api('v1/key/generate', 'POST');
+                    if (result.success) {
+                        const display = document.getElementById('api-key-display');
+                        display.type = 'text';  // Show the key
+                        display.value = result.api_key;
+                        display.select();  // Auto-select for easy copying
+                        showToast('⚠️ New API key generated! Copy it now - it will NOT be shown again.', 'success', 8000);
+                        
+                        // Store temporarily for copy button
+                        display.dataset.realKey = result.api_key;
+                        
+                        // After 60 seconds, hide the key
+                        setTimeout(() => {
+                            if (display.value === result.api_key) {
+                                display.type = 'password';  // Hide it
+                                display.value = '••••••••••••••••••••••••••••••';
+                                delete display.dataset.realKey;
+                                showToast('API key hidden for security', 'info');
+                            }
+                        }, 60000);
+                    }
+                } catch (e) {
+                    showToast('Failed to generate API key', 'error');
+                }
+            });
+            
+            // Copy API key button
+            document.getElementById('copy-api-key-btn')?.addEventListener('click', async () => {
+                const display = document.getElementById('api-key-display');
+                // Check for real key in dataset (temporarily stored after generation)
+                const key = display.dataset.realKey || '';
+                
+                if (!key || !key.startsWith('jl_')) {
+                    showToast('Generate a new API key first - keys are only shown once', 'error');
+                    return;
+                }
+                try {
+                    // Try modern clipboard API first
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        await navigator.clipboard.writeText(key);
+                    } else {
+                        // Fallback for HTTP
+                        const textarea = document.createElement('textarea');
+                        textarea.value = key;
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textarea);
+                    }
+                    showToast('API key copied to clipboard!', 'success');
+                } catch (e) {
+                    showToast('Failed to copy - select the key manually', 'error');
+                }
+            });
+            
+            // Revoke API key button
+            document.getElementById('revoke-api-key-btn')?.addEventListener('click', async () => {
+                if (!confirm('Revoke API key? External integrations will stop working immediately.')) return;
+                try {
+                    const result = await api('v1/key/revoke', 'POST');
+                    if (result.success) {
+                        const display = document.getElementById('api-key-display');
+                        display.value = 'No API key generated';
+                        delete display.dataset.realKey;
+                        document.getElementById('api-enabled-toggle').checked = false;
+                        document.getElementById('api-key-section').style.display = 'none';
+                        config.api_enabled = false;
+                        showToast('API key revoked', 'info');
+                    }
+                } catch (e) {
+                    showToast('Failed to revoke API key', 'error');
+                }
+            });
+
+            // Advanced toggle - now handled by settings tabs
+            // document.getElementById('advanced-toggle').addEventListener('click', () => {
+            //     document.getElementById('advanced-toggle').classList.toggle('open');
+            //     document.getElementById('advanced-content').classList.toggle('open');
+            // });
 
             // Sync controls
             document.getElementById('sync-now-btn').addEventListener('click', () => {
@@ -5392,6 +6203,20 @@
                 showToast('Please test connection first to verify credentials', 'error');
                 return;
             }
+            
+            // Normalize URL for comparison
+            const normalizedUrl = url.replace(/\/$/, '').toLowerCase();
+            
+            // Check for existing server with same URL
+            if (!config.servers) config.servers = [];
+            const existingServer = config.servers.find(s => 
+                s.url.replace(/\/$/, '').toLowerCase() === normalizedUrl
+            );
+            
+            if (existingServer) {
+                showToast('A server with this URL already exists', 'error');
+                return;
+            }
 
             const server = {
                 id: Date.now().toString(36),
@@ -5401,18 +6226,25 @@
                 user_id: userId  // Store user_id for username/password auth
             };
 
-            if (!config.servers) config.servers = [];
-            config.servers.push(server);
-            await api('config', 'POST', config);
-            closeModal('server-modal');
-            loadConfig();
-            showToast('Server added');
-            
-            // Clear form
-            document.getElementById('server-name').value = '';
-            document.getElementById('server-url').value = '';
-            document.getElementById('server-key').value = '';
-            document.getElementById('server-key').dataset.userId = '';
+            try {
+                config.servers.push(server);
+                const result = await api('config', 'POST', config);
+                console.log('Save server result:', result);
+                closeModal('server-modal');
+                await loadConfig();
+                showToast('Server added');
+                
+                // Clear form
+                document.getElementById('server-name').value = '';
+                document.getElementById('server-url').value = '';
+                document.getElementById('server-key').value = '';
+                document.getElementById('server-key').dataset.userId = '';
+            } catch (err) {
+                console.error('Failed to save server:', err);
+                // Remove the server we just added since save failed
+                config.servers = config.servers.filter(s => s.id !== server.id);
+                showToast('Failed to save server: ' + err.message, 'error');
+            }
         }
 
         // Mapping Management
@@ -5737,9 +6569,58 @@
             try {
                 const stats = await api('stats');
                 document.getElementById('stat-total-downloaded').textContent = stats.total_human || '0 B';
-                document.getElementById('stat-today').textContent = stats.today_count || 0;
+                
+                // Show session files and bytes
+                const sessionText = stats.session_files > 0 
+                    ? `${stats.session_files} (${stats.session_human})`
+                    : '0';
+                document.getElementById('stat-session').textContent = sessionText;
+                
+                // Show transcode savings if transcoding is enabled
+                updateTranscodeSavingsWidget();
             } catch (e) {
                 // Silently fail
+            }
+        }
+        
+        // Update transcode savings widget
+        async function updateTranscodeSavingsWidget() {
+            try {
+                // Check if transcoding is enabled
+                if (!config || !config.transcode_enabled) {
+                    document.getElementById('transcode-savings-widget').style.display = 'none';
+                    return;
+                }
+                
+                const stats = await api('transcode_stats');
+                const widget = document.getElementById('transcode-savings-widget');
+                
+                if (stats.files_transcoded > 0 || stats.total_space_saved_bytes > 0) {
+                    widget.style.display = 'block';
+                    document.getElementById('transcode-savings-value').textContent = stats.total_space_saved_human || '0 B';
+                    document.getElementById('transcode-files-count').textContent = stats.files_transcoded || 0;
+                    document.getElementById('transcode-reduction-percent').textContent = stats.percent_saved || 0;
+                } else {
+                    widget.style.display = config.transcode_enabled ? 'block' : 'none';
+                    document.getElementById('transcode-savings-value').textContent = '0 B';
+                    document.getElementById('transcode-files-count').textContent = '0';
+                    document.getElementById('transcode-reduction-percent').textContent = '0';
+                }
+            } catch (e) {
+                // Hide widget on error
+                document.getElementById('transcode-savings-widget').style.display = 'none';
+            }
+        }
+        
+        // Reset download stats function
+        async function resetDownloadStats() {
+            if (!confirm('Reset download statistics? This will clear all totals.')) return;
+            try {
+                await api('download_stats/reset', 'POST', {});
+                showToast('📊 Download statistics reset', 'success');
+                updateTotalStats(true);
+            } catch (e) {
+                showToast('Failed to reset stats', 'error');
             }
         }
         
@@ -5762,30 +6643,47 @@
         let logViewMode = 'basic';
         
         // Basic log patterns - only show these in basic mode
+        // Lines are prefixed with [timestamp] so patterns need to account for that
         const basicLogPatterns = [
-            /^⬇️/,          // Download starting
-            /^✓/,           // Success
-            /^✗/,           // Error
-            /^📥/,          // Queued
-            /^🔄/,          // Syncing/Transcoding
-            /^⏸️/,          // Paused
-            /^▶️/,          // Resumed
-            /^\d+%/,        // Progress
-            /Downloading:/,
+            /⬇️/,              // Download starting
+            /✅|✓/,            // Success
+            /❌|✗/,            // Error
+            /📥/,              // Queued
+            /📡/,              // Server worker/queue
+            /🔄.*Transcod/i,   // Transcoding (but not other 🔄 messages)
+            /⏸️/,              // Paused
+            /▶️/,              // Resumed
+            /💾.*saved/i,      // Space saved
+            /Downloading:/i,
             /Download complete/i,
-            /Complete:/,
-            /Queued:/,
-            /Started:/,
-            /Cancelled/,
-            /Failed/,
-            /Error/,
-            /paused/i,
-            /resumed/i
+            /Complete:/i,
+            /Queued:/i,
+            /Queueing/i,       // Queueing item
+            /Started:/i,
+            /Cancelled/i,
+            /Failed/i,
+            /Error/i,
+            /downloads? paused/i,
+            /downloads? resumed/i,
+            /Added to queue/i,
+            /Sync started/i,
+            /Sync complete/i,
+            /Worker.*picked/i,  // Worker pickup
+            /batch_download/i,  // Batch download
+            /JellyLooter.*started/i,  // Startup
+            /Download workers:/i,     // Worker count
+            /Speed limit:/i,          // Speed limit config
+            /Started worker/i,        // Worker started
+            /Resolving/i,             // Resolving items
+            /Item details/i,          // Item resolution
+            /📡.*API.*queued/i  // API queue messages
         ];
         
         function isBasicLogLine(line) {
             if (!line || line.trim() === '') return false;
-            return basicLogPatterns.some(pattern => pattern.test(line));
+            // Strip timestamp prefix for matching
+            const content = line.replace(/^\[.*?\]\s*/, '');
+            return basicLogPatterns.some(pattern => pattern.test(line) || pattern.test(content));
         }
         
         function startLogPolling() {
@@ -6046,6 +6944,24 @@
                         transcodePreset.value === 'custom' ? 'block' : 'none';
                 });
             }
+            
+            // Resource limits toggle
+            const resourceLimitsToggle = document.getElementById('resource-limits-enabled');
+            const resourceLimitsOptions = document.getElementById('resource-limits-options');
+            if (resourceLimitsToggle && resourceLimitsOptions) {
+                resourceLimitsToggle.addEventListener('change', () => {
+                    resourceLimitsOptions.style.display = resourceLimitsToggle.checked ? 'block' : 'none';
+                });
+            }
+            
+            // Per-server workers toggle
+            const perServerToggle = document.getElementById('per-server-workers-enabled');
+            const perServerOptions = document.getElementById('per-server-options');
+            if (perServerToggle && perServerOptions) {
+                perServerToggle.addEventListener('change', () => {
+                    perServerOptions.style.display = perServerToggle.checked ? 'block' : 'none';
+                });
+            }
         }
         
         // --- Load Pro Settings ---
@@ -6164,7 +7080,7 @@
         });
         
         function enableProSections(enabled) {
-            const sections = ['notifications-section', 'transcode-section', 'schedule-section', 'arr-section', 'themes-section', 'multi-local-section'];
+            const sections = ['notifications-section', 'transcode-section', 'resource-section', 'per-server-section', 'schedule-section', 'arr-section', 'themes-section', 'multi-local-section'];
             sections.forEach(id => {
                 const el = document.getElementById(id);
                 if (el) {
@@ -6239,6 +7155,36 @@
                     applyThemePreset(config.custom_theme);
                 }
             }
+            
+            // Resource Limits
+            const resourceEnabled = document.getElementById('resource-limits-enabled');
+            const resourceOptions = document.getElementById('resource-limits-options');
+            if (resourceEnabled) {
+                resourceEnabled.checked = config.resource_limits_enabled || false;
+                if (resourceOptions) {
+                    resourceOptions.style.display = config.resource_limits_enabled ? 'block' : 'none';
+                }
+            }
+            const cpuThreads = document.getElementById('cpu-limit-threads');
+            if (cpuThreads) cpuThreads.value = config.cpu_limit_threads || '0';
+            const cpuPriority = document.getElementById('cpu-priority');
+            if (cpuPriority) cpuPriority.value = config.cpu_priority || 'normal';
+            const ioPriority = document.getElementById('io-priority');
+            if (ioPriority) ioPriority.value = config.io_priority || 'normal';
+            const memBuffer = document.getElementById('memory-buffer-mb');
+            if (memBuffer) memBuffer.value = config.memory_buffer_mb || '64';
+            
+            // Per-Server Workers
+            const perServerEnabled = document.getElementById('per-server-workers-enabled');
+            const perServerOptions = document.getElementById('per-server-options');
+            if (perServerEnabled) {
+                perServerEnabled.checked = config.per_server_workers || false;
+                if (perServerOptions) {
+                    perServerOptions.style.display = config.per_server_workers ? 'block' : 'none';
+                }
+            }
+            const perServerCount = document.getElementById('per-server-worker-count');
+            if (perServerCount) perServerCount.value = config.per_server_worker_count || '2';
         }
         
         // --- Save Security Settings ---
@@ -6319,6 +7265,17 @@
             config.theme_card = document.getElementById('theme-card').value;
             config.theme_input = document.getElementById('theme-input').value;
             config.theme_border = document.getElementById('theme-border').value;
+            
+            // Resource Limits
+            config.resource_limits_enabled = document.getElementById('resource-limits-enabled').checked;
+            config.cpu_limit_threads = parseInt(document.getElementById('cpu-limit-threads').value) || 0;
+            config.cpu_priority = document.getElementById('cpu-priority').value;
+            config.io_priority = document.getElementById('io-priority').value;
+            config.memory_buffer_mb = parseInt(document.getElementById('memory-buffer-mb').value) || 64;
+            
+            // Per-Server Workers
+            config.per_server_workers = document.getElementById('per-server-workers-enabled').checked;
+            config.per_server_worker_count = parseInt(document.getElementById('per-server-worker-count').value) || 2;
             
             api('config', 'POST', config)
                 .then(() => showToast('Pro settings saved!', 'success'))
@@ -6405,6 +7362,40 @@
                 applySpecialEffects(theme.special);
             }
         }
+        
+        // Dashboard Layout System
+        function applyDashboardLayout(layout) {
+            const container = document.querySelector('.browser-grid');
+            if (!container) return;
+            
+            // Remove all layout classes
+            container.classList.remove('layout-classic', 'layout-compact', 'layout-cards', 'layout-list', 'layout-minimal', 'layout-poster');
+            document.body.classList.remove('dashboard-classic', 'dashboard-compact', 'dashboard-cards', 'dashboard-list', 'dashboard-minimal', 'dashboard-poster');
+            
+            // Apply new layout (classic doesn't need extra classes)
+            if (layout && layout !== 'classic') {
+                container.classList.add(`layout-${layout}`);
+                document.body.classList.add(`dashboard-${layout}`);
+            }
+            
+            // Store in localStorage for immediate effect on page load
+            localStorage.setItem('dashboardLayout', layout || 'classic');
+        }
+        
+        // Apply saved dashboard layout on page load
+        function initDashboardLayout() {
+            const saved = localStorage.getItem('dashboardLayout') || config?.dashboard_layout || 'classic';
+            applyDashboardLayout(saved);
+        }
+        
+        // Initialize on DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', () => {
+            // Apply dashboard layout early
+            const savedLayout = localStorage.getItem('dashboardLayout');
+            if (savedLayout && savedLayout !== 'classic') {
+                document.body.classList.add(`dashboard-${savedLayout}`);
+            }
+        });
         
         function removeSpecialEffects() {
             // Remove any special theme effects

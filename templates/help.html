@@ -83,6 +83,8 @@
             <ul class="toc-list">
                 <li><a href="#support">Support</a></li>
                 <li><a href="#quick-tips">Quick Tips</a></li>
+                <li><a href="#api-integration">API Integration</a></li>
+                <li><a href="#dashboard-layouts">Dashboard Layouts</a></li>
                 <li><a href="#keyboard-shortcuts">Keyboard Shortcuts</a></li>
                 <li><a href="#collections">Collections & Playlists</a></li>
                 <li><a href="#folder-naming">Folder Naming</a></li>
@@ -91,6 +93,8 @@
                 <li><a href="#transcoding">Transcoding (Pro)</a></li>
                 <li><a href="#activity-log">Activity Log</a></li>
                 <li><a href="#display-settings">Display Settings</a></li>
+                <li><a href="#resource-limits">Resource Limits (Pro)</a></li>
+                <li><a href="#per-server-workers">Per-Server Workers (Pro)</a></li>
                 <li><a href="#backup-restore">Backup & Restore</a></li>
                 <li><a href="#download-resume">Download Resume (Pro)</a></li>
                 <li><a href="#health-check">Health Check</a></li>
@@ -160,6 +164,212 @@
                 <div class="tip-content">
                     <h3>{{ t.get('tip_order', 'Download Order') }}</h3>
                     <p>{{ t.get('tip_order_desc', 'Choose how items are queued: complete shows first, round-robin by season/episode, or alphabetically.') }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- API Integration -->
+        <div class="card" id="api-integration">
+            <h2>🔌 API Integration</h2>
+            <p style="color: var(--jf-text-muted); margin-bottom: 1rem;">Control JellyLooter from external apps like NZB360, Organizr, or Home Assistant.</p>
+            
+            <div class="tip">
+                <span class="tip-icon">🔑</span>
+                <div class="tip-content">
+                    <h3>Getting Started</h3>
+                    <p>1. Go to <strong>Settings → API Integration</strong><br>
+                    2. Enable <strong>API Access</strong><br>
+                    3. Click <strong>Generate New Key</strong><br>
+                    4. Copy and save your API key securely</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">📡</span>
+                <div class="tip-content">
+                    <h3>Authentication</h3>
+                    <p>Include your API key in requests:<br>
+                    <code>Header: X-Api-Key: your_key</code><br>
+                    <code>Query: ?apikey=your_key</code></p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">📖</span>
+                <div class="tip-content">
+                    <h3>API Endpoints</h3>
+                    <p>
+                    <code>GET /api/v1/status</code> - Queue status, speeds, disk<br>
+                    <code>GET /api/v1/queue</code> - Current downloads<br>
+                    <code>POST /api/v1/queue/add</code> - Add download<br>
+                    <code>POST /api/v1/queue/pause</code> - Pause downloads<br>
+                    <code>GET /api/v1/history</code> - Download history<br>
+                    <code>GET /api/v1/docs</code> - Full documentation</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">📱</span>
+                <div class="tip-content">
+                    <h3>NZB360 Setup</h3>
+                    <p>1. Open NZB360 → Settings → Downloaders<br>
+                    2. Add <strong>Custom Downloader</strong><br>
+                    3. Enter your JellyLooter URL<br>
+                    4. Add header: <code>X-Api-Key: your_key</code></p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Dashboard Layouts -->
+        <div class="card" id="dashboard-layouts">
+            <h2>📊 Dashboard Layouts</h2>
+            <p style="color: var(--jf-text-muted); margin-bottom: 1rem;">Customize how your media library is displayed in Settings → Appearance.</p>
+            
+            <div class="tip">
+                <span class="tip-icon">📐</span>
+                <div class="tip-content">
+                    <h3>Classic (Default)</h3>
+                    <p>Standard poster grid with ratings, quality badges, and full details. Best for general browsing.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">📦</span>
+                <div class="tip-content">
+                    <h3>Compact</h3>
+                    <p>Smaller posters with tighter spacing - fits 2x more items on screen. All badges still visible.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">🃏</span>
+                <div class="tip-content">
+                    <h3>Cards</h3>
+                    <p>Horizontal cards showing poster alongside title. Great when you need to read names easily.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">📋</span>
+                <div class="tip-content">
+                    <h3>List View</h3>
+                    <p>Vertical list with small thumbnails. Fastest scrolling and selection for large libraries.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">🖼️</span>
+                <div class="tip-content">
+                    <h3>Minimal</h3>
+                    <p>Posters only - maximum density. Hover over items to reveal badges and title.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">🎨</span>
+                <div class="tip-content">
+                    <h3>Large Posters</h3>
+                    <p>Oversized posters with emphasis on artwork. Best for visual browsing and appreciating cover art.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Resource Limits -->
+        <div class="card" id="resource-limits">
+            <h2>⚡ Resource Limits (Pro)</h2>
+            <p style="color: var(--jf-text-muted); margin-bottom: 1rem;">Control system resource usage in Settings → Pro Settings → Resource Limits.</p>
+            
+            <div class="tip">
+                <span class="tip-icon">🧠</span>
+                <div class="tip-content">
+                    <h3>CPU Threads</h3>
+                    <p>Limit FFmpeg to specific thread count (1-16) during transcoding. Lower values reduce CPU usage but increase transcode time. "Auto" uses all available threads.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">📊</span>
+                <div class="tip-content">
+                    <h3>Process Priority (nice)</h3>
+                    <p><strong>Low:</strong> Background task, won't interfere with other apps<br>
+                    <strong>Normal:</strong> Standard system priority<br>
+                    <strong>High:</strong> Faster processing, may impact other apps</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">💾</span>
+                <div class="tip-content">
+                    <h3>I/O Priority (ionice)</h3>
+                    <p><strong>Idle:</strong> Only access disk when system is idle<br>
+                    <strong>Low:</strong> Reduced disk priority<br>
+                    <strong>Normal:</strong> Standard disk access</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">📦</span>
+                <div class="tip-content">
+                    <h3>Memory Buffer</h3>
+                    <p>Download buffer size. Larger = faster downloads, more RAM. Recommended: 16 MB for low-power devices, 64 MB for most systems, 256 MB for fast connections.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">💡</span>
+                <div class="tip-content">
+                    <h3>Recommended Presets</h3>
+                    <p><strong>NAS/Raspberry Pi:</strong> Low CPU, Idle I/O, 16 MB buffer<br>
+                    <strong>Shared desktop:</strong> Normal CPU, Low I/O, 32 MB buffer<br>
+                    <strong>Dedicated server:</strong> High CPU, Normal I/O, 256 MB buffer</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">🐳</span>
+                <div class="tip-content">
+                    <h3>Docker Users</h3>
+                    <p>For hard limits, also set <code>--memory</code> and <code>--cpus</code> flags in your container config. These app-level settings work within those container limits.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Per-Server Workers -->
+        <div class="card" id="per-server-workers">
+            <h2>📡 Per-Server Workers (Pro)</h2>
+            <p style="color: var(--jf-text-muted); margin-bottom: 1rem;">Download from multiple Jellyfin servers simultaneously instead of one at a time.</p>
+            
+            <div class="tip">
+                <span class="tip-icon">🔄</span>
+                <div class="tip-content">
+                    <h3>How It Works</h3>
+                    <p>Without per-server workers, all downloads go through a single queue. Server B waits while Server A downloads. With per-server workers enabled, each server gets its own dedicated worker pool.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">⚙️</span>
+                <div class="tip-content">
+                    <h3>Configuration</h3>
+                    <p>Enable in <strong>Settings → Pro Settings → Per-Server Workers</strong>. Choose 1-10 workers per server (matches your concurrent download limit). Total concurrent downloads = number of servers × workers per server.</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">💡</span>
+                <div class="tip-content">
+                    <h3>Best Practices</h3>
+                    <p><strong>1-2 workers:</strong> Conservative - good for slow connections or limited bandwidth<br>
+                    <strong>3-5 workers:</strong> Balanced - recommended for most setups<br>
+                    <strong>6-10 workers:</strong> Aggressive - best with fast connections and powerful hardware</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <span class="tip-icon">📊</span>
+                <div class="tip-content">
+                    <h3>Example</h3>
+                    <p>With 3 servers and 4 workers each, you can have up to 12 simultaneous downloads - 4 from each server running in parallel.</p>
                 </div>
             </div>
         </div>
@@ -303,6 +513,19 @@
         <!-- Download Settings -->
         <div class="card" id="download-settings">
             <h2>⬇️ Download Settings</h2>
+            
+            <div class="tip">
+                <span class="tip-icon">📊</span>
+                <div class="tip-content">
+                    <h3>Download Statistics Widget</h3>
+                    <p>The stats widget at the top of the page shows:<br>
+                    <strong>Total Downloaded</strong> - All-time bytes downloaded (persists across restarts)<br>
+                    <strong>This Session</strong> - Files downloaded since container started<br>
+                    <strong>Current Speed</strong> - Combined speed of active downloads<br>
+                    <strong>In Queue</strong> - Pending downloads waiting to start<br>
+                    When transcoding is enabled, a <strong>Transcode Savings</strong> panel shows space saved.</p>
+                </div>
+            </div>
             
             <div class="tip">
                 <span class="tip-icon">🔄</span>
@@ -743,6 +966,13 @@
                 <div class="tip-content">
                     <h3><a href="https://github.com/vwidmer" target="_blank" style="color: var(--jf-primary); text-decoration: none;">vwidmer</a></h3>
                     <p>Beta testing, bug reports, and feature suggestions for transcoding, *arr integration, and download improvements</p>
+                </div>
+            </div>
+            <div class="tip" style="background: var(--jf-bg-card); margin-top: 0.5rem;">
+                <span class="tip-icon">👤</span>
+                <div class="tip-content">
+                    <h3><a href="https://github.com/nwithan8" target="_blank" style="color: var(--jf-primary); text-decoration: none;">nwithan8</a></h3>
+                    <p>Fixed jellylooter.xml for Unraid Community Apps compatibility</p>
                 </div>
             </div>
             <p style="color: var(--jf-text-muted); font-size: 0.85rem; margin-top: 1rem;">Want to be listed here? Contribute on <a href="https://github.com/jlightner86/jellylooter" target="_blank" style="color: var(--jf-primary);">GitHub</a> or help test new features!</p>
