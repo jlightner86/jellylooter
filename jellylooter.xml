@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
-<Container version="3.1">
-    <n>JellyLooter</n>
+<Container version="2">
+    <Name>JellyLooter</Name>
     <Repository>ghcr.io/jlightner86/jellylooter:latest</Repository>
     <Registry>https://github.com/jlightner86/jellylooter</Registry>
     <Network>bridge</Network>
@@ -8,7 +8,7 @@
     <Privileged>false</Privileged>
     <Support>https://github.com/jlightner86/jellylooter/issues</Support>
     <Project>https://github.com/jlightner86/jellylooter</Project>
-    <Overview>JellyLooter v3.2.0 - Sync media from remote Jellyfin/Emby servers to local storage.
+    <Overview>JellyLooter v3.1.0 - Sync media from remote Jellyfin/Emby servers to local storage.
         NEW in v3.2.0:
         - External API access (NZB360, Organizr, Home Assistant compatible)
         - 6 Dashboard layouts (Classic, Compact, Cards, List, Minimal, Large)
@@ -54,6 +54,6 @@
     <Config Name="Web UI Port" Target="5000" Default="5000" Mode="tcp" Description="Port for the web interface" Type="Port" Display="always" Required="true" Mask="false">5000</Config>
     <Config Name="Config Path" Target="/config" Default="/mnt/user/appdata/jellylooter" Mode="rw" Description="Path to store configuration files" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/jellylooter</Config>
     <Config Name="Storage Path" Target="/storage" Default="" Mode="rw" Description="Path to your media storage (where downloads will be saved)" Type="Path" Display="always" Required="true" Mask="false"/>
-    <Config Name="Cache Path (Pro)" Target="/cache" Default="" Mode="rw" Description="(Pro) Optional path to cache drive for faster transcoding - download to cache, transcode, then move to array" Type="Path" Display="advanced" Required="false" Mask="false"/>
+    <Config Name="Cache Path (Pro)" Target="/cache" Default="" Mode="rw" Description="(Pro) Path to cache drive for faster transcoding - download to cache, transcode, then move to array" Type="Path" Display="advanced" Required="true" Mask="false"/>
     <Config Name="Nvidia Visible Devices" Target="NVIDIA_VISIBLE_DEVICES" Default="" Mode="" Description="(Pro GPU) Set to 'all' or GPU UUID for NVIDIA transcoding. Also add --runtime=nvidia to Extra Parameters." Type="Variable" Display="advanced" Required="false" Mask="false"/>
 </Container>
