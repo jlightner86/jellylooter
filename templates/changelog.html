@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JellyLooter - {{ t.get('changelog', 'Changelog') }}</title>
-    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/jlightner86/jellylooter/main/icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="64x64" href="/static/favicon-64.png">
+    <link rel="shortcut icon" href="/favicon.ico">
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root { --jf-primary: #00a4dc; --jf-bg-dark: #101010; --jf-bg-card: #1a1a1a; --jf-bg-input: #2a2a2a; --jf-text: #fff; --jf-text-muted: #888; --jf-border: #333; --jf-success: #4caf50; --jf-gradient: linear-gradient(135deg, #00a4dc 0%, #aa5cc3 100%); --jf-purple: #aa5cc3; }
@@ -53,7 +55,7 @@
     <div class="container">
         <div class="header">
             <div class="logo">
-                <img src="https://raw.githubusercontent.com/jlightner86/jellylooter/main/icon.png" alt="JellyLooter" class="logo-icon">
+                <img src="/static/logo.png" alt="JellyLooter" class="logo-icon">
                 <span class="logo-text">JellyLooter</span>
             </div>
             <div style="display:flex;gap:0.5rem;">
@@ -78,7 +80,7 @@
                     <span class="support-option-icon">⭐</span>
                     <div class="support-option-info">
                         <div class="support-option-title">Pro License ($10)</div>
-                        <div class="support-option-desc">Lifetime license for Pro features: notifications, transcoding, scheduling, and more.</div>
+                        <div class="support-option-desc">Lifetime license for Pro: multi-connection downloads with resume, built-in VPN, Sonarr/Radarr/Lidarr, GPU transcoding, detailed stats and more.</div>
                     </div>
                     <a href="https://lightwave43.gumroad.com/l/rmtmrr" target="_blank" class="btn btn-pro">Buy Pro</a>
                 </div>
@@ -86,6 +88,73 @@
             <div class="support-warning">
                 ⚠️ <strong>Note:</strong> Ko-fi donations do NOT include Pro features. If you want Pro features, purchase a license from Gumroad. Donations are non-refundable and are for supporting development only.
             </div>
+        </div>
+
+        <div class="version">
+            <div class="version-header">
+                <span class="version-number">v4.0.0</span>
+                <span class="version-date">November 2026</span>
+                <span class="version-tag major">Major Release</span>
+            </div>
+            <ul class="changes">
+                <li><span class="change-type new">New</span> 🎨 Completely redesigned interface with two layouts: Clean Grid (default) and Dashboard</li>
+                <li><span class="change-type new">New</span> 🖼️ Poster grid with quality badges (4K / 1080p / HDR / Dolby Vision), ratings, and the size of every movie or show</li>
+                <li><span class="change-type new">New</span> ✅ Smarter "you already have it" check - matches IMDb, TMDB, TVDB, AniDB and other IDs plus title &amp; year, so nothing syncs twice. Owned items hide the download button</li>
+                <li><span class="change-type new">New</span> 📄 Real page navigation (Previous / Next / Page x of y / jump to page), 25-100 posters per page, and 3-8 posters per row</li>
+                <li><span class="change-type new">New</span> 📁 Visual folder picker with breadcrumbs, subfolder tiles and "New Folder" when choosing where to save</li>
+                <li><span class="change-type new">New</span> 📺 Shows always go into Season folders; specials are offered separately and saved in a "Specials" folder</li>
+                <li><span class="change-type new">New</span> 🧩 Missing episodes: shows you own display "−N" when episodes are missing, and the show page offers "Download N missing" straight into your existing folder. Sync fills in missing episodes too</li>
+                <li><span class="change-type new">New</span> 🟢 Shows display Continuing or Ended; for a show that's still airing, the download window asks whether Sonarr should watch for new episodes</li>
+                <li><span class="change-type new">New</span> ⬅️ Browser Back / Forward move through JellyLooter (pages, shows, libraries, tabs)</li>
+                <li><span class="change-type new">New</span> 🔄 Sync page with library mappings, "Sync Media" and "Sync Duplicate Media", plus a never-sync list (🚫 on any poster)</li>
+                <li><span class="change-type new">New</span> 📚 Adding a server automatically finds and saves its library list</li>
+                <li><span class="change-type new">New</span> 🏠 Local vs remote servers - your own server is browse-only, so you can't download your own media</li>
+                <li><span class="change-type new">New</span> ⚙️ Settings split into General, Pro and Advanced tabs, with your license status at the top</li>
+                <li><span class="change-type new">New</span> 🛠️ Advanced tab: live activity log, local library rescan, statistics reset, login, external API key, timezone and performance settings, license backup</li>
+                <li><span class="change-type new">New</span> ✅ Every Test button (Jellyfin, TMDB, TVDB, OMDb, Sonarr, Radarr, Lidarr) shows the result on the button itself</li>
+                <li><span class="change-type new">New</span> 📌 Download panel and library sidebar stay in place while you scroll; finished downloads get an instant ✓</li>
+                <li><span class="change-type new">New</span> ⏹️ "Stop after current" really pauses the queue once running downloads finish</li>
+                <li><span class="change-type pro">Pro</span> ⚡ Multi-connection downloads - large files download in parallel parts (about 2x faster)</li>
+                <li><span class="change-type pro">Pro</span> 🔁 Crash-safe resume - each part resumes on its own after an outage, finished files are size-checked and verified with ffprobe, and the queue comes back automatically after a restart or power cut</li>
+                <li><span class="change-type pro">Pro</span> 📼 Download when a server blocks downloads - grabs the original-quality stream instead (same file, full speed). On/off switch in Settings → Pro</li>
+                <li><span class="change-type pro">Pro</span> 🛡️ Built-in WireGuard VPN - Proton, PIA (built-in login + region picker), Mullvad, IVPN, AirVPN, Windscribe, Surfshark or any WireGuard config, with an optional kill switch</li>
+                <li><span class="change-type pro">Pro</span> 📡 Sonarr / Radarr / Lidarr get the show, movie or artist the moment you click Download (monitored, no indexer search), with automatic path detection</li>
+                <li><span class="change-type pro">Pro</span> ⬆️ Better quality available: a blue ⬆ marks shows and movies the remote has in higher resolution; "Download &amp; replace" swaps your copies only after each new file is verified</li>
+                <li><span class="change-type pro">Pro</span> 📈 Detailed download statistics - per day, type, server, hour and weekday, top shows, largest and fastest files. Open it from Download Analytics in the left sidebar of either layout</li>
+                <li><span class="change-type pro">Pro</span> 🎬 GPU transcoding on NVIDIA (NVENC), Intel QuickSync and AMD/Intel VAAPI, with download/bandwidth scheduling and per-server workers</li>
+                <li><span class="change-type pro">Pro</span> 🎉 Holiday themes</li>
+                <li><span class="change-type pro">Pro</span> ⏸️ Lowering download or transcode workers pauses the extra one mid-file and resumes it when a slot frees up</li>
+                <li><span class="change-type improve">Improve</span> 🚀 Downloads are dramatically faster - the license was being re-checked on every 64 KB chunk</li>
+                <li><span class="change-type improve">Improve</span> 🖼️ Posters load through JellyLooter, so they work even when your browser can't reach the remote server</li>
+                <li><span class="change-type improve">Improve</span> ⬆️ Upgrading from v3.x keeps every server, login, mapping and setting (a backup of the old config is saved)</li>
+                <li><span class="change-type improve">Improve</span> ✏️ Editing a server keeps its sync mappings; free plan allows 1 local + 2 remote servers</li>
+                <li><span class="change-type improve">Improve</span> 🌍 English, Spanish and German interface</li>
+                <li><span class="change-type fix">Fix</span> 🔑 Saved server keys could be encrypted twice (and stop working); servers with password logins now store their user ID</li>
+                <li><span class="change-type fix">Fix</span> 🔎 The local library scan used the first user on the server and could include remote servers - it now scans only your local server as your account</li>
+                <li><span class="change-type fix">Fix</span> 📡 Sonarr never received the show's IDs, so shows weren't added</li>
+                <li><span class="change-type fix">Fix</span> 📺 TVDB works without a subscriber PIN (only needed for subscriber keys)</li>
+                <li><span class="change-type security">Security</span> 🔐 Server keys, VPN keys and passwords are never sent to the browser or included in config exports</li>
+                <li><span class="change-type security">Security</span> 🔒 License backup endpoints now require login</li>
+                <li><span class="change-type new">New</span> 🌟 New favicon matching the JellyLooter logo</li>
+            </ul>
+        </div>
+
+        <div class="version">
+            <div class="version-header">
+                <span class="version-number">v3.3.0</span>
+                <span class="version-date">November 2026</span>
+                <span class="version-tag">Feature Update</span>
+            </div>
+            <ul class="changes">
+                <li><span class="change-type new">New</span> 🎬 Quality filter toolbar - filter by 4K, 1080p, 720p, SD, HDR, or Dolby Vision</li>
+                <li><span class="change-type new">New</span> 📊 Enhanced series progress tracking - visual progress bars on series cards</li>
+                <li><span class="change-type new">New</span> 📈 Episode count badges now show percentage completion</li>
+                <li><span class="change-type new">New</span> ✓ Complete series marked with green "Complete" badge</li>
+                <li><span class="change-type fix">Fix</span> 🎯 Improved UI centering on ultra-wide monitors</li>
+                <li><span class="change-type fix">Fix</span> 🔧 Fixed null reference errors when selection controls not present</li>
+                <li><span class="change-type improve">Improve</span> 📐 Better content padding and spacing on large screens</li>
+                <li><span class="change-type improve">Improve</span> 🖥️ Header and content now align properly at all screen widths</li>
+            </ul>
         </div>
 
         <div class="version">
@@ -277,8 +346,16 @@
             </p>
             <ul class="changes">
                 <li style="color: var(--jf-text);">
-                    <a href="https://github.com/vwidmer" target="_blank" style="color: var(--jf-primary); text-decoration: none; font-weight: 600;">vwidmer</a> 
+                    <a href="https://github.com/vwidmer" target="_blank" style="color: var(--jf-primary); text-decoration: none; font-weight: 600;">vwidmer</a>
                     - Beta testing, bug reports, and feature suggestions for transcoding, *arr integration, and download improvements
+                </li>
+                <li style="color: var(--jf-text);">
+                    <a href="https://github.com/nwithan8" target="_blank" style="color: var(--jf-primary); text-decoration: none; font-weight: 600;">nwithan8</a>
+                    - Fixed jellylooter.xml for Unraid Community Apps compatibility
+                </li>
+                <li style="color: var(--jf-text);">
+                    <a href="https://github.com/Z3r0Fell" target="_blank" style="color: var(--jf-primary); text-decoration: none; font-weight: 600;">Z3r0Fell (ZeroFell)</a>
+                    - Testing, feedback, and feature suggestions for v4.0 GUI overhaul
                 </li>
             </ul>
             <p style="color: var(--jf-text-muted); font-size: 0.8rem; margin-top: 1rem;">

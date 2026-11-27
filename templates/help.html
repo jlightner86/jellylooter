@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JellyLooter - {{ t.get('help', 'Help') }}</title>
-    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/jlightner86/jellylooter/main/icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="64x64" href="/static/favicon-64.png">
+    <link rel="shortcut icon" href="/favicon.ico">
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root { --jf-primary: #00a4dc; --jf-bg-dark: #101010; --jf-bg-card: #1a1a1a; --jf-bg-input: #2a2a2a; --jf-text: #fff; --jf-text-muted: #888; --jf-border: #333; --jf-success: #4caf50; --jf-gradient: linear-gradient(135deg, #00a4dc 0%, #aa5cc3 100%); --jf-purple: #aa5cc3; }
@@ -62,7 +64,7 @@
     <div class="container">
         <div class="header">
             <div class="logo">
-                <img src="https://raw.githubusercontent.com/jlightner86/jellylooter/main/icon.png" alt="JellyLooter" class="logo-icon">
+                <img src="/static/logo.png" alt="JellyLooter" class="logo-icon">
                 <span class="logo-text">JellyLooter</span>
             </div>
             <div style="display:flex;gap:0.5rem;">
@@ -82,23 +84,21 @@
             <div class="toc-title">📖 Quick Navigation</div>
             <ul class="toc-list">
                 <li><a href="#support">Support</a></li>
-                <li><a href="#quick-tips">Quick Tips</a></li>
-                <li><a href="#api-integration">API Integration</a></li>
-                <li><a href="#dashboard-layouts">Dashboard Layouts</a></li>
-                <li><a href="#keyboard-shortcuts">Keyboard Shortcuts</a></li>
-                <li><a href="#collections">Collections & Playlists</a></li>
-                <li><a href="#folder-naming">Folder Naming</a></li>
-                <li><a href="#metadata-apis">Metadata APIs</a></li>
-                <li><a href="#download-settings">Download Settings</a></li>
+                <li><a href="#getting-started">Getting Started</a></li>
+                <li><a href="#browsing">Browsing &amp; Downloading</a></li>
+                <li><a href="#sync">Sync</a></li>
+                <li><a href="#server-setup">Servers</a></li>
+                <li><a href="#settings">Settings</a></li>
+                <li><a href="#advanced-downloading">Advanced Downloading (Pro)</a></li>
+                <li><a href="#vpn">VPN (Pro)</a></li>
+                <li><a href="#arr-setup">Sonarr/Radarr/Lidarr (Pro)</a></li>
                 <li><a href="#transcoding">Transcoding (Pro)</a></li>
-                <li><a href="#activity-log">Activity Log</a></li>
-                <li><a href="#display-settings">Display Settings</a></li>
-                <li><a href="#resource-limits">Resource Limits (Pro)</a></li>
-                <li><a href="#per-server-workers">Per-Server Workers (Pro)</a></li>
-                <li><a href="#backup-restore">Backup & Restore</a></li>
-                <li><a href="#download-resume">Download Resume (Pro)</a></li>
-                <li><a href="#health-check">Health Check</a></li>
-                <li><a href="#arr-setup">*arr Setup</a></li>
+                <li><a href="#metadata-apis">Metadata Keys</a></li>
+                <li><a href="#folder-naming">Folder Naming</a></li>
+                <li><a href="#statistics">Statistics</a></li>
+                <li><a href="#upgrading">Upgrading from v3</a></li>
+                <li><a href="#api-integration">External API</a></li>
+                <li><a href="#backup-restore">Backup &amp; Restore</a></li>
                 <li><a href="#troubleshooting">Troubleshooting</a></li>
                 <li><a href="#faq">FAQ</a></li>
                 <li><a href="#legal">Legal</a></li>
@@ -121,817 +121,179 @@
                     <span class="support-option-icon">⭐</span>
                     <div class="support-option-info">
                         <div class="support-option-title">Pro License ($10 lifetime)</div>
-                        <div class="support-option-desc">Unlock Pro features: notifications, GPU transcoding, scheduling, *arr integration, themes, and more.</div>
+                        <div class="support-option-desc">Unlock Pro: multi-connection downloads with resume, built-in VPN, Sonarr/Radarr/Lidarr, GPU transcoding, detailed stats and more.</div>
                     </div>
                     <a href="https://lightwave43.gumroad.com/l/rmtmrr" target="_blank" class="btn btn-pro">Buy Pro</a>
                 </div>
             </div>
             <div class="support-warning">
-                ⚠️ <strong>Important:</strong> Ko-fi donations do NOT include Pro features. If you want Pro features like notifications, transcoding, or scheduling, please purchase a Pro license from Gumroad instead. Donations are non-refundable and are for supporting development only.
+                ⚠️ <strong>Important:</strong> Ko-fi donations do NOT include Pro features. If you want Pro features, please purchase a Pro license from Gumroad instead. Donations are non-refundable and are for supporting development only.
             </div>
         </div>
         
-        <!-- Quick Tips -->
-        <div class="card" id="quick-tips">
-            <h2>💡 {{ t.get('quick_tips', 'Quick Tips') }}</h2>
-            
-            <div class="tip">
-                <span class="tip-icon">👆</span>
-                <div class="tip-content">
-                    <h3>Selection</h3>
-                    <p>Single-click to select items. Double-click to open folders. Ctrl+click for multi-select. Press Space to toggle selection on focused item.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">⌨️</span>
-                <div class="tip-content">
-                    <h3>Keyboard Shortcuts</h3>
-                    <p>Press <code>?</code> anytime to see all keyboard shortcuts. Quick keys: <code>1/2/3</code> for tabs, <code>P</code> to pause, <code>D</code> to download.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">⚡</span>
-                <div class="tip-content">
-                    <h3>{{ t.get('tip_speed', 'Speed Limit Updates Live') }}</h3>
-                    <p>{{ t.get('tip_speed_desc', 'Change speed limit in settings and it applies to active downloads within 10 seconds.') }}</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">📋</span>
-                <div class="tip-content">
-                    <h3>{{ t.get('tip_order', 'Download Order') }}</h3>
-                    <p>{{ t.get('tip_order_desc', 'Choose how items are queued: complete shows first, round-robin by season/episode, or alphabetically.') }}</p>
-                </div>
+        <!-- Getting Started -->
+        <div class="card" id="getting-started">
+            <h2>🚀 Getting Started</h2>
+            <div class="steps">
+                <div class="step"><div class="step-content"><strong>Add your servers</strong> in <strong>Settings → General</strong>. Your own Jellyfin is the <em>Local</em> server (where media ends up); friends' servers are <em>Remote</em> (where you download from). JellyLooter reads each server's library list as soon as you add it.</div></div>
+                <div class="step"><div class="step-content"><strong>Pick a remote server</strong> in the left sidebar, then a library. Posters show quality, rating, size and a green ✓ for anything you already have.</div></div>
+                <div class="step"><div class="step-content"><strong>Click ⬇ on a poster</strong> (or open a show and use "Download"). Choose the folder in the visual folder picker and start the download.</div></div>
+                <div class="step"><div class="step-content"><strong>Want it automatic?</strong> Map a remote library to a folder on the <strong>Sync</strong> page and JellyLooter grabs anything new that you don't have.</div></div>
             </div>
         </div>
-        
-        <!-- API Integration -->
-        <div class="card" id="api-integration">
-            <h2>🔌 API Integration</h2>
-            <p style="color: var(--jf-text-muted); margin-bottom: 1rem;">Control JellyLooter from external apps like NZB360, Organizr, or Home Assistant.</p>
-            
-            <div class="tip">
-                <span class="tip-icon">🔑</span>
-                <div class="tip-content">
-                    <h3>Getting Started</h3>
-                    <p>1. Go to <strong>Settings → API Integration</strong><br>
-                    2. Enable <strong>API Access</strong><br>
-                    3. Click <strong>Generate New Key</strong><br>
-                    4. Copy and save your API key securely</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">📡</span>
-                <div class="tip-content">
-                    <h3>Authentication</h3>
-                    <p>Include your API key in requests:<br>
-                    <code>Header: X-Api-Key: your_key</code><br>
-                    <code>Query: ?apikey=your_key</code></p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">📖</span>
-                <div class="tip-content">
-                    <h3>API Endpoints</h3>
-                    <p>
-                    <code>GET /api/v1/status</code> - Queue status, speeds, disk<br>
-                    <code>GET /api/v1/queue</code> - Current downloads<br>
-                    <code>POST /api/v1/queue/add</code> - Add download<br>
-                    <code>POST /api/v1/queue/pause</code> - Pause downloads<br>
-                    <code>GET /api/v1/history</code> - Download history<br>
-                    <code>GET /api/v1/docs</code> - Full documentation</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">📱</span>
-                <div class="tip-content">
-                    <h3>NZB360 Setup</h3>
-                    <p>1. Open NZB360 → Settings → Downloaders<br>
-                    2. Add <strong>Custom Downloader</strong><br>
-                    3. Enter your JellyLooter URL<br>
-                    4. Add header: <code>X-Api-Key: your_key</code></p>
-                </div>
-            </div>
+
+        <!-- Browsing -->
+        <div class="card" id="browsing">
+            <h2>🖼️ Browsing &amp; Downloading</h2>
+            <div class="tip"><span class="tip-icon">✅</span><div class="tip-content"><h3>Already have it?</h3><p>A green ✓ means the movie or show is already on your local server, so its download button is hidden. ◐ means you have part of it. Matching uses IMDb, TMDB, TVDB and other IDs plus title and year, so the same show isn't downloaded twice.</p></div></div>
+            <div class="tip"><span class="tip-icon">🧩</span><div class="tip-content"><h3>Missing episodes</h3><p>A show you own displays an amber <strong>−N</strong> when N episodes are missing. Open it and use <strong>Download N missing</strong> - they go straight into your existing show and season folders.</p></div></div>
+            <div class="tip"><span class="tip-icon">⬆️</span><div class="tip-content"><h3>Better quality available (Pro)</h3><p>A blue ⬆ means the remote has a higher resolution than your copy (for example 1080p vs your 720p). <strong>Download &amp; replace</strong> downloads the better files, checks each one, and only then removes your old copy through your Jellyfin. You're always asked first.</p></div></div>
+            <div class="tip"><span class="tip-icon">🟢</span><div class="tip-content"><h3>Continuing or ended</h3><p>Shows display whether they're still airing. When you download a show that's still airing and Sonarr is connected, you're asked whether Sonarr should watch it for new episodes.</p></div></div>
+            <div class="tip"><span class="tip-icon">📄</span><div class="tip-content"><h3>Pages, poster size and sizes</h3><p>Use Previous / Next or type a page number to jump. Change posters per row (3-8) and items per page in <strong>Settings → General → Browsing</strong>. The size under each poster is the whole movie or show.</p></div></div>
+            <div class="tip"><span class="tip-icon">📁</span><div class="tip-content"><h3>Choosing where it goes</h3><p>The folder picker shows the subfolders of <code>/storage</code> as tiles - click to go in, use the breadcrumbs to go back, or make a <strong>New Folder</strong>. The folder you're looking at is where it's saved. Your sync mappings and last-used folder appear as quick picks.</p></div></div>
+            <div class="tip"><span class="tip-icon">📺</span><div class="tip-content"><h3>Seasons and specials</h3><p>Episodes always go into <code>Show/Season 01</code> style folders. If a show has specials, the download window asks whether you want them; they're saved in a <code>Specials</code> folder that Jellyfin and Sonarr recognise.</p></div></div>
+            <div class="tip"><span class="tip-icon">🏠</span><div class="tip-content"><h3>Your own server is browse-only</h3><p>You can browse your local server, but you can't download from it - you already have that media.</p></div></div>
+            <div class="tip"><span class="tip-icon">⏹️</span><div class="tip-content"><h3>Download panel</h3><p>The panel on the right shows active and queued downloads. ⏹️ finishes the current downloads and then pauses the queue, ⏸️/▶️ pause and resume, 🗑️ clears the queue (running downloads keep going).</p></div></div>
         </div>
-        
-        <!-- Dashboard Layouts -->
-        <div class="card" id="dashboard-layouts">
-            <h2>📊 Dashboard Layouts</h2>
-            <p style="color: var(--jf-text-muted); margin-bottom: 1rem;">Customize how your media library is displayed in Settings → Appearance.</p>
-            
-            <div class="tip">
-                <span class="tip-icon">📐</span>
-                <div class="tip-content">
-                    <h3>Classic (Default)</h3>
-                    <p>Standard poster grid with ratings, quality badges, and full details. Best for general browsing.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">📦</span>
-                <div class="tip-content">
-                    <h3>Compact</h3>
-                    <p>Smaller posters with tighter spacing - fits 2x more items on screen. All badges still visible.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">🃏</span>
-                <div class="tip-content">
-                    <h3>Cards</h3>
-                    <p>Horizontal cards showing poster alongside title. Great when you need to read names easily.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">📋</span>
-                <div class="tip-content">
-                    <h3>List View</h3>
-                    <p>Vertical list with small thumbnails. Fastest scrolling and selection for large libraries.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">🖼️</span>
-                <div class="tip-content">
-                    <h3>Minimal</h3>
-                    <p>Posters only - maximum density. Hover over items to reveal badges and title.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">🎨</span>
-                <div class="tip-content">
-                    <h3>Large Posters</h3>
-                    <p>Oversized posters with emphasis on artwork. Best for visual browsing and appreciating cover art.</p>
-                </div>
-            </div>
+
+        <!-- Sync -->
+        <div class="card" id="sync">
+            <h2>🔄 Sync</h2>
+            <div class="tip"><span class="tip-icon">🗺️</span><div class="tip-content"><h3>Library mappings</h3><p>On the <strong>Sync</strong> page, pick a remote server, one of its libraries and a folder (for example <code>/storage/anime</code>). ✏️ changes the folder later.</p></div></div>
+            <div class="tip"><span class="tip-icon">▶️</span><div class="tip-content"><h3>Sync Media vs Sync Duplicate Media</h3><p><strong>Sync Media</strong> downloads anything in your mapped libraries that you don't already have - including the missing episodes of shows you own (turn this off with "Fill In Missing Episodes" in Settings). <strong>Sync Duplicate Media</strong> downloads everything, including items you already own (for example to replace them).</p></div></div>
+            <div class="tip"><span class="tip-icon">⏰</span><div class="tip-content"><h3>Automatic sync</h3><p>Turn on Auto Sync and set the time in <strong>Settings → General</strong>. The free plan includes one mapping; Pro is unlimited.</p></div></div>
+            <div class="tip"><span class="tip-icon">🚫</span><div class="tip-content"><h3>Never sync something</h3><p>Hover a poster and click 🚫. It's listed on the Sync page, where you can remove it again. You can still download it by hand.</p></div></div>
         </div>
-        
-        <!-- Resource Limits -->
-        <div class="card" id="resource-limits">
-            <h2>⚡ Resource Limits (Pro)</h2>
-            <p style="color: var(--jf-text-muted); margin-bottom: 1rem;">Control system resource usage in Settings → Pro Settings → Resource Limits.</p>
-            
-            <div class="tip">
-                <span class="tip-icon">🧠</span>
-                <div class="tip-content">
-                    <h3>CPU Threads</h3>
-                    <p>Limit FFmpeg to specific thread count (1-16) during transcoding. Lower values reduce CPU usage but increase transcode time. "Auto" uses all available threads.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">📊</span>
-                <div class="tip-content">
-                    <h3>Process Priority (nice)</h3>
-                    <p><strong>Low:</strong> Background task, won't interfere with other apps<br>
-                    <strong>Normal:</strong> Standard system priority<br>
-                    <strong>High:</strong> Faster processing, may impact other apps</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">💾</span>
-                <div class="tip-content">
-                    <h3>I/O Priority (ionice)</h3>
-                    <p><strong>Idle:</strong> Only access disk when system is idle<br>
-                    <strong>Low:</strong> Reduced disk priority<br>
-                    <strong>Normal:</strong> Standard disk access</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">📦</span>
-                <div class="tip-content">
-                    <h3>Memory Buffer</h3>
-                    <p>Download buffer size. Larger = faster downloads, more RAM. Recommended: 16 MB for low-power devices, 64 MB for most systems, 256 MB for fast connections.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">💡</span>
-                <div class="tip-content">
-                    <h3>Recommended Presets</h3>
-                    <p><strong>NAS/Raspberry Pi:</strong> Low CPU, Idle I/O, 16 MB buffer<br>
-                    <strong>Shared desktop:</strong> Normal CPU, Low I/O, 32 MB buffer<br>
-                    <strong>Dedicated server:</strong> High CPU, Normal I/O, 256 MB buffer</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">🐳</span>
-                <div class="tip-content">
-                    <h3>Docker Users</h3>
-                    <p>For hard limits, also set <code>--memory</code> and <code>--cpus</code> flags in your container config. These app-level settings work within those container limits.</p>
-                </div>
-            </div>
+
+        <!-- Servers -->
+        <div class="card" id="server-setup">
+            <h2>🖥️ Servers</h2>
+            <div class="tip"><span class="tip-icon">🔐</span><div class="tip-content"><h3>Username/password or API key</h3><p>Either works. With a username and password, JellyLooter logs in once and stores the session token (not your password). Logins are encrypted on disk and never sent back to the browser.</p></div></div>
+            <div class="tip"><span class="tip-icon">✏️</span><div class="tip-content"><h3>Editing a server</h3><p>Click ✏️, change what you need and Save. Leave the password blank to keep the current login. Sync mappings stay attached. 🔄 refreshes the server's library list.</p></div></div>
+            <div class="tip"><span class="tip-icon">🔢</span><div class="tip-content"><h3>How many servers</h3><p>Free: 1 local and 2 remote servers. Pro: unlimited.</p></div></div>
         </div>
-        
-        <!-- Per-Server Workers -->
-        <div class="card" id="per-server-workers">
-            <h2>📡 Per-Server Workers (Pro)</h2>
-            <p style="color: var(--jf-text-muted); margin-bottom: 1rem;">Download from multiple Jellyfin servers simultaneously instead of one at a time.</p>
-            
-            <div class="tip">
-                <span class="tip-icon">🔄</span>
-                <div class="tip-content">
-                    <h3>How It Works</h3>
-                    <p>Without per-server workers, all downloads go through a single queue. Server B waits while Server A downloads. With per-server workers enabled, each server gets its own dedicated worker pool.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">⚙️</span>
-                <div class="tip-content">
-                    <h3>Configuration</h3>
-                    <p>Enable in <strong>Settings → Pro Settings → Per-Server Workers</strong>. Choose 1-10 workers per server (matches your concurrent download limit). Total concurrent downloads = number of servers × workers per server.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">💡</span>
-                <div class="tip-content">
-                    <h3>Best Practices</h3>
-                    <p><strong>1-2 workers:</strong> Conservative - good for slow connections or limited bandwidth<br>
-                    <strong>3-5 workers:</strong> Balanced - recommended for most setups<br>
-                    <strong>6-10 workers:</strong> Aggressive - best with fast connections and powerful hardware</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">📊</span>
-                <div class="tip-content">
-                    <h3>Example</h3>
-                    <p>With 3 servers and 4 workers each, you can have up to 12 simultaneous downloads - 4 from each server running in parallel.</p>
-                </div>
-            </div>
+
+        <!-- Settings -->
+        <div class="card" id="settings">
+            <h2>⚙️ Settings</h2>
+            <div class="tip"><span class="tip-icon">⚙️</span><div class="tip-content"><h3>General</h3><p>Servers, downloads (speed limit, retries, subtitles, download order), auto sync, metadata keys, browsing, appearance and language.</p></div></div>
+            <div class="tip"><span class="tip-icon">⭐</span><div class="tip-content"><h3>Pro</h3><p>Advanced downloading, VPN, scheduling, per-server downloads, *arr integration, notifications, transcoding and holiday themes. On the free plan you can see every Pro option - click one to learn more.</p></div></div>
+            <div class="tip"><span class="tip-icon">🛠️</span><div class="tip-content"><h3>Advanced</h3><p>Live activity log (with filter and save), local library rescan, statistics reset, login protection, external API key, timezone, connection/performance settings, license backup, and config export/import.</p></div></div>
+            <div class="tip"><span class="tip-icon">✅</span><div class="tip-content"><h3>Test buttons</h3><p>Every Test button turns green "Connected" or red "Failed" right on the button; hover it or read the pop-up for details.</p></div></div>
         </div>
-        
-        <!-- Keyboard Shortcuts -->
-        <div class="card" id="keyboard-shortcuts">
-            <h2>⌨️ Keyboard Shortcuts</h2>
-            <p style="color: var(--jf-text-muted); margin-bottom: 1rem;">Press <code>?</code> anytime to see this list in-app.</p>
-            
-            <h3>Navigation</h3>
-            <div class="tip">
-                <span class="tip-icon">🔢</span>
-                <div class="tip-content">
-                    <p><code>/</code> Focus search box<br>
-                    <code>1</code> Go to Browse tab<br>
-                    <code>2</code> Go to Sync tab<br>
-                    <code>3</code> Go to Settings tab<br>
-                    <code>Esc</code> Clear selection / Close modal</p>
-                </div>
-            </div>
-            
-            <h3 style="margin-top: 1rem;">Selection</h3>
-            <div class="tip">
-                <span class="tip-icon">✓</span>
-                <div class="tip-content">
-                    <p><code>Space</code> Toggle selection on hovered item<br>
-                    <code>Ctrl+A</code> Select all items on page<br>
-                    <code>Enter</code> Download selected items</p>
-                </div>
-            </div>
-            
-            <h3 style="margin-top: 1rem;">Downloads</h3>
-            <div class="tip">
-                <span class="tip-icon">⬇️</span>
-                <div class="tip-content">
-                    <p><code>P</code> Pause / Resume downloads<br>
-                    <code>D</code> Download selected items<br>
-                    <code>R</code> Refresh current view</p>
-                </div>
-            </div>
+
+        <!-- Advanced downloading -->
+        <div class="card" id="advanced-downloading">
+            <h2>⚡ Advanced Downloading &amp; Resume (Pro)</h2>
+            <div class="tip"><span class="tip-icon">🚀</span><div class="tip-content"><h3>Multi-connection downloads</h3><p>Files over 200 MB download in 2-8 parallel parts, usually about twice as fast. Set the number of connections in <strong>Settings → Pro</strong>.</p></div></div>
+            <div class="tip"><span class="tip-icon">🔁</span><div class="tip-content"><h3>Survives outages and restarts</h3><p>Each part resumes exactly where it stopped after an internet drop. After a restart or power cut, unfinished <em>and queued</em> downloads come back automatically.</p></div></div>
+            <div class="tip"><span class="tip-icon">🔍</span><div class="tip-content"><h3>Verified files</h3><p>Finished files are checked against the server's size and opened with ffprobe. A damaged file is downloaded once more automatically.</p></div></div>
+            <div class="tip"><span class="tip-icon">📼</span><div class="tip-content"><h3>Download when a server blocks downloads</h3><p>Some servers turn off downloading. With this switch on, JellyLooter downloads the original-quality stream instead - the same file at full speed, no re-encoding. (Servers that also block playback can't be downloaded from.)</p></div></div>
+            <div class="tip"><span class="tip-icon">⏸️</span><div class="tip-content"><h3>Changing the number of downloads</h3><p>Lower the download or transcode count while files are running and the extra one pauses mid-file, then continues when a slot frees up.</p></div></div>
         </div>
-        
-        <!-- Collections & Playlists -->
-        <div class="card" id="collections">
-            <h2>📦 Collections & Playlists</h2>
-            
-            <div class="tip">
-                <span class="tip-icon">📥</span>
-                <div class="tip-content">
-                    <h3>Download All Button</h3>
-                    <p>Collections (BoxSets) and Playlists show a "Download All" button on their poster. Click it to queue all movies/episodes in that collection with a single click.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">🔄</span>
-                <div class="tip-content">
-                    <h3>Recursive Downloads</h3>
-                    <p>When you download a collection, JellyLooter automatically resolves all nested items (series → seasons → episodes) and queues them in your preferred order.</p>
-                </div>
-            </div>
+
+        <!-- VPN -->
+        <div class="card" id="vpn">
+            <h2>🛡️ VPN (Pro)</h2>
+            <p style="color: var(--jf-text-muted); margin-bottom: 1rem;">Send JellyLooter's internet traffic through WireGuard. Your home network (local Jellyfin, Sonarr/Radarr, this web page) stays direct.</p>
+            <div class="tip"><span class="tip-icon">🐳</span><div class="tip-content"><h3>One-time container setting</h3><p>The container needs permission to create a network tunnel. <strong>Unraid:</strong> edit the container → Advanced View → Extra Parameters: <code>--cap-add=NET_ADMIN</code>. <strong>Docker Compose:</strong> add <code>cap_add: [NET_ADMIN]</code>. The VPN panel tells you if this is missing.</p></div></div>
+            <div class="tip"><span class="tip-icon">🔑</span><div class="tip-content"><h3>Proton, Mullvad, IVPN, AirVPN, Windscribe, Surfshark</h3><p>Download a WireGuard configuration from your provider's website (the VPN panel shows where for each one), then paste or upload the <code>.conf</code> file.</p></div></div>
+            <div class="tip"><span class="tip-icon">🌐</span><div class="tip-content"><h3>Private Internet Access (PIA)</h3><p>Enter your PIA username and password and pick a region - JellyLooter sets up WireGuard with PIA for you. Regions marked ⇄ support port forwarding.</p></div></div>
+            <div class="tip"><span class="tip-icon">🔒</span><div class="tip-content"><h3>Kill switch</h3><p><strong>On (recommended):</strong> if the VPN drops, all internet traffic is blocked and downloads wait until it reconnects - your real IP address stays hidden. <strong>Off:</strong> downloads continue without the VPN if it fails. Use <strong>Check My IP</strong> to confirm your address is hidden.</p></div></div>
         </div>
-        
-        <!-- Folder Naming -->
-        <div class="card" id="folder-naming">
-            <h2>📁 Folder Naming Formats</h2>
-            
-            <div class="tip">
-                <span class="tip-icon">🏷️</span>
-                <div class="tip-content">
-                    <h3>Why Use Provider IDs?</h3>
-                    <p>Including IMDB/TVDB/TMDB IDs in folder names helps Jellyfin, Plex, Sonarr, and Radarr correctly identify your media - especially for anime, foreign films, or titles with common names.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">📋</span>
-                <div class="tip-content">
-                    <h3>Available Formats</h3>
-                    <p>Choose from 6 naming formats in <strong>Settings → Advanced Settings</strong>:<br>
-                    <code>Standard</code> - Movie (2010) / Show Name<br>
-                    <code>IDs (Space)</code> - Movie (2010) tt1234567 12345<br>
-                    <code>IDs (Braces)</code> - Movie (2010) {imdb-tt1234567} {tmdb-12345}<br>
-                    <code>IDs (Brackets)</code> - Movie (2010) [imdb-tt1234567]<br>
-                    <code>TMDB Only</code> - Movie (2010) {tmdb-12345}<br>
-                    <code>IMDB Only</code> - Movie (2010) tt1234567</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">👀</span>
-                <div class="tip-content">
-                    <h3>Live Preview</h3>
-                    <p>The settings page shows a live preview of how your folders will be named for both movies and TV shows as you select different formats.</p>
-                </div>
-            </div>
+
+        <!-- *arr -->
+        <div class="card" id="arr-setup">
+            <h2>📡 Sonarr, Radarr &amp; Lidarr (Pro)</h2>
+            <div class="tip"><span class="tip-icon">🔑</span><div class="tip-content"><h3>Connect</h3><p>In each app go to <strong>Settings → General → Security</strong> and copy the <strong>API Key</strong>. Enter the URL and key in <strong>Settings → Pro → *arr Integration</strong> and click Test.</p></div></div>
+            <div class="tip"><span class="tip-icon">🗂️</span><div class="tip-content"><h3>"How the *arr apps see /storage"</h3><p>Your *arr apps usually see your media share under a different path (for example <code>/data/media</code>). Click <strong>Auto-detect</strong> and JellyLooter works it out from their root folders.</p></div></div>
+            <div class="tip"><span class="tip-icon">➕</span><div class="tip-content"><h3>What happens when you download</h3><p>The moment you click Download, the show (Sonarr), movie (Radarr) or artist (Lidarr) is added - monitored, in the root folder that matches where you're saving, <strong>without</strong> an indexer search. When files finish, the app is told to import them. Folder names follow your *arr naming when it already has the title.</p></div></div>
         </div>
-        
-        <!-- Metadata APIs -->
-        <div class="card" id="metadata-apis">
-            <h2>🔍 Metadata API Integration</h2>
-            
-            <div class="tip">
-                <span class="tip-icon">🔑</span>
-                <div class="tip-content">
-                    <h3>API Keys</h3>
-                    <p>Get free API keys from these providers to enable metadata lookup:<br>
-                    <a href="https://www.themoviedb.org/settings/api" target="_blank" style="color:var(--jf-primary)">TMDB</a> - Best for movies & TV, includes IMDB IDs<br>
-                    <a href="https://thetvdb.com/api-information" target="_blank" style="color:var(--jf-primary)">TVDB</a> - Best for TV shows & anime<br>
-                    <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" style="color:var(--jf-primary)">OMDb</a> - IMDB data fallback (1,000/day limit)</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">⚙️</span>
-                <div class="tip-content">
-                    <h3>Lookup Timing</h3>
-                    <p>Choose when metadata is fetched in <strong>Settings → Advanced Settings</strong>:<br>
-                    <strong>On Browse</strong> - Slower browsing, but IDs shown before download<br>
-                    <strong>On Download</strong> - Faster browsing, IDs fetched at download time</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">💎</span>
-                <div class="tip-content">
-                    <h3>Metadata Caching (Pro)</h3>
-                    <p>Pro users get automatic metadata caching - once an item is looked up, the result is stored locally for instant access on repeat browsing.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">🔄</span>
-                <div class="tip-content">
-                    <h3>Fallback Chain</h3>
-                    <p>JellyLooter first checks the remote server for IDs. If missing, it queries TMDB → TVDB → OMDb until it finds what it needs.</p>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Download Settings -->
-        <div class="card" id="download-settings">
-            <h2>⬇️ Download Settings</h2>
-            
-            <div class="tip">
-                <span class="tip-icon">📊</span>
-                <div class="tip-content">
-                    <h3>Download Statistics Widget</h3>
-                    <p>The stats widget at the top of the page shows:<br>
-                    <strong>Total Downloaded</strong> - All-time bytes downloaded (persists across restarts)<br>
-                    <strong>This Session</strong> - Files downloaded since container started<br>
-                    <strong>Current Speed</strong> - Combined speed of active downloads<br>
-                    <strong>In Queue</strong> - Pending downloads waiting to start<br>
-                    When transcoding is enabled, a <strong>Transcode Savings</strong> panel shows space saved.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">🔄</span>
-                <div class="tip-content">
-                    <h3>Auto-Retry Failed Downloads</h3>
-                    <p>Enable in Advanced Settings to automatically retry downloads that fail due to connection errors, timeouts, or server issues. Configure:<br>
-                    <strong>Retry attempts</strong> - How many times to retry (1-10, default 3)<br>
-                    <strong>Retry delay</strong> - Seconds between retries (5-300, default 30)</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">⚡</span>
-                <div class="tip-content">
-                    <h3>Download Limit Override (Pro)</h3>
-                    <p>Pro users can enable "Override download limit" to allow more than 10 concurrent downloads (up to 50). <strong>⚠️ Warning:</strong> High concurrent downloads can overload remote servers, cause rate limiting or bans, and affect other users on shared servers. Use responsibly.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">⏱️</span>
-                <div class="tip-content">
-                    <h3>Connection Settings</h3>
-                    <p><strong>Connection timeout</strong> - How long to wait for server response (default 30s)<br>
-                    <strong>Chunk size</strong> - Download buffer size in KB (default 64KB, higher = faster but more memory)</p>
-                </div>
-            </div>
-        </div>
-        
+
         <!-- Transcoding -->
         <div class="card" id="transcoding">
             <h2>🎬 Transcoding (Pro)</h2>
-            
-            <div class="tip">
-                <span class="tip-icon">🎛️</span>
-                <div class="tip-content">
-                    <h3>Transcode Presets</h3>
-                    <p>Choose from 6 encoding presets in Pro Settings:<br>
-                    <code>Original</code> - No transcoding, keep source file<br>
-                    <code>H.264</code> - Compatible with most devices (.mp4)<br>
-                    <code>H.265/HEVC</code> - Smaller files, modern devices (.mkv)<br>
-                    <code>AVI</code> - Legacy compatible MPEG-4 + MP3 (.avi)<br>
-                    <code>Mobile</code> - 720p H.264 for phones/tablets<br>
-                    <code>4K Optimized</code> - High quality H.265 for 4K content</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">⚡</span>
-                <div class="tip-content">
-                    <h3>Hardware Acceleration</h3>
-                    <p>JellyLooter supports NVIDIA NVENC, Intel QuickSync, and AMD VAAPI. For NVENC, use <code>Dockerfile.nvidia</code> and pass <code>--gpus all</code> to Docker. The app auto-detects available encoders and falls back to software if needed.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">🔀</span>
-                <div class="tip-content">
-                    <h3>Separate Workers</h3>
-                    <p>Downloads and transcodes run in parallel with separate worker pools. Configure 1-10 download workers and 1-5 transcode workers. This means downloads continue while files are being transcoded.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">💾</span>
-                <div class="tip-content">
-                    <h3>Cache Drive</h3>
-                    <p>Enable "Use cache drive" to transcode files to a fast SSD first, then move them to the final destination. This reduces wear on slower drives, improves performance with network storage (NAS/SMB/NFS), and keeps partial files separate from your media library.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">🗑️</span>
-                <div class="tip-content">
-                    <h3>Clear Cache</h3>
-                    <p>Use the "Clear Cache" button to remove partial/failed transcode files from the cache drive. The cache status shows how many files and total size are currently stored.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">⚖️</span>
-                <div class="tip-content">
-                    <h3>Skip if Larger</h3>
-                    <p>Enable "Skip if larger" to automatically keep the original file when transcoding would increase file size. This prevents wasted space from inefficient transcodes (e.g., highly compressed originals).</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">📊</span>
-                <div class="tip-content">
-                    <h3>Transcode Statistics</h3>
-                    <p>Track your transcoding efficiency: files processed, files skipped (larger), total space saved, and average reduction percentage. Stats persist across restarts and can be reset anytime.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">🚦</span>
-                <div class="tip-content">
-                    <h3>Queue Limit</h3>
-                    <p>The transcode queue is limited to 10 pending files to prevent memory issues. Downloads will pause if the queue is full and resume automatically when space is available.</p>
-                </div>
-            </div>
+            <div class="tip"><span class="tip-icon">🎛️</span><div class="tip-content"><h3>Presets</h3><p>Original (no transcode), H.264, H.265/HEVC, Mobile (720p), 4K Optimized, AVI, or your own FFmpeg arguments. "Skip if larger" keeps the original when the result would be bigger.</p></div></div>
+            <div class="tip"><span class="tip-icon">🖥️</span><div class="tip-content"><h3>Using your GPU</h3><p><strong>NVIDIA:</strong> install the Nvidia-Driver plugin on Unraid, add <code>--runtime=nvidia</code> to Extra Parameters and set <code>NVIDIA_VISIBLE_DEVICES=all</code> and <code>NVIDIA_DRIVER_CAPABILITIES=compute,video,utility</code>, then choose NVIDIA NVENC as the encoder. <strong>Intel QuickSync / AMD:</strong> pass through <code>/dev/dri</code> and choose QuickSync or VAAPI.</p></div></div>
+            <div class="tip"><span class="tip-icon">💾</span><div class="tip-content"><h3>Cache drive and statistics</h3><p>Optionally transcode on a fast cache drive first. The Pro tab shows how much space transcoding has saved, and can clear leftover cache files.</p></div></div>
         </div>
-        
-        <!-- Activity Log -->
-        <div class="card" id="activity-log">
-            <h2>📋 Activity Log</h2>
-            
-            <div class="tip">
-                <span class="tip-icon">📊</span>
-                <div class="tip-content">
-                    <h3>Basic vs Advanced View</h3>
-                    <p>Use the dropdown in the Activity Log panel to switch between views:<br>
-                    <strong>Basic</strong> - Shows only downloads: started, progress, completed, failed<br>
-                    <strong>Advanced</strong> - Shows everything: metadata lookups, cache operations, API calls, debug info</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">📋</span>
-                <div class="tip-content">
-                    <h3>Copy Logs</h3>
-                    <p>Click the clipboard button (📋) in the Activity Log header to copy all log lines to your clipboard. Useful for sharing logs when troubleshooting or reporting issues.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">📜</span>
-                <div class="tip-content">
-                    <h3>History View</h3>
-                    <p>Click the "History" button to see your download history - all completed downloads with filenames, sizes, and timestamps.</p>
-                </div>
-            </div>
+
+        <!-- Metadata -->
+        <div class="card" id="metadata-apis">
+            <h2>🔍 Metadata Keys</h2>
+            <div class="tip"><span class="tip-icon">🗝️</span><div class="tip-content"><h3>TMDB, TVDB, OMDb</h3><p>Optional free keys that help find missing IMDb/TVDB IDs for folder names and matching. Each has a Test button. TVDB needs a <strong>v4</strong> key (it looks like <code>xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</code>); old v2/v3 keys no longer work, and the subscriber PIN is only needed for subscriber keys. New OMDb keys must be activated from the email OMDb sends.</p></div></div>
         </div>
-        
-        <!-- Backup & Restore -->
+
+        <!-- Folder naming -->
+        <div class="card" id="folder-naming">
+            <h2>📁 Folder Naming</h2>
+            <div class="tip"><span class="tip-icon">🏷️</span><div class="tip-content"><h3>Why add IDs?</h3><p>IDs in folder names help Jellyfin, Sonarr and Radarr identify titles correctly - especially anime, foreign films and common names.</p></div></div>
+            <div class="tip"><span class="tip-icon">📋</span><div class="tip-content"><h3>Formats</h3><p>Choose in <strong>Settings → General → Metadata</strong>:<br>
+                <code>Standard</code> - Movie (2010)<br>
+                <code>With IDs (space)</code> - Movie (2010) tt1234567<br>
+                <code>With IDs {braces}</code> - Movie (2010) {imdb-tt1234567} {tmdb-12345}<br>
+                <code>With IDs [brackets]</code> - Movie (2010) [imdb-tt1234567]<br>
+                <code>TMDB ID only</code> / <code>IMDB ID only</code></p></div></div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="card" id="statistics">
+            <h2>📊 Statistics &amp; History</h2>
+            <div class="tip"><span class="tip-icon">📜</span><div class="tip-content"><h3>History</h3><p>The History tab lists finished downloads with size, server and time. Today's and total counts appear in the sidebar.</p></div></div>
+            <div class="tip"><span class="tip-icon">📈</span><div class="tip-content"><h3>Detailed statistics (Pro)</h3><p>Click <strong>Download Analytics</strong> in the left sidebar (both layouts) for downloads per day, by type and server, busiest hours and weekdays, top shows and movies, and the largest and fastest files over 7 days to a year.</p></div></div>
+        </div>
+
+        <!-- Upgrading -->
+        <div class="card" id="upgrading">
+            <h2>⬆️ Upgrading from v3.x</h2>
+            <div class="tip"><span class="tip-icon">✅</span><div class="tip-content"><h3>Nothing to re-enter</h3><p>On first start, v4 moves your servers, logins, sync mappings and settings into the new layout automatically. Your Pro license carries over. A copy of the old settings is saved as <code>looter_config.json.v3-backup.json</code> in your config folder.</p></div></div>
+        </div>
+
+        <!-- API -->
+        <div class="card" id="api-integration">
+            <h2>🔌 External API</h2>
+            <p style="color: var(--jf-text-muted); margin-bottom: 1rem;">Control JellyLooter from NZB360, Organizr, Home Assistant and similar tools.</p>
+            <div class="tip"><span class="tip-icon">🔑</span><div class="tip-content"><h3>Getting a key</h3><p>Go to <strong>Settings → Advanced → External API</strong> and click <strong>New Key</strong>. Copy it right away - it is shown only once.</p></div></div>
+            <div class="tip"><span class="tip-icon">📡</span><div class="tip-content"><h3>Using it</h3><p>Send the key in a header: <code>X-Api-Key: your_key</code> (or <code>?apikey=your_key</code>).<br>
+                <code>GET /api/v1/status</code> - queue, speeds, disk<br>
+                <code>GET /api/v1/queue</code> - current downloads<br>
+                <code>POST /api/v1/queue/add</code> - add a download<br>
+                <code>POST /api/v1/queue/pause</code> / <code>resume</code><br>
+                <code>GET /api/v1/history</code> - download history<br>
+                <code>GET /api/v1/docs</code> - full documentation</p></div></div>
+            <div class="tip"><span class="tip-icon">🏥</span><div class="tip-content"><h3>Health check</h3><p><code>/health</code> (no login needed) returns version, uptime, queue and disk status - handy for Docker healthchecks and monitoring.</p></div></div>
+        </div>
+
+        <!-- Backup -->
         <div class="card" id="backup-restore">
-            <h2>💾 Backup & Restore</h2>
-            
-            <div class="tip">
-                <span class="tip-icon">📤</span>
-                <div class="tip-content">
-                    <h3>Export Configuration</h3>
-                    <p>Go to <strong>Settings → Advanced Settings → Backup & Restore</strong> and click "Export Config". This downloads a JSON file with all your settings. API keys are masked (***MASKED***) for security.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">📥</span>
-                <div class="tip-content">
-                    <h3>Import Configuration</h3>
-                    <p>Click "Import Config" and select a previously exported JSON file. Your existing API keys are preserved if the imported ones are masked. Great for migrating to a new server or restoring after reinstall.</p>
-                </div>
-            </div>
+            <h2>💾 Backup &amp; Restore</h2>
+            <div class="tip"><span class="tip-icon">📤</span><div class="tip-content"><h3>Export / Import</h3><p>In <strong>Settings → Advanced</strong>. Exports hide your keys and passwords; importing keeps the keys you already have. Old v3 exports can be imported too.</p></div></div>
+            <div class="tip"><span class="tip-icon">🔑</span><div class="tip-content"><h3>License backup</h3><p>Pro licenses are also backed up inside your library folders. After a reinstall, use <strong>Settings → Advanced → License Backup → Restore</strong>.</p></div></div>
         </div>
-        
-        <!-- Download Resume -->
-        <div class="card" id="download-resume">
-            <h2>🔄 Download Resume (Pro)</h2>
-            
-            <div class="tip">
-                <span class="tip-icon">💎</span>
-                <div class="tip-content">
-                    <h3>Pro Feature</h3>
-                    <p>Download resume is available for Pro license holders. Interrupted downloads can be resumed from where they left off.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">📁</span>
-                <div class="tip-content">
-                    <h3>How It Works</h3>
-                    <p>Downloads in progress are saved as <code>.partial</code> files. If JellyLooter restarts or a download is interrupted, it will automatically resume from the last saved position.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">⏱️</span>
-                <div class="tip-content">
-                    <h3>Auto-Save</h3>
-                    <p>Progress is saved every 30 seconds during download. After completion, the <code>.partial</code> extension is removed and the file is renamed to its final name.</p>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Health Check -->
-        <div class="card" id="health-check">
-            <h2>🏥 Health Check Endpoint</h2>
-            
-            <div class="tip">
-                <span class="tip-icon">🔗</span>
-                <div class="tip-content">
-                    <h3>Endpoint</h3>
-                    <p>Access at <code>/health</code> or <code>/api/health</code> (no authentication required). Perfect for Docker healthchecks and monitoring systems.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">📊</span>
-                <div class="tip-content">
-                    <h3>Response Data</h3>
-                    <p>Returns JSON with: version, uptime, queue status (active/pending/paused), disk space, server connectivity, cache info, and license tier.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">🐳</span>
-                <div class="tip-content">
-                    <h3>Docker Healthcheck</h3>
-                    <p>Add to your docker-compose.yml:<br>
-                    <code>healthcheck:<br>&nbsp;&nbsp;test: ["CMD", "curl", "-f", "http://localhost:5000/health"]<br>&nbsp;&nbsp;interval: 30s</code></p>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Display Settings -->
-        <div class="card" id="display-settings">
-            <h2>🎨 Display Settings</h2>
-            
-            <div class="tip">
-                <span class="tip-icon">⭐</span>
-                <div class="tip-content">
-                    <h3>Rating Overlays</h3>
-                    <p>Show IMDB/TMDB ratings on poster images. To toggle: <strong>Settings → Advanced Settings → "Show ratings on posters"</strong>. Ratings are pulled from your Jellyfin/Emby server's metadata.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">📊</span>
-                <div class="tip-content">
-                    <h3>Quality Badges</h3>
-                    <p>Show resolution (4K, 1080p, 720p), HDR, Dolby Vision, and Atmos badges on posters. To toggle: <strong>Settings → Advanced Settings → "Show quality badges"</strong>. Quality info is detected from the media file's video/audio streams.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">🏷️</span>
-                <div class="tip-content">
-                    <h3>Content Ratings</h3>
-                    <p>Content ratings (PG-13, R, TV-MA, etc.) appear in the top-right corner of posters when available. These are always shown when rating data exists in your server's metadata.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">🌙</span>
-                <div class="tip-content">
-                    <h3>Theme</h3>
-                    <p>Toggle dark/light theme in <strong>Settings → Appearance</strong>. Pro users can also use custom themes (Jellyfin, Plex, Emby, Christmas) or create custom color schemes.</p>
-                </div>
-            </div>
-        </div>
-        
-        <!-- *arr Setup -->
-        <div class="card" id="arr-setup">
-            <h2>📁 *arr Integration Setup (Pro)</h2>
-            <p style="color: var(--jf-text-muted); margin-bottom: 1rem;">Connect Sonarr/Radarr to use their exact folder naming conventions for downloads.</p>
-            
-            <h3 style="margin-top: 1rem;">Finding Your Sonarr API Key</h3>
-            <div class="steps">
-                <div class="step">
-                    <div class="step-content">Open Sonarr web UI</div>
-                </div>
-                <div class="step">
-                    <div class="step-content">Go to <strong>Settings → General</strong></div>
-                </div>
-                <div class="step">
-                    <div class="step-content">Scroll to <strong>Security</strong> section</div>
-                </div>
-                <div class="step">
-                    <div class="step-content">Copy the <strong>API Key</strong> (click to reveal if hidden)</div>
-                </div>
-            </div>
-            
-            <h3 style="margin-top: 1.5rem;">Finding Your Radarr API Key</h3>
-            <div class="steps">
-                <div class="step">
-                    <div class="step-content">Open Radarr web UI</div>
-                </div>
-                <div class="step">
-                    <div class="step-content">Go to <strong>Settings → General</strong></div>
-                </div>
-                <div class="step">
-                    <div class="step-content">Scroll to <strong>Security</strong> section</div>
-                </div>
-                <div class="step">
-                    <div class="step-content">Copy the <strong>API Key</strong></div>
-                </div>
-            </div>
-            
-            <div class="tip" style="margin-top: 1.5rem;">
-                <span class="tip-icon">💡</span>
-                <div class="tip-content">
-                    <h3>How It Works</h3>
-                    <p>JellyLooter caches your Sonarr/Radarr library and uses the exact folder names when downloading. For example, if Radarr has "Inception (2010) {tmdb-27205}", your downloads will use that exact folder name. Click "Refresh" in Pro Settings to update the cache.</p>
-                </div>
-            </div>
-        </div>
-        
+
         <!-- Troubleshooting -->
         <div class="card" id="troubleshooting">
             <h2>🔧 {{ t.get('troubleshooting', 'Troubleshooting') }}</h2>
-            
-            <div class="tip">
-                <span class="tip-icon">🔑</span>
-                <div class="tip-content">
-                    <h3>{{ t.get('issue_auth', 'Authentication Issues') }}</h3>
-                    <p>{{ t.get('issue_auth_desc', 'If using username/password auth, try deleting and re-adding the server. The user_id must be stored correctly.') }}</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">🐌</span>
-                <div class="tip-content">
-                    <h3>{{ t.get('issue_slow', 'Slow Downloads') }}</h3>
-                    <p>{{ t.get('issue_slow_desc', 'Check your speed limit setting. Set to 0 for unlimited. Also check network connection to remote server.') }}</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">❌</span>
-                <div class="tip-content">
-                    <h3>{{ t.get('issue_error', 'Download Errors') }}</h3>
-                    <p>{{ t.get('issue_error_desc', 'Check the Activity Log for details. Common issues: disk full, permissions, network timeout.') }}</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">🔄</span>
-                <div class="tip-content">
-                    <h3>Cache Not Updating</h3>
-                    <p>Click "Rebuild Cache" in the Activity Log panel. This rescans your local library for duplicate detection.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">⭐</span>
-                <div class="tip-content">
-                    <h3>Ratings Not Showing</h3>
-                    <p>Ratings come from your Jellyfin/Emby server's metadata. Make sure your library has been scanned and has metadata. Also check that "Show ratings on posters" is enabled in Advanced Settings.</p>
-                </div>
-            </div>
-            
-            <div class="tip">
-                <span class="tip-icon">📊</span>
-                <div class="tip-content">
-                    <h3>Quality Badges Not Showing</h3>
-                    <p>Quality info requires media analysis. In Jellyfin, go to your library settings and enable "Extract chapter images" or run a full library scan. The MediaStreams data must be present for badges to appear.</p>
-                </div>
-            </div>
+            <div class="tip"><span class="tip-icon">🔐</span><div class="tip-content"><h3>"Server rejected the saved login"</h3><p>The server's session for JellyLooter was removed or expired. Click ✏️ on the server, enter the password again and save.</p></div></div>
+            <div class="tip"><span class="tip-icon">✅</span><div class="tip-content"><h3>Things I own don't show a ✓</h3><p>Rescan your local library in <strong>Settings → Advanced → Local Library Cache</strong>. It also runs automatically every night.</p></div></div>
+            <div class="tip"><span class="tip-icon">🐢</span><div class="tip-content"><h3>Slow downloads</h3><p>Check the speed limit (Settings → General) and bandwidth schedule (Pro). Pro multi-connection downloads usually help a lot.</p></div></div>
+            <div class="tip"><span class="tip-icon">📡</span><div class="tip-content"><h3>Sonarr/Radarr don't import</h3><p>Make sure "How the *arr apps see /storage" is set (use Auto-detect) and the *arr app can see the same media share.</p></div></div>
+            <div class="tip"><span class="tip-icon">🛡️</span><div class="tip-content"><h3>VPN won't connect</h3><p>Check the panel for "needs NET_ADMIN". "No handshake" means the config or account was rejected - download a fresh config from your provider. With the kill switch on, downloads wait (and show "Waiting for VPN") until it reconnects.</p></div></div>
+            <div class="tip"><span class="tip-icon">📜</span><div class="tip-content"><h3>Anything else</h3><p>Open <strong>Settings → Advanced → Activity Log</strong>, filter for the item, and include those lines when you open an issue on GitHub.</p></div></div>
         </div>
-        
+
         <!-- FAQ -->
         <div class="card" id="faq">
             <h2>❓ Frequently Asked Questions</h2>
-            
-            <div class="faq-item">
-                <div class="faq-q">Q: What's the difference between Ko-fi donations and Pro license?</div>
-                <div class="faq-a">Ko-fi donations are just tips to support development - you get nothing except our gratitude. Pro licenses ($10 lifetime) unlock all Pro features: notifications, GPU transcoding, download scheduling, *arr integration, custom themes, and remove the banner ad.</div>
-            </div>
-            
-            <div class="faq-item">
-                <div class="faq-q">Q: Where do ratings come from?</div>
-                <div class="faq-a">Ratings are pulled directly from your Jellyfin/Emby server's metadata. JellyLooter doesn't make external API calls for ratings. If your server has IMDB/TMDB ratings in its database (from library scans), they'll appear on posters.</div>
-            </div>
-            
-            <div class="faq-item">
-                <div class="faq-q">Q: Why don't I see 4K/HDR badges on my content?</div>
-                <div class="faq-a">Quality badges require MediaStreams data from Jellyfin/Emby. Run a full library scan on your remote server to populate this data. Also ensure "Show quality badges" is enabled in Advanced Settings.</div>
-            </div>
-            
-            <div class="faq-item">
-                <div class="faq-q">Q: Can I use JellyLooter with Plex?</div>
-                <div class="faq-a">No, JellyLooter only supports Jellyfin and Emby servers. Plex uses a different API that is not compatible.</div>
-            </div>
-            
-            <div class="faq-item">
-                <div class="faq-q">Q: Is my API key/password stored securely?</div>
-                <div class="faq-a">API keys are stored in your local config file. Passwords are hashed with bcrypt before storage. The config file is only accessible within your Docker container's /config volume.</div>
-            </div>
-            
-            <div class="faq-item">
-                <div class="faq-q">Q: How does duplicate detection work?</div>
-                <div class="faq-a">JellyLooter scans your local Jellyfin/Emby server and builds a cache of IMDB/TMDB IDs. When browsing remote content, items that exist locally are highlighted with a green border. Click "Rebuild Cache" to refresh.</div>
-            </div>
-            
-            <div class="faq-item">
-                <div class="faq-q">Q: Can I download entire seasons/series at once?</div>
-                <div class="faq-a">Yes! Navigate to a series or season and select it, then click Download. JellyLooter will queue all episodes. You can also Ctrl+click to select multiple items.</div>
-            </div>
-            
-            <div class="faq-item">
-                <div class="faq-q">Q: What happens if a download fails?</div>
-                <div class="faq-a">Failed downloads are logged in the Activity Log. Partial files are automatically cleaned up. You can retry by selecting the item and downloading again.</div>
-            </div>
-            
-            <div class="faq-item">
-                <div class="faq-q">Q: How do I get GPU transcoding working on Unraid?</div>
-                <div class="faq-a">For NVIDIA GPUs, add <code>--runtime=nvidia</code> to Extra Parameters and set <code>NVIDIA_VISIBLE_DEVICES=all</code> (or your GPU UUID). For Intel QuickSync, pass through /dev/dri. Transcoding is a Pro feature.</div>
-            </div>
-            
-            <div class="faq-item">
-                <div class="faq-q">Q: My license key isn't working. What do I do?</div>
-                <div class="faq-a">Make sure you're entering the key exactly as received (with dashes). Keys are validated with Gumroad's API. If you're offline, the key will be trusted based on format. Contact us on GitHub if issues persist.</div>
-            </div>
+            <div class="faq-item"><div class="faq-q">Q: What's the difference between a Ko-fi donation and a Pro license?</div><div class="faq-a">Donations are a thank-you only. A Pro license ($10, lifetime) unlocks every Pro feature and removes the banner.</div></div>
+            <div class="faq-item"><div class="faq-q">Q: What does Pro include?</div><div class="faq-a">Unlimited servers and sync mappings, multi-connection downloads with crash-safe resume and verification, downloading when a server blocks downloads, the built-in VPN with kill switch, Sonarr/Radarr/Lidarr integration, GPU transcoding, scheduling, per-server downloads, notifications, detailed statistics and holiday themes.</div></div>
+            <div class="faq-item"><div class="faq-q">Q: Can I use JellyLooter with Plex?</div><div class="faq-a">No - it works with Jellyfin and Emby servers.</div></div>
+            <div class="faq-item"><div class="faq-q">Q: Are my passwords and keys safe?</div><div class="faq-a">Server tokens, *arr keys and VPN keys are encrypted on disk, never sent back to your browser, and left out of config exports.</div></div>
+            <div class="faq-item"><div class="faq-q">Q: Can I download a whole show or season?</div><div class="faq-a">Yes - open the show or season and click its Download button, or use ⬇ on the show's poster. JellyLooter queues every episode into the right season folders.</div></div>
+            <div class="faq-item"><div class="faq-q">Q: What happens if a download fails?</div><div class="faq-a">It's retried automatically (number of retries and delay are in Settings → General). Pro keeps the partial file so it can resume instead of starting over.</div></div>
+            <div class="faq-item"><div class="faq-q">Q: My license key isn't working.</div><div class="faq-a">Enter the key exactly as Gumroad sent it, dashes included. If you reinstalled, try Settings → Advanced → License Backup → Restore. Still stuck? Open an issue on GitHub.</div></div>
         </div>
-        
+
         <!-- Legal Disclaimer -->
         <div class="card" id="legal">
             <h2>⚖️ Legal Disclaimer</h2>
@@ -975,11 +337,18 @@
                     <p>Fixed jellylooter.xml for Unraid Community Apps compatibility</p>
                 </div>
             </div>
+            <div class="tip" style="background: var(--jf-bg-card); margin-top: 0.5rem;">
+                <span class="tip-icon">👤</span>
+                <div class="tip-content">
+                    <h3><a href="https://github.com/Z3r0Fell" target="_blank" style="color: var(--jf-primary); text-decoration: none;">Z3r0Fell (ZeroFell)</a></h3>
+                    <p>Testing, feedback, and feature suggestions for v4.0 GUI overhaul</p>
+                </div>
+            </div>
             <p style="color: var(--jf-text-muted); font-size: 0.85rem; margin-top: 1rem;">Want to be listed here? Contribute on <a href="https://github.com/jlightner86/jellylooter" target="_blank" style="color: var(--jf-primary);">GitHub</a> or help test new features!</p>
         </div>
         
         <div class="footer">
-            <p>JellyLooter v{{ version }} • <a href="https://github.com/friendlymedia/jellylooter" target="_blank">GitHub</a> • <a href="https://lightwave43.gumroad.com/l/rmtmrr" target="_blank">Get Pro</a></p>
+            <p>JellyLooter v{{ version }} • <a href="https://github.com/jlightner86/jellylooter" target="_blank">GitHub</a> • <a href="https://lightwave43.gumroad.com/l/rmtmrr" target="_blank">Get Pro</a></p>
         </div>
     </div>
 </body>
