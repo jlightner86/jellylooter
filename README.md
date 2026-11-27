@@ -1,4 +1,4 @@
-# JellyLooter v3.2.0
+# JellyLooter v4.0.0
 
 **Sync media from remote Jellyfin/Emby servers to your local storage.**
 
@@ -8,80 +8,292 @@ Built by Friendly Media — because your friends' Jellyfin libraries aren't goin
 
 ---
 
-## Screenshots
-
-| Browse Library | Download Queue | Settings |
-|----------------|----------------|----------|
-| ![Browse](https://raw.githubusercontent.com/jlightner86/jellylooter/main/screenshots/browse.png) | ![Queue](https://raw.githubusercontent.com/jlightner86/jellylooter/main/screenshots/queue.png) | ![Settings](https://raw.githubusercontent.com/jlightner86/jellylooter/main/screenshots/settings.png) |
-
-| Rating Overlays | Quality Badges | Pro Features |
-|-----------------|----------------|--------------|
-| ![Ratings](https://raw.githubusercontent.com/jlightner86/jellylooter/main/screenshots/ratings.png) | ![Quality](https://raw.githubusercontent.com/jlightner86/jellylooter/main/screenshots/quality.png) | ![Pro](https://raw.githubusercontent.com/jlightner86/jellylooter/main/screenshots/pro.png) |
+**Jump to:** [Installation](#installation) · [Free vs Pro](#free-vs-pro) · [GPU](#gpu-transcoding-pro) · [VPN](#built-in-vpn-pro) · [Sonarr/Radarr/Lidarr](#sonarr--radarr--lidarr-pro) · [Upgrading](#upgrading-from-v3x) · [API](#external-api)
 
 ---
 
-## What's New in v3.2.0
+## Screenshots
 
-### 🔌 API Integration (NZB360, Organizr, etc.)
-- **External API access** - Control JellyLooter from external apps
-- **API key authentication** - Secure access with generated API keys
-- **Full queue control** - Add, remove, pause, resume downloads via API
-- **NZB360 compatible** - Use Custom Downloader integration
-- **Organizr widgets** - Add status widget to your dashboard
-- **Home Assistant** - Poll status for sensors and automations
-- **API documentation** - Built-in docs at `/api/v1/docs`
+| Browse | Download | Sync |
+|--------|----------|------|
+| ![Browse](https://raw.githubusercontent.com/jlightner86/jellylooter/main/screenshots/browse.png) | ![Download](https://raw.githubusercontent.com/jlightner86/jellylooter/main/screenshots/download.png) | ![Sync](https://raw.githubusercontent.com/jlightner86/jellylooter/main/screenshots/sync.png) |
 
-### 📊 Dashboard Layouts
-Choose from 6 layout options to customize your browsing experience:
-- **Classic** - Large posters with full details (default)
-- **Compact** - Smaller posters, fits 2x more on screen
-- **Cards** - Horizontal cards with poster and info
-- **List** - Vertical list with thumbnails for quick browsing
-- **Minimal** - Posters only, hover for details
-- **Large Posters** - Oversized artwork focus
+| Settings | Pro & VPN | Statistics (Pro) |
+|----------|-----------|------------------|
+| ![Settings](https://raw.githubusercontent.com/jlightner86/jellylooter/main/screenshots/settings.png) | ![Pro](https://raw.githubusercontent.com/jlightner86/jellylooter/main/screenshots/pro.png) | ![Stats](https://raw.githubusercontent.com/jlightner86/jellylooter/main/screenshots/stats.png) |
 
-### ⚙️ Tabbed Settings UI
-Redesigned settings page with organized tabs:
-- **General** - Appearance, language, layout, display options, timezone
-- **Servers** - Remote servers, local server, API integration
-- **Downloads** - Speed limits, retry settings, folder naming, metadata APIs
-- **Security** - Authentication, reverse proxy settings
-- **Pro** - Notifications, transcoding, resource limits, scheduling, *arr integration, themes
+| Dashboard layout | Missing episodes | VPN & kill switch (Pro) |
+|------------------|------------------|-------------------------|
+| ![Dashboard](https://raw.githubusercontent.com/jlightner86/jellylooter/main/screenshots/dashboard.png) | ![Show](https://raw.githubusercontent.com/jlightner86/jellylooter/main/screenshots/show.png) | ![VPN](https://raw.githubusercontent.com/jlightner86/jellylooter/main/screenshots/vpn.png) |
 
-### ⚡ Resource Limits (Pro)
-Control system resource usage to prevent overloading NAS/low-power devices:
-- **CPU Threads** - Limit FFmpeg to 1-16 threads (or auto)
-- **Process Priority** - Low/Normal/High (nice levels)
-- **I/O Priority** - Idle/Low/Normal (ionice for disk)
-- **Memory Buffer** - 8-256 MB download buffer size
+---
 
-**Presets:**
-| Device Type | CPU | I/O | Buffer |
-|-------------|-----|-----|--------|
-| NAS/Low-power | Low | Idle | 16 MB |
-| Shared systems | Normal | Low | 32 MB |
-| Dedicated | High | Normal | 256 MB |
+## What's New in v4.0.0
 
-### 📡 Per-Server Workers (Pro)
-Download from multiple Jellyfin servers simultaneously:
-- Each server gets its own dedicated worker pool
-- Downloads from Server A don't block Server B
-- Configure 1-10 workers per server (matches concurrent download limit)
-- Total concurrent downloads = servers × workers per server
-- Example: 3 servers × 4 workers = 12 simultaneous downloads
+A complete redesign, plus a much faster and more reliable download engine.
 
-### 📈 Enhanced Download Statistics
-- **Persistent tracking** - Stats survive container restarts
-- **Per-server breakdown** - See downloads by server
-- **Session vs total** - Track current session and all-time totals
-- **Transcode savings widget** - Shows space saved in main UI when transcoding enabled
+### 🖼️ Browsing
+- New interface with two layouts: **Clean Grid** and **Dashboard**
+- Posters show quality (4K / 1080p / HDR / Dolby Vision), rating and **size**
+- **Green ✓ for anything you already have** — matched by IMDb, TMDB, TVDB, AniDB and other IDs *plus* title and year, so nothing is downloaded twice. Owned items hide the download button
+- **Missing episodes** — owned shows display "−N" and offer "Download N missing" into your existing folder; sync fills them in too
+- **Continuing / Ended** on every show; downloading a show that's still airing asks whether Sonarr should watch it for new episodes
+- Real pages (Previous / Next / Page x of y / jump), 25–100 per page, 3–8 posters per row, and browser Back/Forward work
+- Visual **folder picker** with breadcrumbs, subfolder tiles and "New Folder"
+- Shows always go into `Season 01` folders; specials are offered separately and saved in `Specials`
+- Your own local server is browse-only
 
-### 🐛 Bug Fixes
-- **Fixed basic logs** - Activity logs now properly show download events (timestamp-aware patterns)
-- **Fixed download stats** - Statistics now persist and track accurately across restarts
-- **Fixed transcode stats display** - Properly shows space saved percentage
+### 🔄 Sync
+- Map a remote library to a folder; **Sync Media** gets what you don't have, **Sync Duplicate Media** gets everything
+- Never-sync list (🚫 on any poster)
+- Adding a server automatically finds its libraries
 
-### API Endpoints
+### ⚙️ Settings
+- **General / Pro / Advanced** tabs with your license status on top
+- Every Test button (Jellyfin, TMDB, TVDB, OMDb, Sonarr, Radarr, Lidarr) shows the result on the button
+- Advanced tab: live activity log, library rescan, login protection, external API key, timezone and performance, license backup, config export/import
+- English, Spanish and German
+
+### ⭐ New in Pro
+- **Multi-connection downloads** — large files download in parallel parts (about 2× faster)
+- **Crash-safe resume** — parts resume after an outage, files are size-checked and verified with ffprobe, and the queue comes back after a restart or power cut
+- **Download when a server blocks downloads** — grabs the original-quality stream instead (same file, full speed)
+- **Built-in WireGuard VPN** — Proton, PIA (built-in login + region picker), Mullvad, IVPN, AirVPN, Windscribe, Surfshark or any WireGuard config, with an optional **kill switch**
+- **Sonarr / Radarr / Lidarr** get the show, movie or artist the moment you click Download (monitored, no indexer search), with automatic path detection
+- **Detailed download statistics** — per day, type, server, hour and weekday, top titles, largest and fastest files (Download Analytics in the left sidebar)
+- **Better quality available** — a blue ⬆ marks titles the remote has in higher resolution; "Download & replace" swaps them in after verifying each file
+
+### 🚀 Fixes & improvements
+- Downloads are dramatically faster (the license was being re-checked on every 64 KB chunk)
+- Posters load through JellyLooter, so they work even when your browser can't reach the remote server
+- **Upgrading from v3.x keeps every server, login, mapping and setting** (the old config is backed up)
+- Server keys, VPN keys and passwords are never sent to the browser or included in exports
+
+See the in-app **Changelog** for the full list.
+
+---
+
+## Free vs Pro
+
+| Feature | Free | Pro ($10 lifetime) |
+|---------|:----:|:-----:|
+| Browse & download from remote servers | ✅ | ✅ |
+| Local server duplicate detection (IDs + title/year) | ✅ | ✅ |
+| Remote servers | 2 | Unlimited |
+| Local servers | 1 | Unlimited |
+| Sync mappings | 1 | Unlimited |
+| Concurrent downloads | 2 | 10 |
+| Season folders, specials, folder naming with IDs | ✅ | ✅ |
+| Metadata keys (TMDB / TVDB / OMDb) | ✅ | ✅ |
+| Basic statistics & history | ✅ | ✅ |
+| Multi-connection downloads + crash-safe resume + verification | | ✅ |
+| Download when a server blocks downloads | | ✅ |
+| Built-in WireGuard VPN with kill switch | | ✅ |
+| Sonarr / Radarr / Lidarr integration | | ✅ |
+| GPU transcoding (NVIDIA / Intel / AMD) | | ✅ |
+| Download & bandwidth scheduling, per-server downloads | | ✅ |
+| Notifications (Discord, Telegram and 80+ services) | | ✅ |
+| Missing-episode detection & download | ✅ | ✅ |
+| Upgrade to better quality (download & replace) | | ✅ |
+| Detailed statistics | | ✅ |
+| Holiday themes, no banner | | ✅ |
+
+**Get Pro:** [lightwave43.gumroad.com/l/rmtmrr](https://lightwave43.gumroad.com/l/rmtmrr)
+
+---
+
+## Compatibility
+
+| Platform | Version | Status |
+|----------|---------|--------|
+| Unraid | 7.0+ | ✅ Tested |
+| Docker | Linux / macOS / Windows | ✅ Supported |
+| Jellyfin | 10.8+ | ✅ Supported |
+| Emby | 4.7+ | ✅ Supported |
+
+---
+
+## Installation
+
+JellyLooter runs as a Docker container. You need two folders:
+
+| Container path | What it's for | Example |
+|----------------|---------------|---------|
+| `/config` | JellyLooter's settings | `/mnt/user/appdata/jellylooter` |
+| `/storage` | Your media — downloads are saved inside it | `/mnt/user/data/media` |
+
+The web interface runs on port **5000**.
+
+### Option 1 — Unraid (Community Applications)
+
+If JellyLooter is listed in Community Applications:
+
+1. Open the **Apps** tab and search for **JellyLooter**
+2. Click **Install**
+3. Set **Storage Path** to your media share (for example `/mnt/user/data/media`) and **Timezone** to yours
+4. Click **Apply**, then open the WebUI (`http://your-unraid-ip:5000`)
+
+### Option 2 — Unraid (manual / template URL)
+
+If JellyLooter isn't listed in Apps (yet), use the template URL:
+
+1. **Docker** tab → **Add Container**
+2. Next to **Template**, paste this URL and press Enter (or fill the fields in by hand):
+   ```
+   https://raw.githubusercontent.com/jlightner86/jellylooter/main/jellylooter.xml
+   ```
+3. If filling in by hand:
+
+   | Field | Value |
+   |-------|-------|
+   | Name | `JellyLooter` |
+   | Repository | `ghcr.io/jlightner86/jellylooter:latest` |
+   | Network Type | `bridge` |
+   | WebUI | `http://[IP]:[PORT:5000]` |
+   | Port | `5000` → `5000` (TCP) |
+   | Path `/config` | `/mnt/user/appdata/jellylooter` |
+   | Path `/storage` | your media share, e.g. `/mnt/user/data/media` |
+   | Variable `TZ` | your timezone, e.g. `America/Chicago` |
+
+4. Optional **Extra Parameters** (Advanced View):
+   - GPU transcoding on NVIDIA: `--runtime=nvidia` (see [GPU Transcoding](#gpu-transcoding-pro))
+   - Built-in VPN: `--cap-add=NET_ADMIN` (see [Built-in VPN](#built-in-vpn-pro))
+5. Click **Apply** and open `http://your-unraid-ip:5000`
+
+### Option 3 — Docker (Linux)
+
+```bash
+docker run -d \
+  --name jellylooter \
+  --restart unless-stopped \
+  -p 5000:5000 \
+  -v /path/to/jellylooter/config:/config \
+  -v /path/to/media:/storage \
+  -e TZ=America/Chicago \
+  ghcr.io/jlightner86/jellylooter:latest
+```
+
+Add `--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all -e NVIDIA_DRIVER_CAPABILITIES=compute,video,utility` for an NVIDIA GPU, `--device /dev/dri:/dev/dri` for Intel/AMD, or `--cap-add=NET_ADMIN` for the built-in VPN.
+
+### Option 4 — Docker Compose
+
+Save as `docker-compose.yml`, change the media path, then run `docker compose up -d`:
+
+```yaml
+services:
+  jellylooter:
+    image: ghcr.io/jlightner86/jellylooter:latest
+    container_name: jellylooter
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./config:/config
+      - /path/to/media:/storage
+    environment:
+      - TZ=America/Chicago
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    # Optional - NVIDIA GPU (Pro):
+    # runtime: nvidia
+    # Optional - Intel/AMD GPU (Pro):
+    # devices:
+    #   - /dev/dri:/dev/dri
+    # Optional - built-in VPN (Pro):
+    # cap_add:
+    #   - NET_ADMIN
+```
+
+The `docker-compose.yml` in this repository has the same options ready to uncomment.
+
+### Option 5 — Docker Desktop (Windows / macOS)
+
+Windows (PowerShell):
+
+```powershell
+docker run -d `
+  --name jellylooter `
+  --restart unless-stopped `
+  -p 5000:5000 `
+  -v C:\JellyLooter\config:/config `
+  -v D:\Media:/storage `
+  -e TZ=America/Chicago `
+  ghcr.io/jlightner86/jellylooter:latest
+```
+
+macOS: use the Linux command with your own paths (e.g. `-v ~/JellyLooter/config:/config -v /Volumes/Media:/storage`).
+
+Then open `http://localhost:5000`.
+
+### Updating
+
+- **Unraid:** Docker tab → **Check for Updates** → **Apply update** (or turn on auto-update)
+- **Docker:** `docker pull ghcr.io/jlightner86/jellylooter:latest`, then remove and re-create the container with the same command
+- **Compose:** `docker compose pull && docker compose up -d`
+
+Your settings live in `/config`, so they're kept. Coming from v3.x? Everything carries over — see [Upgrading from v3.x](#upgrading-from-v3x).
+
+### First run
+
+1. Open **Settings → General** and add your **Local** server (your own Jellyfin) and one or more **Remote** servers (friends' Jellyfin/Emby). Each server's libraries are detected automatically.
+2. Pick a remote server in the left sidebar, open a library and start browsing — a green ✓ marks things you already have.
+3. Optional: map libraries on the **Sync** page so new media downloads automatically.
+
+---
+
+## GPU Transcoding (Pro)
+
+The standard image already includes FFmpeg with NVIDIA NVENC, Intel QuickSync and AMD/Intel VAAPI support.
+
+**NVIDIA (Unraid):**
+1. Install the **Nvidia-Driver** plugin from Community Applications
+2. Container → **Extra Parameters**: `--runtime=nvidia`
+3. Add variables `NVIDIA_VISIBLE_DEVICES` = `all` and `NVIDIA_DRIVER_CAPABILITIES` = `compute,video,utility`
+4. In JellyLooter: **Settings → Pro → Transcoding** → Encoder **NVIDIA NVENC**
+
+**Intel QuickSync / AMD VAAPI:**
+1. Add device `/dev/dri` (or Extra Parameters `--device=/dev/dri:/dev/dri`)
+2. Choose **Intel QuickSync** or **AMD / Intel VAAPI** as the encoder
+
+Docker Compose users can uncomment the GPU section in `docker-compose.yml`. If hardware encoding fails, JellyLooter falls back to software encoding automatically.
+
+---
+
+## Built-in VPN (Pro)
+
+JellyLooter can send its internet traffic through WireGuard while your home network (local Jellyfin, Sonarr/Radarr, the web UI) stays direct.
+
+1. Give the container network permission:
+   - **Unraid:** Extra Parameters `--cap-add=NET_ADMIN`
+   - **Compose:** `cap_add: [NET_ADMIN]`
+2. **Settings → Pro → VPN**, pick your provider:
+   - **Proton, Mullvad, IVPN, AirVPN, Windscribe, Surfshark** or any WireGuard provider: paste or upload the `.conf` from your provider (instructions shown in the app)
+   - **PIA:** enter your username and password and pick a region
+3. **Kill switch (recommended):** if the VPN drops, all internet traffic is blocked and downloads wait until it reconnects — your real IP stays hidden. With it off, downloads continue without the VPN.
+
+---
+
+## Sonarr / Radarr / Lidarr (Pro)
+
+1. **Settings → Pro → *arr Integration**: enter each app's URL and API key (Settings → General → Security in the app), click **Test**
+2. Click **Auto-detect** next to "How the *arr apps see /storage" (for example `/data/media`)
+3. When you click Download, the show/movie/artist is added to the right app (monitored, no indexer search) and imported when the files finish
+
+---
+
+## Upgrading from v3.x
+
+Just update the container. On first start, v4 moves your servers, logins, sync mappings and settings to the new layout automatically, and your Pro license carries over. A copy of the old settings is saved as `looter_config.json.v3-backup.json` in your config folder.
+
+---
+
+## External API
+
+Control JellyLooter from NZB360, Organizr, Home Assistant and more. Create a key in **Settings → Advanced → External API**, then send it as `X-Api-Key`.
+
 | Endpoint | Description |
 |----------|-------------|
 | `GET /api/v1/status` | Queue status, speeds, disk space |
@@ -95,418 +307,26 @@ Download from multiple Jellyfin servers simultaneously:
 | `GET /api/v1/servers/{id}/browse` | Browse server library |
 | `GET /api/v1/servers/{id}/search` | Search server |
 | `GET /api/v1/stats` | Download/transcode statistics |
+| `GET /api/v1/docs` | Full documentation |
 
----
-
-## What's New in v3.1.0
-
-### 🔍 Library Search
-- **Search within libraries** - Find movies and shows by name without scrolling
-- **Server-side search** - Returns up to 100 results from the entire library
-- **Instant results** - Search box appears when inside any library
-- **Clear search** - One-click return to normal browsing
-
-### ⏰ Time Format Options
-- **12-hour format** - Display times as 1:30 PM (default)
-- **24-hour format** - Display times as 13:30 (military time)
-- **Timezone support** - 30+ timezone options with proper log timestamps
-
-### 🎬 Transcoding Improvements (Pro)
-- **AVI encoding preset** - Legacy-compatible MPEG-4 + MP3 in AVI container
-- **Cache drive support** - Transcode to fast SSD, then move to destination
-- **Improved error logging** - Filters FFmpeg progress output from error logs
-- **Better validation** - ffprobe validation for partially completed transcodes
-- **Preset options**: Original, H.264, H.265/HEVC, AVI, Mobile (720p), 4K Optimized
-
-### 📡 *arr Integration Enhancements
-- **Auto-add series to Sonarr** - Automatically adds new series when downloading episodes
-- **Smart root folder detection** - Matches your download path to Sonarr root folders
-- **Intelligent path mapping** - Scans filesystem to auto-detect path mappings
-- **Fallback search** - Searches by title if TVDB/IMDB lookup fails
-- **Detailed logging** - See exactly what's happening with *arr integration
-
-### 🔍 External Metadata API Support
-- **TMDB, TVDB, OMDb integration** - Lookup missing IMDB/TVDB IDs from external APIs
-- **User-provided API keys** - Free API keys from each service
-- **Automatic fallback** - Tries TMDB → TVDB → OMDb until IDs are found
-- **Pro: Metadata caching** - Store lookups locally for faster repeat browsing
-
-### 📁 Folder Naming Formats
-Choose from 6 folder naming options in Advanced Settings:
-- **Standard** - `Show Name` / `Movie (2010)`
-- **IDs (Space)** - `Show Name tt1234567 76885`
-- **IDs (Braces)** - `Show Name {imdb-tt1234567} {tvdb-76885}`
-- **IDs (Brackets)** - `Show Name [imdb-tt1234567] [tvdb-76885]`
-- **TMDB Only** - `Show Name {tmdb-12345}`
-- **IMDB Only** - `Show Name tt1234567`
-
-### 📋 Activity Log Improvements
-- **Basic/Advanced toggle** - Basic shows only download activity, Advanced shows all logs
-- **Copy logs button** - Copy activity log to clipboard for easy sharing/debugging
-
-### 🔄 Download Improvements
-- **Auto-retry failed downloads** - Configurable retry attempts (1-10) and delay (5-300s)
-- **Download limit override** - Allow >10 concurrent downloads (with safety warning)
-- **Improved error handling** - Better retry logic for connection failures
-
-### Other Improvements
-- Mobile menu: Added Sync Now and Rebuild Cache buttons
-- Enhanced metadata logging for troubleshooting
-- Theme persistence fix across page navigation
-- Download statistics persist across container restarts
-- Clipboard copy works over HTTP (not just HTTPS)
-
----
-
-## What's New in v3.0.0
-
-This is a major release with Pro features, security hardening, and UI enhancements.
-
-### ⭐ Poster Overlays
-- **Rating badges** - IMDB/TMDB ratings displayed on posters
-- **Quality badges** - 4K, 1080p, 720p, HDR, Dolby Vision, Atmos
-- **Content ratings** - PG-13, R, TV-MA displayed on posters
-- **Toggleable** - Enable/disable in Advanced Settings
-
-### ⌨️ Keyboard Shortcuts
-- Press `?` to see all shortcuts
-- Quick navigation (1, 2, 3 for tabs)
-- Download controls (P=pause, D=download, Ctrl+A=select all)
-
-### 📊 Download Statistics
-- Real-time download speed display
-- Total downloaded tracker
-- Queue status at a glance
-
-### 📦 Collection/Playlist Support
-- "Download All" button on collections and playlists
-- Automatically fetches all movies/episodes
-- One-click batch download
-
-### 💾 Backup & Restore
-- Export configuration to JSON
-- Import settings (API keys masked for security)
-- Health check endpoint (`/health`) for Docker monitoring
-
-### 🔄 Download Resume (Pro)
-- Interrupted downloads can be resumed
-- Partial files saved automatically
-- Resume from where you left off
-
-### 🎨 Visual Enhancements
-- 🎨 GPU transcoding support (NVENC, QuickSync, VAAPI)
-- Custom themes (14 presets including seasonal)
-- Movie folder naming with year (e.g., "Inception (2010)/")
-
-### 🔗 *arr Integration
-- Sonarr/Radarr folder naming support
-- Use exact folder names from your *arr apps
-- Auto-refresh cache for folder lookups
-
----
-
-## Free vs Pro
-
-| Feature | Free | Pro ($10 lifetime) |
-|---------|------|--------------------|
-| Remote servers | 2 | Unlimited |
-| Local servers | 1 | Unlimited |
-| Concurrent downloads | 2 | 10 |
-| Download limit override | ❌ | ✅ Up to 50 |
-| Auto-sync mappings | 1 | Unlimited |
-| Items per page | 100 | Unlimited |
-| Rating overlays | ✅ | ✅ |
-| Quality badges | ✅ | ✅ |
-| Folder naming formats | ✅ 6 options | ✅ 6 options |
-| External metadata lookup | ✅ | ✅ |
-| Auto-retry failed downloads | ✅ | ✅ |
-| Metadata caching | ❌ | ✅ |
-| Activity log views | ✅ Basic/Advanced | ✅ Basic/Advanced |
-| Copy logs button | ✅ | ✅ |
-| Download history | ✅ | ✅ |
-| Keyboard shortcuts | ✅ | ✅ |
-| Download statistics | ✅ | ✅ |
-| Collection download | ✅ | ✅ |
-| Config backup/restore | ✅ | ✅ |
-| Health check endpoint | ✅ | ✅ |
-| Download resume | ❌ | ✅ |
-| Notifications | ❌ | ✅ Discord, Telegram, 80+ |
-| Custom themes | ❌ | ✅ 14 presets + custom |
-| GPU transcoding | ❌ | ✅ NVENC, QSV, VAAPI |
-| Transcode cache drive | ❌ | ✅ SSD cache support |
-| Transcode stats | ❌ | ✅ Space saved tracking |
-| Skip if larger | ❌ | ✅ Auto-keep original |
-| *arr auto-import | ❌ | ✅ Radarr/Sonarr |
-| Download scheduling | ❌ | ✅ |
-| Analytics | ❌ | ✅ |
-| Ads/banner | Yes | None |
-
-**Get Pro:** [lightwave43.gumroad.com/l/rmtmrr](https://lightwave43.gumroad.com/l/rmtmrr)
-
----
-
-## Compatibility
-
-| Platform | Version | Status |
-|----------|---------|--------|
-| Unraid | 7.0+ / 7.2.2 | ✅ Tested |
-| Docker | Linux/macOS/Windows | ✅ Tested |
-| Jellyfin | 10.8+ | ✅ Supported |
-| Emby | 4.7+ | ✅ Supported |
-
----
-
-## Quick Start
-
-### Docker Run
-
-```bash
-docker run -d \
-  --name jellylooter \
-  -p 5000:5000 \
-  -v /path/to/config:/config \
-  -v /path/to/media:/storage \
-  ghcr.io/jlightner86/jellylooter:latest
-```
-
-### Docker Compose
-
-```yaml
-version: "3"
-services:
-  jellylooter:
-    image: ghcr.io/jlightner86/jellylooter:latest
-    container_name: jellylooter
-    ports:
-      - "5000:5000"
-    volumes:
-      - ./config:/config
-      - /mnt/media:/storage
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-```
-
-### Windows Docker Desktop
-
-```powershell
-docker run -d `
-  --name jellylooter `
-  -p 5000:5000 `
-  -v C:\JellyLooter\config:/config `
-  -v D:\Media:/storage `
-  ghcr.io/jlightner86/jellylooter:latest
-```
-
-### Unraid (Manual Installation)
-
-Since JellyLooter is not currently available in Community Applications, you can install it manually:
-
-1. **Go to Docker tab** in Unraid WebGUI
-2. **Click "Add Container"** button
-3. **Fill in the following settings:**
-
-| Field | Value |
-|-------|-------|
-| Name | `JellyLooter` |
-| Repository | `ghcr.io/jlightner86/jellylooter:latest` |
-| Network Type | `bridge` |
-| WebUI | `http://[IP]:[PORT:5000]` |
-
-4. **Add the following port mapping:**
-
-| Container Port | Host Port | Type |
-|----------------|-----------|------|
-| `5000` | `5000` | TCP |
-
-5. **Add the following volume mappings:**
-
-| Container Path | Host Path | Access |
-|----------------|-----------|--------|
-| `/config` | `/mnt/user/appdata/jellylooter` | Read/Write |
-| `/storage` | `/mnt/user` | Read/Write |
-
-6. **Optional - Add environment variable:**
-
-| Name | Value |
-|------|-------|
-| `TZ` | `America/Chicago` (or your timezone) |
-
-7. **Click Apply** to create the container
-
-8. **Access JellyLooter** at `http://your-unraid-ip:5000`
-
-#### GPU Transcoding Setup (Pro Feature)
-
-GPU transcoding is now available for Pro users! Choose between NVIDIA NVENC, Intel QuickSync, or AMD VAAPI.
-
-**Transcoding Features:**
-- 🔀 **Separate Workers** - Downloads continue while transcoding (configurable 1-5 transcode workers)
-- ⚖️ **Skip if Larger** - Automatically keeps original if transcode increases file size
-- 📊 **Statistics** - Track files transcoded, space saved, and average reduction
-- 🚦 **Queue Limit** - Max 10 files pending to prevent memory issues
-- 📈 **Progress Bar** - Real-time progress with speed indicator (e.g., "1.2x")
-
-**Option 1: Use Dockerfile.nvidia (Recommended for NVIDIA)**
-
-Build with NVIDIA support baked in (uses Jellyfin FFmpeg with full NVENC support):
-```bash
-docker build -f Dockerfile.nvidia -t jellylooter:nvidia .
-docker run -d --runtime=nvidia --gpus all -p 5000:5000 \
-  -v /path/to/config:/config -v /path/to/storage:/storage \
-  jellylooter:nvidia
-```
-
-**Option 2: Standard Dockerfile + NVIDIA Runtime**
-
-For NVIDIA GPUs with the standard Dockerfile:
-
-1. Make sure you have the **Nvidia-Driver** plugin installed from Community Applications
-2. In the container settings, scroll down to **Extra Parameters** and add:
-   ```
-   --runtime=nvidia --gpus all
-   ```
-3. Add the following environment variables:
-
-| Name | Value | Description |
-|------|-------|-------------|
-| `NVIDIA_VISIBLE_DEVICES` | `all` | Or specific GPU UUID |
-| `NVIDIA_DRIVER_CAPABILITIES` | `compute,video,utility` | Required for encoding |
-
-**For Intel QuickSync:**
-
-1. Add the following device mapping:
-
-| Container Device | Host Device |
-|------------------|-------------|
-| `/dev/dri` | `/dev/dri` |
-
-2. Or in Extra Parameters add:
-   ```
-   --device=/dev/dri:/dev/dri
-   ```
-
-**For AMD VAAPI:**
-
-1. Add the following device mapping:
-
-| Container Device | Host Device |
-|------------------|-------------|
-| `/dev/dri` | `/dev/dri` |
-
-2. Or in Extra Parameters add:
-   ```
-   --device=/dev/dri:/dev/dri
-   ```
-
-**Software Fallback:** If hardware encoding fails, JellyLooter automatically falls back to software encoding (libx265/libx264). Check the Activity Log for transcode status.
-
----
-
-## Health Check Endpoint
-
-JellyLooter provides a `/health` endpoint for monitoring:
-
-```bash
-curl http://localhost:5000/health
-```
-
-Returns JSON with status, disk space, queue info, and server connectivity. Returns HTTP 200 if healthy, 503 if unhealthy (e.g., disk < 1GB free).
-
----
-
-## Features
-
-### Core Features (Free)
-- 📺 Browse remote Jellyfin/Emby libraries
-- ⬇️ Download movies, shows, seasons, episodes
-- 📝 Automatic subtitle download (SRT, ASS, VTT)
-- 🔍 Duplicate detection with local server
-- ⭐ Rating overlays (IMDB/TMDB/Rotten Tomatoes)
-- 📊 Quality badges (4K, HDR, Dolby Vision, Atmos)
-- 📁 **Folder naming formats** - 6 options: Standard, IDs (Space/Braces/Brackets), TMDB-only, IMDB-only
-- 🔎 **External metadata lookup** - TMDB, TVDB, OMDb API fallback for missing IDs
-- 📋 **Activity log views** - Basic (downloads only) or Advanced (all logs)
-- 📦 Collection/Playlist batch download
-- ⌨️ Keyboard shortcuts (press ? for help)
-- 📈 Download statistics widget
-- 💾 Config backup & restore
-- 🌐 Multi-language UI (English, Spanish, German)
-- 🌙 Dark/Light theme
-- ⏸️ Download queue with pause/resume
-- 📈 Progress tracking with ETA
-- 📜 Download history
-
-### Pro Features ($10 lifetime)
-- 🖥️ **Unlimited servers** - Connect to all your friends
-- 🔄 **Download resume** - Resume interrupted downloads from where you left off
-- 💾 **Metadata caching** - Store IMDB/TVDB lookups locally for faster browsing
-- 🔔 **Notifications** - Discord, Telegram, Email, and 80+ services via Apprise
-- 🎬 **GPU Transcoding** - NVENC, QuickSync, VAAPI + AVI preset
-- ⏰ **Download scheduling** - Only download during off-peak hours
-- 📉 **Bandwidth scheduling** - Full speed at night, throttled during day
-- 🎨 **Custom themes** - 14 presets (seasonal, platform) or custom colors
-- 📁 **\*arr integration** - Sonarr/Radarr folder naming
-- 📊 **Analytics dashboard** - Download stats and graphs
-- ⬇️ **10 concurrent downloads** - vs 2 for free tier
-- ✨ **No ads** - Clean, distraction-free UI
+`GET /health` (no login) returns version, uptime, queue and disk status — HTTP 200 when healthy, 503 when not (e.g. disk under 1 GB free).
 
 ---
 
 ## Security
 
-v3.0.0 includes significant security improvements:
-
-- ✅ bcrypt password hashing
-- ✅ Rate limiting (5 login attempts/minute)
-- ✅ Path traversal protection
-- ✅ Input validation
-- ✅ Security headers (X-Frame-Options, CSP)
-- ✅ Session timeout (configurable)
-- ✅ Reverse proxy support (X-Forwarded-* headers)
-
-### Reverse Proxy Setup
-
-If exposing JellyLooter externally:
-
-1. Enable "Trust X-Forwarded headers" in Security Settings
-2. Add your proxy IP to "Trusted proxy IPs"
-3. Use strong passwords
-4. Consider using Cloudflare or similar for additional protection
-
----
-
-## Configuration
-
-Access the web UI at `http://your-server:5000`
-
-### First Run
-1. (Optional) Enable authentication in Settings → Security
-2. Add a remote server (your friend's Jellyfin/Emby)
-3. Test the connection before saving
-4. Configure local server for duplicate detection
-5. Start browsing and downloading!
-
-### Settings Overview
-
-| Setting | Description |
-|---------|-------------|
-| Remote Servers | Jellyfin/Emby servers to download from |
-| Local Server | Your Jellyfin for duplicate detection |
-| Speed Limit | Throttle download speed (0 = unlimited) |
-| Max Downloads | Concurrent download threads |
-| Show Ratings | Toggle rating overlays on posters |
-| Show Quality | Toggle quality badges (4K, HDR, etc.) |
+- Server tokens, *arr keys and VPN keys are encrypted on disk and never sent to the browser
+- Optional login with bcrypt-hashed passwords, rate limiting and session timeout
+- Path traversal protection on every file and folder operation
+- If you expose JellyLooter outside your network, enable login (**Settings → Advanced**) and put it behind a reverse proxy
 
 ---
 
 ## Support
 
 - **Buy Pro License:** [lightwave43.gumroad.com/l/rmtmrr](https://lightwave43.gumroad.com/l/rmtmrr)
-- **GitHub:** [Issues & Discussions](https://github.com/jlightner86/jellylooter)
+- **Issues & Discussions:** [github.com/jlightner86/jellylooter](https://github.com/jlightner86/jellylooter/issues)
+- In-app **Help** page covers every feature and common problems
 
 ---
 
@@ -545,5 +365,6 @@ A huge thank you to our beta testers and contributors:
 
 - **[vwidmer](https://github.com/vwidmer)** - Beta testing, bug reports, and feature suggestions for transcoding, *arr integration, and download improvements
 - **[nwithan8](https://github.com/nwithan8)** - Fixed jellylooter.xml for Unraid Community Apps compatibility
+- **[Z3r0Fell (ZeroFell)](https://github.com/Z3r0Fell)** - Testing, feedback, and feature suggestions for the v4.0 GUI overhaul
 
 Want to contribute? [Open an issue](https://github.com/jlightner86/jellylooter/issues) or submit a pull request!

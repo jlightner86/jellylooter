@@ -16,11 +16,17 @@ import datetime
 import hashlib
 import secrets
 import shutil
+import glob
 import hmac
 import subprocess
+import signal
+import base64
 from collections import deque
 from functools import wraps, lru_cache
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session, make_response, send_from_directory
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 # Timezone support
 try:
@@ -85,83 +91,142 @@ ENCRYPTION_KEY_FILE = '/config/.encryption_key'
 PARTIAL_DOWNLOADS_FILE = '/config/partial_downloads.json'
 METADATA_CACHE_FILE = '/config/metadata_cache.json'  # Pro feature: cached metadata lookups
 
-VERSION = "3.2.0"
+VERSION = "4.0.0"
+
+# Developer-only switches (Pro test activation, transcode test mode). Never set in the public image.
+DEV_MODE = os.environ.get('JELLYLOOTER_DEV') == '1'
 
 # --- Encryption for API Keys at Rest ---
 
+_encryption_key_cache = {'mtime': None, 'value': None}
+
+
 def _get_encryption_key():
-    """Get or create machine-specific encryption key"""
+    """Fernet key, derived once per key-file version (PBKDF2 is deliberately slow, so cache it)."""
+    try:
+        mtime = os.path.getmtime(ENCRYPTION_KEY_FILE)
+    except OSError:
+        mtime = None
+    if mtime is not None and _encryption_key_cache['mtime'] == mtime and _encryption_key_cache['value']:
+        return _encryption_key_cache['value']
+    value = _derive_encryption_key()
+    try:
+        _encryption_key_cache.update(mtime=os.path.getmtime(ENCRYPTION_KEY_FILE), value=value)
+    except OSError:
+        pass
+    return value
+
+
+def _derive_encryption_key():
+    """Get or create machine-specific encryption key for Fernet"""
     if os.path.exists(ENCRYPTION_KEY_FILE):
         with open(ENCRYPTION_KEY_FILE, 'rb') as f:
-            return f.read()
+            stored_key = f.read()
+            # If old format (32 bytes raw), upgrade to Fernet key
+            if len(stored_key) == 32:
+                # Derive a Fernet-compatible key using PBKDF2
+                kdf = PBKDF2HMAC(
+                    algorithm=hashes.SHA256(),
+                    length=32,
+                    salt=b'jellylooter_salt_v2',
+                    iterations=100000,
+                )
+                fernet_key = base64.urlsafe_b64encode(kdf.derive(stored_key))
+                return fernet_key, stored_key  # Return both for backward compat
+            return stored_key, None  # Already Fernet format
     # Generate new key
-    key = secrets.token_bytes(32)
+    raw_key = secrets.token_bytes(32)
     os.makedirs(os.path.dirname(ENCRYPTION_KEY_FILE), exist_ok=True)
     with open(ENCRYPTION_KEY_FILE, 'wb') as f:
-        f.write(key)
+        f.write(raw_key)
     os.chmod(ENCRYPTION_KEY_FILE, 0o600)  # Restrict permissions
-    return key
+    # Derive Fernet key
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=b'jellylooter_salt_v2',
+        iterations=100000,
+    )
+    fernet_key = base64.urlsafe_b64encode(kdf.derive(raw_key))
+    return fernet_key, raw_key
 
 def encrypt_sensitive(plaintext):
-    """Encrypt sensitive data (API keys) for storage"""
+    """Encrypt sensitive data (API keys) using Fernet (AES-128-CBC + HMAC)"""
     if not plaintext:
         return ''
     try:
-        key = _get_encryption_key()
-        # Use AES-like XOR cipher with key stretching
-        pt_bytes = plaintext.encode('utf-8')
-        iv = secrets.token_bytes(16)
-        # Derive working key using HMAC
-        working_key = hmac.new(key, iv, hashlib.sha256).digest()
-        # XOR encryption with key stream
-        encrypted = bytearray()
-        for i, byte in enumerate(pt_bytes):
-            key_byte = working_key[i % len(working_key)]
-            encrypted.append(byte ^ key_byte)
-        # Return as base64: iv + encrypted
-        import base64
-        result = base64.b64encode(iv + bytes(encrypted)).decode('ascii')
-        return f"ENC:{result}"
+        fernet_key, _ = _get_encryption_key()
+        f = Fernet(fernet_key)
+        encrypted = f.encrypt(plaintext.encode('utf-8'))
+        return f"ENC2:{encrypted.decode('ascii')}"
     except Exception as e:
         log(f"Encryption error: {e}")
         return plaintext  # Fallback to plaintext
 
-def decrypt_sensitive(ciphertext):
-    """Decrypt sensitive data"""
-    if not ciphertext:
-        return ''
-    if not ciphertext.startswith('ENC:'):
-        return ciphertext  # Not encrypted, return as-is (migration)
+def _decrypt_v1(ciphertext, raw_key):
+    """Decrypt old XOR-encrypted data for migration"""
     try:
-        import base64
-        key = _get_encryption_key()
-        # Decode from base64
-        data = base64.b64decode(ciphertext[4:])
+        data = base64.b64decode(ciphertext)
         iv = data[:16]
         encrypted = data[16:]
-        # Derive working key
-        working_key = hmac.new(key, iv, hashlib.sha256).digest()
-        # XOR decryption
+        working_key = hmac.new(raw_key, iv, hashlib.sha256).digest()
         decrypted = bytearray()
         for i, byte in enumerate(encrypted):
             key_byte = working_key[i % len(working_key)]
             decrypted.append(byte ^ key_byte)
         return decrypted.decode('utf-8')
+    except:
+        return ''
+
+def decrypt_sensitive(ciphertext):
+    """Decrypt sensitive data, unwrapping any nested layers.
+
+    Older builds' is_encrypted() didn't recognise ENC2:, so save_config()
+    re-encrypted already-encrypted keys on every save. Peel layers until
+    we reach plaintext so those configs self-heal.
+    """
+    value = ciphertext
+    for _ in range(20):
+        if not value or not (value.startswith('ENC:') or value.startswith('ENC2:')):
+            break
+        value = _decrypt_one_layer(value)
+    return value
+
+
+def _decrypt_one_layer(ciphertext):
+    """Decrypt one layer - supports both old (ENC:) and new (ENC2:) formats"""
+    if not ciphertext:
+        return ''
+    if not ciphertext.startswith('ENC'):
+        return ciphertext  # Not encrypted, return as-is (migration)
+    try:
+        fernet_key, raw_key = _get_encryption_key()
+
+        if ciphertext.startswith('ENC2:'):
+            # New Fernet format
+            f = Fernet(fernet_key)
+            decrypted = f.decrypt(ciphertext[5:].encode('ascii'))
+            return decrypted.decode('utf-8')
+        elif ciphertext.startswith('ENC:') and raw_key:
+            # Old XOR format - decrypt for backward compatibility
+            return _decrypt_v1(ciphertext[4:], raw_key)
+        else:
+            return ''
     except Exception as e:
         log(f"Decryption error: {e}")
         return ''  # Return empty on error
 
 def is_encrypted(value):
     """Check if a value is encrypted"""
-    return value and value.startswith('ENC:')
+    return bool(value) and isinstance(value, str) and (value.startswith('ENC:') or value.startswith('ENC2:'))
 
 def mask_key(key):
     """Mask an API key for display (show first 4 and last 4 chars)"""
     if not key or len(key) < 12:
         return '****'
     # Handle encrypted keys
-    if key.startswith('ENC:'):
-        return '🔒 ****-****'
+    if is_encrypted(key):
+        return 'ðŸ”’ ****-****'
     return f"{key[:4]}...{key[-4:]}"
 
 app = Flask(__name__, static_folder='static')
@@ -247,6 +312,9 @@ LICENSE_TIERS = {
         'analytics': False,
         'transcoding': False,
         'api_access': False,
+        'vpn': False,
+        'stream_downloads': False,
+        'quality_upgrades': False,
         'metadata_cache': False
     },
     'trial': {
@@ -263,6 +331,9 @@ LICENSE_TIERS = {
         'analytics': True,
         'transcoding': True,
         'api_access': True,
+        'vpn': True,
+        'stream_downloads': True,
+        'quality_upgrades': True,
         'metadata_cache': True
     },
     'pro': {
@@ -279,6 +350,9 @@ LICENSE_TIERS = {
         'analytics': True,
         'transcoding': True,
         'api_access': True,
+        'vpn': True,
+        'stream_downloads': True,
+        'quality_upgrades': True,
         'metadata_cache': True
     }
 }
@@ -301,14 +375,30 @@ def save_license(data):
     os.makedirs(os.path.dirname(LICENSE_FILE), exist_ok=True)
     with open(LICENSE_FILE, 'w') as f:
         json.dump(data, f, indent=4)
+    invalidate_license_cache()
+
+
+# License tier is checked constantly (every API call, every download); verifying it means
+# decrypting the key and checking backups, so cache the answer briefly.
+_license_tier_cache = {'tier': None, 'at': 0.0, 'mtime': None}
+_LICENSE_CACHE_SECONDS = 300
+
+
+def invalidate_license_cache():
+    _license_tier_cache.update(tier=None, at=0.0, mtime=None)
 
 def _verify_license_integrity(license_data):
     """Verify license data hasn't been tampered with"""
     tier = license_data.get('tier', 'free')
-    
+
     if tier == 'pro':
-        # Verify pro license has valid hash
         key_hash = license_data.get('key_hash')
+
+        # Developer test activation - only honoured when JELLYLOOTER_DEV=1
+        if key_hash == 'test-mode':
+            return DEV_MODE
+
+        # Verify pro license has valid hash
         encrypted_key = license_data.get('key', '')
         if not key_hash or not encrypted_key:
             return False
@@ -336,6 +426,24 @@ def _verify_license_integrity(license_data):
     return True  # Free tier always valid
 
 def get_license_tier():
+    """Current license tier (cached; recomputed every few minutes or when license.json changes)."""
+    try:
+        mtime = os.path.getmtime(LICENSE_FILE)
+    except OSError:
+        mtime = None
+    c = _license_tier_cache
+    if c['tier'] is not None and c['mtime'] == mtime and time.time() - c['at'] < _LICENSE_CACHE_SECONDS:
+        return c['tier']
+    tier = _compute_license_tier()
+    try:
+        mtime = os.path.getmtime(LICENSE_FILE)
+    except OSError:
+        mtime = None
+    c.update(tier=tier, at=time.time(), mtime=mtime)
+    return tier
+
+
+def _compute_license_tier():
     """Get current license tier with integrity and expiration check"""
     license_data = load_license()
     tier = license_data.get('tier', 'free')
@@ -355,7 +463,7 @@ def get_license_tier():
         
         # Dual verification - check backup matches
         if not verify_dual_license():
-            log("⚠️ License mismatch detected between primary and backup")
+            log("âš ï¸ License mismatch detected between primary and backup")
             # Don't immediately revoke, but log warning
     
     elif tier == 'trial':
@@ -434,7 +542,7 @@ def validate_license_key_format(key):
     # Clean up the key - remove whitespace, normalize dashes
     key = key.strip().upper()
     # Replace various dash characters with standard hyphen
-    key = key.replace('–', '-').replace('—', '-').replace('−', '-')
+    key = key.replace('â€“', '-').replace('â€”', '-').replace('âˆ’', '-')
     # Remove any spaces
     key = key.replace(' ', '')
     
@@ -472,7 +580,7 @@ def verify_license_key(key):
     """Verify license key with Gumroad API (with offline fallback)"""
     # Clean up the key
     key = key.strip().upper()
-    key = key.replace('–', '-').replace('—', '-').replace('−', '-').replace(' ', '')
+    key = key.replace('â€“', '-').replace('â€”', '-').replace('âˆ’', '-').replace(' ', '')
     
     if not validate_license_key_format(key):
         return {'valid': False, 'error': 'Invalid key format'}
@@ -491,21 +599,34 @@ def verify_license_key(key):
 
 def activate_license(key):
     """Activate a Pro license"""
+    # Developer test activation (JELLYLOOTER_DEV=1 only)
+    if key == 'TEST-PRO-ACTIVATION' and DEV_MODE:
+        license_data = load_license()
+        license_data['tier'] = 'pro'
+        license_data['key'] = None
+        license_data['key_hash'] = 'test-mode'
+        license_data['activated_at'] = datetime.datetime.now().isoformat()
+        save_license(license_data)
+        return {'success': True}
+
     result = verify_license_key(key)
+    if result.get('valid') and result.get('offline'):
+        # A brand-new key must be confirmed by Gumroad - "looks like a key" is not enough
+        return {'success': False, 'error': "Couldn't reach Gumroad to verify the key. Check the internet connection and try again."}
     if result.get('valid'):
         license_data = load_license()
         key_hash = hashlib.sha256(key.encode()).hexdigest()[:16]
-        
+
         # Store encrypted key
         license_data['tier'] = 'pro'
         license_data['key'] = encrypt_sensitive(key)
         license_data['key_hash'] = key_hash
         license_data['activated_at'] = datetime.datetime.now().isoformat()
         save_license(license_data)
-        
+
         # Save backup to library folders
         save_backup_license(key, key_hash)
-        
+
         return {'success': True}
     return {'success': False, 'error': result.get('error', 'Invalid key')}
 
@@ -621,8 +742,11 @@ def save_backup_license(key, key_hash):
     
     return saved_count > 0
 
-def check_backup_license():
-    """Check for valid backup license in library folders"""
+def check_backup_license(verify_online=True):
+    """Check for valid backup license in library folders.
+
+    verify_online=False is used by the routine integrity check so it never waits on Gumroad.
+    """
     paths = _get_backup_paths()
     
     for path in paths:
@@ -634,6 +758,10 @@ def check_backup_license():
                 
                 key, key_hash = _decode_backup_data(data)
                 if key and key_hash:
+                    if not verify_online:
+                        if hashlib.sha256(key.encode()).hexdigest()[:16] == key_hash:
+                            return {'found': True, 'key': key, 'hash': key_hash}
+                        continue
                     # Verify with Gumroad
                     result = verify_license_key(key)
                     if result.get('valid'):
@@ -659,7 +787,7 @@ def restore_from_backup():
         license_data['restored_from_backup'] = True
         save_license(license_data)
         
-        log("✅ License restored from backup")
+        log("âœ… License restored from backup")
         return {'success': True, 'message': 'License restored from backup'}
     
     return {'success': False, 'message': 'No valid backup found'}
@@ -676,8 +804,8 @@ def verify_dual_license():
     if not _verify_license_integrity(license_data):
         return False
     
-    # Check backup license
-    backup = check_backup_license()
+    # Check backup license (local check only - never block on the network here)
+    backup = check_backup_license(verify_online=False)
     if not backup.get('found'):
         # Backup missing - could be new install or tampering
         # Try to recreate backup
@@ -734,6 +862,7 @@ active_workers = 0
 target_workers = 2
 active_transcode_workers = 0
 target_transcode_workers = 1
+_transcode_order = []   # transcode task ids in start order (newest get frozen when workers are reduced)
 worker_shutdown = threading.Event()
 transcode_shutdown = threading.Event()
 
@@ -830,7 +959,7 @@ def load_download_stats():
                 # Reset session counters on load
                 download_stats['session_files'] = 0
                 download_stats['session_bytes'] = 0
-            log(f"📊 Loaded download stats: {download_stats['total_files']} files, {format_bytes(download_stats['total_bytes'])}")
+            log(f"ðŸ“Š Loaded download stats: {download_stats['total_files']} files, {format_bytes(download_stats['total_bytes'])}")
     except Exception as e:
         log(f"Failed to load download stats: {e}")
 
@@ -996,7 +1125,7 @@ TRANSLATIONS = {
         'deselect_all': 'Deselect All',
         'download_selected': 'Download Selected',
         'clear': 'Clear',
-        'filter_items': '🔍 Filter items...',
+        'filter_items': 'ðŸ” Filter items...',
         'activity_log': 'Activity Log',
         'history': 'History',
         'download_queue': 'Download Queue',
@@ -1103,7 +1232,7 @@ TRANSLATIONS = {
         'auth_method': 'Authentication Method',
         'api_key': 'API Key',
         'username_password': 'Username/Password',
-        'test_before_adding': '⚠️ Test the connection before adding the server',
+        'test_before_adding': 'âš ï¸ Test the connection before adding the server',
         'cancel': 'Cancel',
         'add_server': 'Add Server',
         'save_and_scan': 'Save & Scan',
@@ -1174,12 +1303,12 @@ TRANSLATIONS = {
     },
     'es': {
         'app_name': 'JellyLooter',
-        'sign_in': 'Iniciar Sesión',
-        'sign_out': 'Cerrar Sesión',
+        'sign_in': 'Iniciar SesiÃ³n',
+        'sign_out': 'Cerrar SesiÃ³n',
         'username': 'Usuario',
-        'password': 'Contraseña',
+        'password': 'ContraseÃ±a',
         'remember_me': 'Recordarme',
-        'settings': 'Configuración',
+        'settings': 'ConfiguraciÃ³n',
         'browse': 'Explorar',
         'downloads': 'Descargas',
         'help': 'Ayuda',
@@ -1194,58 +1323,58 @@ TRANSLATIONS = {
         'pause': 'Pausar',
         'resume': 'Reanudar',
         'cancel_all': 'Cancelar Todo',
-        'speed_limit': 'Límite de Velocidad',
-        'max_downloads': 'Descargas Máximas',
+        'speed_limit': 'LÃ­mite de Velocidad',
+        'max_downloads': 'Descargas MÃ¡ximas',
         'no_servers': 'No hay servidores configurados',
         'select_server': 'Seleccionar Servidor',
         'select_destination': 'Seleccionar Destino',
         'items_selected': 'elementos seleccionados',
         'download_complete': 'Descarga completa',
         'download_failed': 'Descarga fallida',
-        'connection_error': 'Error de conexión',
-        'invalid_credentials': 'Credenciales inválidas',
+        'connection_error': 'Error de conexiÃ³n',
+        'invalid_credentials': 'Credenciales invÃ¡lidas',
         'sync': 'Sincronizar',
-        'rebuild_cache': 'Reconstruir Caché',
-        'cache_info': 'Info de Caché',
-        'last_scan': 'Último Escaneo',
-        'items_cached': 'Elementos en Caché',
+        'rebuild_cache': 'Reconstruir CachÃ©',
+        'cache_info': 'Info de CachÃ©',
+        'last_scan': 'Ãšltimo Escaneo',
+        'items_cached': 'Elementos en CachÃ©',
         'general': 'General',
         'advanced': 'Avanzado',
-        'authentication': 'Autenticación',
-        'enable_auth': 'Habilitar Autenticación',
-        'auth_description': 'Requerir inicio de sesión para acceder',
+        'authentication': 'AutenticaciÃ³n',
+        'enable_auth': 'Habilitar AutenticaciÃ³n',
+        'auth_description': 'Requerir inicio de sesiÃ³n para acceder',
         'language': 'Idioma',
-        'items_per_page': 'Elementos por Página',
+        'items_per_page': 'Elementos por PÃ¡gina',
         'view_mode': 'Modo de Vista',
-        'grid_view': 'Cuadrícula',
+        'grid_view': 'CuadrÃ­cula',
         'list_view': 'Lista',
         'download_order': 'Orden de Descarga',
         'order_library': 'Orden de Biblioteca',
         'order_show_complete': 'Series Completas Primero',
-        'order_season_round': 'Rotación por Temporada',
-        'order_episode_round': 'Rotación por Episodio',
-        'order_alphabetical': 'Alfabético',
+        'order_season_round': 'RotaciÃ³n por Temporada',
+        'order_episode_round': 'RotaciÃ³n por Episodio',
+        'order_alphabetical': 'AlfabÃ©tico',
         'order_random': 'Aleatorio',
         'confirmed_working': 'Confirmado funcionando en Unraid 7.2.0',
         'support_project': 'Apoya el Proyecto',
         'buy_coffee': 'Apoyar en Ko-fi',
         'loading': 'Cargando...',
         'error': 'Error',
-        'success': 'Éxito',
+        'success': 'Ã‰xito',
         'warning': 'Advertencia',
         'free_space': 'Espacio Libre',
         'total_space': 'Espacio Total',
         'refresh': 'Actualizar',
-        'back': 'Atrás',
+        'back': 'AtrÃ¡s',
         'home': 'Inicio',
-        'page': 'Página',
+        'page': 'PÃ¡gina',
         'of': 'de',
         'previous': 'Anterior',
         'next': 'Siguiente',
         'search': 'Buscar',
         'filter': 'Filtrar',
         'all': 'Todo',
-        'movies': 'Películas',
+        'movies': 'PelÃ­culas',
         'shows': 'Series',
         'exists_locally': 'Existe Localmente',
         'queued': 'En Cola',
@@ -1259,78 +1388,78 @@ TRANSLATIONS = {
         'deselect_all': 'Deseleccionar Todo',
         'download_selected': 'Descargar Seleccionados',
         'clear': 'Limpiar',
-        'filter_items': '🔍 Filtrar elementos...',
+        'filter_items': 'ðŸ” Filtrar elementos...',
         'activity_log': 'Registro de Actividad',
         'history': 'Historial',
         'download_queue': 'Cola de Descargas',
         'active': 'Activo',
         'pending': 'Pendiente',
-        'cached': 'En Caché',
+        'cached': 'En CachÃ©',
         'appearance': 'Apariencia',
         'dark_theme': 'Tema Oscuro',
         'library_mappings': 'Mapeo de Bibliotecas',
         'add_mapping': 'Agregar Mapeo',
-        'save_settings': 'Guardar Configuración',
-        'test_connection': 'Probar Conexión',
-        'connection_successful': 'Conexión exitosa',
+        'save_settings': 'Guardar ConfiguraciÃ³n',
+        'test_connection': 'Probar ConexiÃ³n',
+        'connection_successful': 'ConexiÃ³n exitosa',
         'no_mappings': 'Sin Mapeos',
-        'no_mappings_desc': 'Crea un mapeo para sincronizar contenido automáticamente.',
+        'no_mappings_desc': 'Crea un mapeo para sincronizar contenido automÃ¡ticamente.',
         'sync_now': 'Sincronizar Ahora',
-        'auto_sync': 'Auto-Sincronización',
-        'configuration': 'Configuración',
+        'auto_sync': 'Auto-SincronizaciÃ³n',
+        'configuration': 'ConfiguraciÃ³n',
         'theme_hint': 'Cambiar entre tema oscuro y claro',
-        'language_hint': 'Idioma de la interfaz (la página se recargará)',
+        'language_hint': 'Idioma de la interfaz (la pÃ¡gina se recargarÃ¡)',
         'add_remote_server': 'Agregar Servidor Remoto',
-        'duplicate_detection': 'Detección de Duplicados',
+        'duplicate_detection': 'DetecciÃ³n de Duplicados',
         'no_local_server': 'No hay servidor local configurado. Agrega uno para detectar contenido existente.',
         'configure_local': 'Configurar Servidor Local',
-        'advanced_settings': 'Configuración Avanzada',
+        'advanced_settings': 'ConfiguraciÃ³n Avanzada',
         'speed_limit_hint': 'Establecer en 0 para velocidad ilimitada',
-        'sync_time': 'Hora de Sincronización',
+        'sync_time': 'Hora de SincronizaciÃ³n',
         'timezone': 'Zona Horaria',
-        'timezone_hint': 'Afecta marcas de tiempo y programación',
+        'timezone_hint': 'Afecta marcas de tiempo y programaciÃ³n',
         'connection_timeout': 'Tiempo de Espera (s)',
-        'chunk_size': 'Tamaño de Bloque (KB)',
+        'chunk_size': 'TamaÃ±o de Bloque (KB)',
         'confirm_downloads': 'Confirmar antes de descargar',
         'show_notifications': 'Mostrar notificaciones',
         'select_server': 'Seleccionar Servidor...',
         'no_active_downloads': 'No hay descargas activas',
-        'last_scan': 'Último Escaneo',
+        'last_scan': 'Ãšltimo Escaneo',
         'scanning': 'Escaneando biblioteca local...',
         'select_a_server': 'Seleccionar un Servidor',
-        'select_server_desc': 'Elige un servidor remoto del menú desplegable para explorar su biblioteca.',
+        'select_server_desc': 'Elige un servidor remoto del menÃº desplegable para explorar su biblioteca.',
         # Changelog translations
         'support_btn': 'Apoyar',
         'back': 'Volver',
-        'enjoying_jellylooter': '¿Te gusta JellyLooter?',
-        'support_message': '¡Si este proyecto te ahorra tiempo, considera apoyar en Ko-fi!',
+        'enjoying_jellylooter': 'Â¿Te gusta JellyLooter?',
+        'support_message': 'Â¡Si este proyecto te ahorra tiempo, considera apoyar en Ko-fi!',
         'december': 'Diciembre',
-        'latest': 'Última',
+        'latest': 'Ãšltima',
         'fix': 'Corr',
         'new': 'Nuevo',
         'improve': 'Mejor',
-        'ch_mobile_view': 'Vista móvil ahora funciona correctamente con menú hamburguesa',
-        'ch_download_error': 'Corregidos errores de descarga con autenticación usuario/contraseña',
-        'ch_poster_aspect': 'Corregida proporción de imágenes de póster',
-        'ch_language_selector': 'Selector de idioma en configuración con traducciones completas',
-        'ch_title_downloads': 'Contador de descargas en la pestaña del navegador',
-        'ch_select_all': 'Botón Seleccionar Todo / Deseleccionar Todo',
-        'ch_filter': 'Cuadro de filtro/búsqueda para encontrar elementos',
+        'ch_mobile_view': 'Vista mÃ³vil ahora funciona correctamente con menÃº hamburguesa',
+        'ch_download_error': 'Corregidos errores de descarga con autenticaciÃ³n usuario/contraseÃ±a',
+        'ch_poster_aspect': 'Corregida proporciÃ³n de imÃ¡genes de pÃ³ster',
+        'ch_language_selector': 'Selector de idioma en configuraciÃ³n con traducciones completas',
+        'ch_title_downloads': 'Contador de descargas en la pestaÃ±a del navegador',
+        'ch_select_all': 'BotÃ³n Seleccionar Todo / Deseleccionar Todo',
+        'ch_filter': 'Cuadro de filtro/bÃºsqueda para encontrar elementos',
         'ch_history': 'Panel de historial de descargas con marcas de tiempo',
         'ch_eta': 'Tiempo estimado restante en descargas activas',
-        'ch_quick_paths': 'Selección rápida de ruta desde mapeos de biblioteca',
-        'ch_auth_optional': 'Autenticación ahora opcional (desactivada por defecto)',
+        'ch_quick_paths': 'SelecciÃ³n rÃ¡pida de ruta desde mapeos de biblioteca',
+        'ch_auth_optional': 'AutenticaciÃ³n ahora opcional (desactivada por defecto)',
         'ch_tooltip': 'Corregido z-index de tooltip',
-        'ch_pagination': 'Todos los elementos ahora se muestran con paginación',
-        'ch_responsive': 'Diseño responsive para móviles',
-        'ch_grid_list': 'Cambio entre vista de cuadrícula/lista',
-        'ch_items_page': 'Paginación con elementos por página configurables',
+        'ch_pagination': 'Todos los elementos ahora se muestran con paginaciÃ³n',
+        'ch_responsive': 'DiseÃ±o responsive para mÃ³viles',
+        'ch_grid_list': 'Cambio entre vista de cuadrÃ­cula/lista',
+        'ch_items_page': 'PaginaciÃ³n con elementos por pÃ¡gina configurables',
         'ch_queue_order': 'Opciones de orden de cola de descarga',
-        'ch_multilang': 'Soporte multiidioma (inglés, español, alemán)',
+        'ch_multilang': 'Soporte multiidioma (inglÃ©s, espaÃ±ol, alemÃ¡n)',
         'ch_syntax': 'Errores de sintaxis Python corregidos',
-        'ch_favicon': 'Añadido favicon',
+        'ch_favicon': 'AÃ±adido favicon',
         'ch_kofi': 'Enlaces de soporte Ko-fi',
-        'ch_userpw': 'Soporte de autenticación usuario/contraseña',
+        'ch_userpw': 'Soporte de autenticaciÃ³n usuario/contraseÃ±a',
         'ch_queue_visible': 'Mejoras de visibilidad de cola de descarga',
         'ch_ux': 'Mejoras de experiencia de usuario',
         # Help translations
@@ -1338,80 +1467,80 @@ TRANSLATIONS = {
         'support_jellylooter': 'Apoyar JellyLooter',
         'verified': 'VERIFICADO',
         'confirmed_working': 'Confirmado funcionando en',
-        'quick_tips': 'Consejos Rápidos',
-        'tip_multiselect': 'Selección Múltiple',
-        'tip_multiselect_desc': 'Mantén Ctrl/Cmd y haz clic para seleccionar múltiples elementos, o simplemente haz clic en elementos que no sean carpetas.',
-        'tip_speed': 'Límite de Velocidad en Vivo',
-        'tip_speed_desc': 'Cambia el límite de velocidad en configuración y se aplica a las descargas activas en 10 segundos.',
+        'quick_tips': 'Consejos RÃ¡pidos',
+        'tip_multiselect': 'SelecciÃ³n MÃºltiple',
+        'tip_multiselect_desc': 'MantÃ©n Ctrl/Cmd y haz clic para seleccionar mÃºltiples elementos, o simplemente haz clic en elementos que no sean carpetas.',
+        'tip_speed': 'LÃ­mite de Velocidad en Vivo',
+        'tip_speed_desc': 'Cambia el lÃ­mite de velocidad en configuraciÃ³n y se aplica a las descargas activas en 10 segundos.',
         'tip_order': 'Orden de Descarga',
-        'tip_order_desc': 'Elige cómo se ordenan los elementos: series completas primero, round-robin por temporada/episodio, o alfabéticamente.',
+        'tip_order_desc': 'Elige cÃ³mo se ordenan los elementos: series completas primero, round-robin por temporada/episodio, o alfabÃ©ticamente.',
         'tip_mappings': 'Mapeos de Biblioteca',
-        'tip_mappings_desc': 'Configura mapeos para sincronizar bibliotecas enteras automáticamente.',
+        'tip_mappings_desc': 'Configura mapeos para sincronizar bibliotecas enteras automÃ¡ticamente.',
         'tip_language': 'Cambiar Idioma',
-        'tip_language_desc': 'Ve a Configuración > Apariencia > Idioma para cambiar entre inglés, español y alemán.',
-        'troubleshooting': 'Solución de Problemas',
-        'issue_auth': 'Problemas de Autenticación',
-        'issue_auth_desc': 'Si usas autenticación usuario/contraseña, intenta eliminar y volver a agregar el servidor.',
+        'tip_language_desc': 'Ve a ConfiguraciÃ³n > Apariencia > Idioma para cambiar entre inglÃ©s, espaÃ±ol y alemÃ¡n.',
+        'troubleshooting': 'SoluciÃ³n de Problemas',
+        'issue_auth': 'Problemas de AutenticaciÃ³n',
+        'issue_auth_desc': 'Si usas autenticaciÃ³n usuario/contraseÃ±a, intenta eliminar y volver a agregar el servidor.',
         'issue_slow': 'Descargas Lentas',
-        'issue_slow_desc': 'Revisa tu límite de velocidad. Establece en 0 para ilimitado. También verifica la conexión de red.',
+        'issue_slow_desc': 'Revisa tu lÃ­mite de velocidad. Establece en 0 para ilimitado. TambiÃ©n verifica la conexiÃ³n de red.',
         'issue_error': 'Errores de Descarga',
         'issue_error_desc': 'Revisa el Registro de Actividad para detalles. Problemas comunes: disco lleno, permisos, tiempo de espera.',
         'no_remote_servers': 'No hay servidores remotos configurados.',
-        'confirm_remove_local': '¿Eliminar servidor local?',
+        'confirm_remove_local': 'Â¿Eliminar servidor local?',
         'local_server_removed': 'Servidor local eliminado',
         'unknown': 'Desconocido',
         'library': 'Biblioteca',
         'server_name': 'Nombre del Servidor',
         'server_url': 'URL del Servidor',
-        'auth_method': 'Método de Autenticación',
+        'auth_method': 'MÃ©todo de AutenticaciÃ³n',
         'api_key': 'Clave API',
-        'username_password': 'Usuario/Contraseña',
-        'test_before_adding': '⚠️ Prueba la conexión antes de agregar el servidor',
+        'username_password': 'Usuario/ContraseÃ±a',
+        'test_before_adding': 'âš ï¸ Prueba la conexiÃ³n antes de agregar el servidor',
         'cancel': 'Cancelar',
         'add_server': 'Agregar Servidor',
         'save_and_scan': 'Guardar y Escanear',
-        'select_download_location': 'Seleccionar Ubicación de Descarga',
+        'select_download_location': 'Seleccionar UbicaciÃ³n de Descarga',
         'or_browse': 'O navegar a una carpeta:',
-        'download_here': 'Descargar Aquí',
+        'download_here': 'Descargar AquÃ­',
         # v3.0.0 new translations
-        'show_ratings': 'Mostrar calificaciones en pósters',
+        'show_ratings': 'Mostrar calificaciones en pÃ³sters',
         'show_quality': 'Mostrar insignias de calidad (4K, HDR, etc)',
-        'download_subtitles': 'Descargar subtítulos automáticamente',
-        'subtitle_languages': 'Idiomas de Subtítulos (códigos ISO)',
-        'subtitle_hint': 'Códigos de idioma separados por comas. Usa "all" para descargar todos los subtítulos.',
-        'security_settings': 'Configuración de Seguridad',
-        'enable_auth': 'Habilitar Autenticación',
-        'auth_hint': 'Requerir inicio de sesión para acceder a JellyLooter',
-        'session_timeout': 'Tiempo de Sesión (minutos)',
+        'download_subtitles': 'Descargar subtÃ­tulos automÃ¡ticamente',
+        'subtitle_languages': 'Idiomas de SubtÃ­tulos (cÃ³digos ISO)',
+        'subtitle_hint': 'CÃ³digos de idioma separados por comas. Usa "all" para descargar todos los subtÃ­tulos.',
+        'security_settings': 'ConfiguraciÃ³n de Seguridad',
+        'enable_auth': 'Habilitar AutenticaciÃ³n',
+        'auth_hint': 'Requerir inicio de sesiÃ³n para acceder a JellyLooter',
+        'session_timeout': 'Tiempo de SesiÃ³n (minutos)',
         'trust_proxy': 'Confiar en cabeceras X-Forwarded',
         'trust_proxy_hint': 'Habilitar si usas proxy inverso (Nginx, Traefik, etc.)',
         'trusted_proxies': 'IPs de Proxy Confiables',
         'trusted_proxies_hint': 'Lista de rangos IP separados por comas',
-        'save_security': 'Guardar Configuración de Seguridad',
+        'save_security': 'Guardar ConfiguraciÃ³n de Seguridad',
         'pro_features': 'Funciones Pro',
         'unlock_pro': 'Desbloquear Funciones Pro',
         'enter_license': 'Ingresar Clave de Licencia',
         'go_pro': 'Obtener Pro',
-        'trial_days': 'días de prueba restantes',
-        'thank_you_pro': '¡Gracias por apoyar JellyLooter!',
+        'trial_days': 'dÃ­as de prueba restantes',
+        'thank_you_pro': 'Â¡Gracias por apoyar JellyLooter!',
         'notifications': 'Notificaciones',
-        'notification_urls': 'URLs de Notificación (Apprise)',
-        'notification_hint': 'Una URL por línea. Soporta Discord, Telegram, Email y más de 80 servicios.',
+        'notification_urls': 'URLs de NotificaciÃ³n (Apprise)',
+        'notification_hint': 'Una URL por lÃ­nea. Soporta Discord, Telegram, Email y mÃ¡s de 80 servicios.',
         'notify_complete': 'Notificar al completar descarga',
         'notify_error': 'Notificar en error de descarga',
-        'transcoding': 'Transcodificación',
-        'enable_transcoding': 'Habilitar transcodificación',
+        'transcoding': 'TranscodificaciÃ³n',
+        'enable_transcoding': 'Habilitar transcodificaciÃ³n',
         'transcode_preset': 'Preajuste',
         'encoder': 'Codificador',
-        'scheduling': 'Programación',
-        'enable_scheduling': 'Habilitar programación de descargas',
+        'scheduling': 'ProgramaciÃ³n',
+        'enable_scheduling': 'Habilitar programaciÃ³n de descargas',
         'schedule_start': 'Hora de inicio',
         'schedule_end': 'Hora de fin',
-        'bandwidth_scheduling': 'Programación de Ancho de Banda',
-        'day_limit': 'Límite diurno (KB/s)',
-        'night_limit': 'Límite nocturno (KB/s)',
-        'arr_integration': 'Integración *arr',
-        'arr_hint': 'Conecta Sonarr/Radarr para nombrado automático de carpetas.',
+        'bandwidth_scheduling': 'ProgramaciÃ³n de Ancho de Banda',
+        'day_limit': 'LÃ­mite diurno (KB/s)',
+        'night_limit': 'LÃ­mite nocturno (KB/s)',
+        'arr_integration': 'IntegraciÃ³n *arr',
+        'arr_hint': 'Conecta Sonarr/Radarr para nombrado automÃ¡tico de carpetas.',
         'custom_themes': 'Temas Personalizados',
         'theme': 'Tema',
         'primary_color': 'Color Primario',
@@ -1421,19 +1550,19 @@ TRANSLATIONS = {
         'input_background': 'Fondo de Entradas',
         'border_color': 'Color de Borde',
         'apply_theme': 'Aplicar Tema Personalizado',
-        'multiple_servers': 'Múltiples Servidores Locales',
-        'multiple_servers_hint': 'Conecta múltiples servidores locales para detección unificada de duplicados.',
+        'multiple_servers': 'MÃºltiples Servidores Locales',
+        'multiple_servers_hint': 'Conecta mÃºltiples servidores locales para detecciÃ³n unificada de duplicados.',
         'add_local_server': 'Agregar Servidor Local',
-        'save_pro': 'Guardar Configuración Pro',
+        'save_pro': 'Guardar ConfiguraciÃ³n Pro',
         'collapse_panel': 'Colapsar',
         'expand_panel': 'Expandir',
         'move_up': 'Mover Arriba',
         'move_down': 'Mover Abajo',
-        'reset_layout': 'Restablecer Diseño',
+        'reset_layout': 'Restablecer DiseÃ±o',
         'backup_restore': 'Copia de Seguridad',
         'export_config': 'Exportar Config',
         'import_config': 'Importar Config',
-        'export_hint': 'Exportar guarda configuración (claves API ocultas). Importar restaura preservando claves existentes.',
+        'export_hint': 'Exportar guarda configuraciÃ³n (claves API ocultas). Importar restaura preservando claves existentes.',
     },
     'de': {
         'app_name': 'JellyLooter',
@@ -1446,10 +1575,10 @@ TRANSLATIONS = {
         'browse': 'Durchsuchen',
         'downloads': 'Downloads',
         'help': 'Hilfe',
-        'changelog': 'Änderungen',
+        'changelog': 'Ã„nderungen',
         'remote_servers': 'Remote-Server',
         'local_server': 'Lokaler Server',
-        'add_server': 'Server hinzufügen',
+        'add_server': 'Server hinzufÃ¼gen',
         'remove': 'Entfernen',
         'save': 'Speichern',
         'cancel': 'Abbrechen',
@@ -1460,13 +1589,13 @@ TRANSLATIONS = {
         'speed_limit': 'Geschwindigkeitslimit',
         'max_downloads': 'Max. Downloads',
         'no_servers': 'Keine Server konfiguriert',
-        'select_server': 'Server auswählen',
-        'select_destination': 'Ziel auswählen',
-        'items_selected': 'Elemente ausgewählt',
+        'select_server': 'Server auswÃ¤hlen',
+        'select_destination': 'Ziel auswÃ¤hlen',
+        'items_selected': 'Elemente ausgewÃ¤hlt',
         'download_complete': 'Download abgeschlossen',
         'download_failed': 'Download fehlgeschlagen',
         'connection_error': 'Verbindungsfehler',
-        'invalid_credentials': 'Ungültige Anmeldedaten',
+        'invalid_credentials': 'UngÃ¼ltige Anmeldedaten',
         'sync': 'Synchronisieren',
         'rebuild_cache': 'Cache neu aufbauen',
         'cache_info': 'Cache-Info',
@@ -1476,7 +1605,7 @@ TRANSLATIONS = {
         'advanced': 'Erweitert',
         'authentication': 'Authentifizierung',
         'enable_auth': 'Authentifizierung aktivieren',
-        'auth_description': 'Anmeldung für Zugriff erforderlich',
+        'auth_description': 'Anmeldung fÃ¼r Zugriff erforderlich',
         'language': 'Sprache',
         'items_per_page': 'Elemente pro Seite',
         'view_mode': 'Ansichtsmodus',
@@ -1488,10 +1617,10 @@ TRANSLATIONS = {
         'order_season_round': 'Staffel-Rotation',
         'order_episode_round': 'Episoden-Rotation',
         'order_alphabetical': 'Alphabetisch',
-        'order_random': 'Zufällig',
-        'confirmed_working': 'Bestätigt funktionierend auf Unraid 7.2.0',
-        'support_project': 'Projekt unterstützen',
-        'buy_coffee': 'Auf Ko-fi unterstützen',
+        'order_random': 'ZufÃ¤llig',
+        'confirmed_working': 'BestÃ¤tigt funktionierend auf Unraid 7.2.0',
+        'support_project': 'Projekt unterstÃ¼tzen',
+        'buy_coffee': 'Auf Ko-fi unterstÃ¼tzen',
         'loading': 'Laden...',
         'error': 'Fehler',
         'success': 'Erfolg',
@@ -1499,11 +1628,11 @@ TRANSLATIONS = {
         'free_space': 'Freier Speicher',
         'total_space': 'Gesamtspeicher',
         'refresh': 'Aktualisieren',
-        'back': 'Zurück',
+        'back': 'ZurÃ¼ck',
         'home': 'Start',
         'page': 'Seite',
         'of': 'von',
-        'previous': 'Zurück',
+        'previous': 'ZurÃ¼ck',
         'next': 'Weiter',
         'search': 'Suchen',
         'filter': 'Filter',
@@ -1518,12 +1647,12 @@ TRANSLATIONS = {
         'paused': 'Pausiert',
         'starting': 'Startet',
         'remote_browser': 'Remote-Browser',
-        'select_all': 'Alle auswählen',
-        'deselect_all': 'Alle abwählen',
-        'download_selected': 'Ausgewählte herunterladen',
+        'select_all': 'Alle auswÃ¤hlen',
+        'deselect_all': 'Alle abwÃ¤hlen',
+        'download_selected': 'AusgewÃ¤hlte herunterladen',
         'clear': 'Leeren',
-        'filter_items': '🔍 Elemente filtern...',
-        'activity_log': 'Aktivitätsprotokoll',
+        'filter_items': 'ðŸ” Elemente filtern...',
+        'activity_log': 'AktivitÃ¤tsprotokoll',
         'history': 'Verlauf',
         'download_queue': 'Download-Warteschlange',
         'active': 'Aktiv',
@@ -1532,7 +1661,7 @@ TRANSLATIONS = {
         'appearance': 'Darstellung',
         'dark_theme': 'Dunkles Design',
         'library_mappings': 'Bibliothekszuordnungen',
-        'add_mapping': 'Zuordnung hinzufügen',
+        'add_mapping': 'Zuordnung hinzufÃ¼gen',
         'save_settings': 'Einstellungen speichern',
         'test_connection': 'Verbindung testen',
         'connection_successful': 'Verbindung erfolgreich',
@@ -1543,82 +1672,82 @@ TRANSLATIONS = {
         'configuration': 'Konfiguration',
         'theme_hint': 'Zwischen hellem und dunklem Design wechseln',
         'language_hint': 'Schnittstellensprache (Seite wird neu geladen)',
-        'add_remote_server': 'Remote-Server hinzufügen',
+        'add_remote_server': 'Remote-Server hinzufÃ¼gen',
         'duplicate_detection': 'Duplikaterkennung',
-        'no_local_server': 'Kein lokaler Server konfiguriert. Fügen Sie einen hinzu, um vorhandene Inhalte zu erkennen.',
+        'no_local_server': 'Kein lokaler Server konfiguriert. FÃ¼gen Sie einen hinzu, um vorhandene Inhalte zu erkennen.',
         'configure_local': 'Lokalen Server konfigurieren',
         'advanced_settings': 'Erweiterte Einstellungen',
-        'speed_limit_hint': 'Auf 0 setzen für unbegrenzte Geschwindigkeit',
+        'speed_limit_hint': 'Auf 0 setzen fÃ¼r unbegrenzte Geschwindigkeit',
         'sync_time': 'Sync-Zeit',
         'timezone': 'Zeitzone',
         'timezone_hint': 'Beeinflusst Protokoll-Zeitstempel und Planung',
         'connection_timeout': 'Verbindungs-Timeout (s)',
-        'chunk_size': 'Blockgröße (KB)',
-        'confirm_downloads': 'Vor dem Download bestätigen',
+        'chunk_size': 'BlockgrÃ¶ÃŸe (KB)',
+        'confirm_downloads': 'Vor dem Download bestÃ¤tigen',
         'show_notifications': 'Benachrichtigungen anzeigen',
-        'select_server': 'Server auswählen...',
+        'select_server': 'Server auswÃ¤hlen...',
         'no_active_downloads': 'Keine aktiven Downloads',
         'last_scan': 'Letzter Scan',
         'scanning': 'Lokale Bibliothek wird gescannt...',
-        'select_a_server': 'Server auswählen',
-        'select_server_desc': 'Wählen Sie einen Remote-Server aus der Dropdown-Liste, um seine Bibliothek zu durchsuchen.',
+        'select_a_server': 'Server auswÃ¤hlen',
+        'select_server_desc': 'WÃ¤hlen Sie einen Remote-Server aus der Dropdown-Liste, um seine Bibliothek zu durchsuchen.',
         # Changelog translations
-        'support_btn': 'Unterstützen',
-        'back': 'Zurück',
-        'enjoying_jellylooter': 'Gefällt Ihnen JellyLooter?',
-        'support_message': 'Wenn dieses Projekt Ihnen Zeit spart, unterstützen Sie es auf Ko-fi!',
+        'support_btn': 'UnterstÃ¼tzen',
+        'back': 'ZurÃ¼ck',
+        'enjoying_jellylooter': 'GefÃ¤llt Ihnen JellyLooter?',
+        'support_message': 'Wenn dieses Projekt Ihnen Zeit spart, unterstÃ¼tzen Sie es auf Ko-fi!',
         'december': 'Dezember',
         'latest': 'Neueste',
         'fix': 'Fix',
         'new': 'Neu',
         'improve': 'Besser',
-        'ch_mobile_view': 'Mobile Ansicht funktioniert jetzt korrekt mit Hamburger-Menü',
+        'ch_mobile_view': 'Mobile Ansicht funktioniert jetzt korrekt mit Hamburger-MenÃ¼',
         'ch_download_error': 'Download-Fehler mit Benutzername/Passwort-Auth behoben',
-        'ch_poster_aspect': 'Poster-Bildverhältnis korrigiert',
-        'ch_language_selector': 'Sprachauswahl in Einstellungen mit vollständigen Übersetzungen',
-        'ch_title_downloads': 'Download-Zähler im Browser-Tab-Titel',
-        'ch_select_all': 'Alle auswählen / Abwählen Schaltfläche',
+        'ch_poster_aspect': 'Poster-BildverhÃ¤ltnis korrigiert',
+        'ch_language_selector': 'Sprachauswahl in Einstellungen mit vollstÃ¤ndigen Ãœbersetzungen',
+        'ch_title_downloads': 'Download-ZÃ¤hler im Browser-Tab-Titel',
+        'ch_select_all': 'Alle auswÃ¤hlen / AbwÃ¤hlen SchaltflÃ¤che',
         'ch_filter': 'Filter-/Suchfeld zum Finden von Elementen',
         'ch_history': 'Download-Verlauf mit Zeitstempeln',
-        'ch_eta': 'Geschätzte Restzeit bei aktiven Downloads',
+        'ch_eta': 'GeschÃ¤tzte Restzeit bei aktiven Downloads',
         'ch_quick_paths': 'Schnelle Pfadauswahl aus Bibliothekszuordnungen',
-        'ch_auth_optional': 'Authentifizierung jetzt optional (standardmäßig deaktiviert)',
+        'ch_auth_optional': 'Authentifizierung jetzt optional (standardmÃ¤ÃŸig deaktiviert)',
         'ch_tooltip': 'Tooltip z-index behoben',
         'ch_pagination': 'Alle Elemente werden jetzt mit Paginierung angezeigt',
         'ch_responsive': 'Mobilfreundliches responsives Design',
         'ch_grid_list': 'Raster-/Listenansicht-Umschalter',
         'ch_items_page': 'Paginierung mit konfigurierbaren Elementen pro Seite',
         'ch_queue_order': 'Download-Warteschlangen-Sortieroptionen',
-        'ch_multilang': 'Mehrsprachige Unterstützung (Englisch, Spanisch, Deutsch)',
+        'ch_multilang': 'Mehrsprachige UnterstÃ¼tzung (Englisch, Spanisch, Deutsch)',
         'ch_syntax': 'Python-Syntaxfehler behoben',
-        'ch_favicon': 'Favicon hinzugefügt',
+        'ch_favicon': 'Favicon hinzugefÃ¼gt',
         'ch_kofi': 'Ko-fi Support-Links',
         'ch_userpw': 'Benutzername/Passwort-Authentifizierung',
         'ch_queue_visible': 'Verbesserungen der Download-Warteschlangen-Sichtbarkeit',
         'ch_ux': 'Verbesserungen der Benutzererfahrung',
         # Help translations
         'help_support': 'Hilfe & Support',
-        'support_jellylooter': 'JellyLooter unterstützen',
+        'support_jellylooter': 'JellyLooter unterstÃ¼tzen',
         'verified': 'VERIFIZIERT',
-        'confirmed_working': 'Bestätigt funktionierend auf',
+        'confirmed_working': 'BestÃ¤tigt funktionierend auf',
         'quick_tips': 'Schnelle Tipps',
         'tip_multiselect': 'Mehrfachauswahl',
-        'tip_multiselect_desc': 'Halten Sie Strg/Cmd und klicken Sie, um mehrere Elemente auszuwählen.',
+        'tip_multiselect_desc': 'Halten Sie Strg/Cmd und klicken Sie, um mehrere Elemente auszuwÃ¤hlen.',
         'tip_speed': 'Geschwindigkeitslimit Live',
-        'tip_speed_desc': 'Ändern Sie das Geschwindigkeitslimit in den Einstellungen und es wird innerhalb von 10 Sekunden angewendet.',
+        'tip_speed_desc': 'Ã„ndern Sie das Geschwindigkeitslimit in den Einstellungen und es wird innerhalb von 10 Sekunden angewendet.',
         'tip_order': 'Download-Reihenfolge',
-        'tip_order_desc': 'Wählen Sie, wie Elemente eingereiht werden: komplette Serien zuerst, Round-Robin, oder alphabetisch.',
+        'tip_order_desc': 'WÃ¤hlen Sie, wie Elemente eingereiht werden: komplette Serien zuerst, Round-Robin, oder alphabetisch.',
         'tip_mappings': 'Bibliothekszuordnungen',
         'tip_mappings_desc': 'Richten Sie Zuordnungen ein, um ganze Bibliotheken automatisch zu synchronisieren.',
-        'tip_language': 'Sprache ändern',
+        'tip_language': 'Sprache Ã¤ndern',
         'tip_language_desc': 'Gehen Sie zu Einstellungen > Darstellung > Sprache, um zwischen Englisch, Spanisch und Deutsch zu wechseln.',
         'troubleshooting': 'Fehlerbehebung',
         'issue_auth': 'Authentifizierungsprobleme',
-        'issue_auth_desc': 'Bei Benutzername/Passwort-Auth versuchen Sie, den Server zu löschen und neu hinzuzufügen.',
+        'issue_auth_desc': 'Bei Benutzername/Passwort-Auth versuchen Sie, den Server zu lÃ¶schen und neu hinzuzufÃ¼gen.',
         'issue_slow': 'Langsame Downloads',
-        'issue_slow_desc': 'Überprüfen Sie Ihr Geschwindigkeitslimit. Setzen Sie es auf 0 für unbegrenzt.',
+        'issue_slow_desc': 'ÃœberprÃ¼fen Sie Ihr Geschwindigkeitslimit. Setzen Sie es auf 0 fÃ¼r unbegrenzt.',
         'issue_error': 'Download-Fehler',
-        'issue_error_desc': 'Überprüfen Sie das Aktivitätsprotokoll für Details. Häufige Probleme: Festplatte voll, Berechtigungen, Timeout.',
+        'issue_error_desc': 'ÃœberprÃ¼fen Sie das AktivitÃ¤tsprotokoll fÃ¼r Details. HÃ¤ufige Probleme: Festplatte voll, Berechtigungen, Timeout.',
         'no_remote_servers': 'Keine Remote-Server konfiguriert.',
         'confirm_remove_local': 'Lokalen Server entfernen?',
         'local_server_removed': 'Lokaler Server entfernt',
@@ -1627,39 +1756,39 @@ TRANSLATIONS = {
         'server_name': 'Servername',
         'server_url': 'Server-URL',
         'auth_method': 'Authentifizierungsmethode',
-        'api_key': 'API-Schlüssel',
+        'api_key': 'API-SchlÃ¼ssel',
         'username_password': 'Benutzername/Passwort',
-        'test_before_adding': '⚠️ Testen Sie die Verbindung bevor Sie den Server hinzufügen',
+        'test_before_adding': 'âš ï¸ Testen Sie die Verbindung bevor Sie den Server hinzufÃ¼gen',
         'cancel': 'Abbrechen',
-        'add_server': 'Server hinzufügen',
+        'add_server': 'Server hinzufÃ¼gen',
         'save_and_scan': 'Speichern & Scannen',
-        'select_download_location': 'Download-Speicherort auswählen',
+        'select_download_location': 'Download-Speicherort auswÃ¤hlen',
         'or_browse': 'Oder zu einem Ordner navigieren:',
         'download_here': 'Hier herunterladen',
         # v3.0.0 new translations
         'show_ratings': 'Bewertungen auf Postern anzeigen',
-        'show_quality': 'Qualitätsabzeichen anzeigen (4K, HDR, etc)',
+        'show_quality': 'QualitÃ¤tsabzeichen anzeigen (4K, HDR, etc)',
         'download_subtitles': 'Untertitel automatisch herunterladen',
         'subtitle_languages': 'Untertitelsprachen (ISO-Codes)',
-        'subtitle_hint': 'Kommagetrennte Sprachcodes. Verwenden Sie "all" für alle verfügbaren Untertitel.',
+        'subtitle_hint': 'Kommagetrennte Sprachcodes. Verwenden Sie "all" fÃ¼r alle verfÃ¼gbaren Untertitel.',
         'security_settings': 'Sicherheitseinstellungen',
         'enable_auth': 'Authentifizierung aktivieren',
-        'auth_hint': 'Anmeldung für Zugriff auf JellyLooter erforderlich',
+        'auth_hint': 'Anmeldung fÃ¼r Zugriff auf JellyLooter erforderlich',
         'session_timeout': 'Sitzungs-Timeout (Minuten)',
         'trust_proxy': 'X-Forwarded-Header vertrauen',
         'trust_proxy_hint': 'Aktivieren bei Verwendung eines Reverse-Proxys (Nginx, Traefik, etc.)',
-        'trusted_proxies': 'Vertrauenswürdige Proxy-IPs',
+        'trusted_proxies': 'VertrauenswÃ¼rdige Proxy-IPs',
         'trusted_proxies_hint': 'Kommagetrennte Liste von IP-Bereichen',
         'save_security': 'Sicherheitseinstellungen speichern',
         'pro_features': 'Pro-Funktionen',
         'unlock_pro': 'Pro-Funktionen freischalten',
-        'enter_license': 'Lizenzschlüssel eingeben',
+        'enter_license': 'LizenzschlÃ¼ssel eingeben',
         'go_pro': 'Pro kaufen',
         'trial_days': 'Testtage verbleibend',
-        'thank_you_pro': 'Vielen Dank für Ihre Unterstützung von JellyLooter!',
+        'thank_you_pro': 'Vielen Dank fÃ¼r Ihre UnterstÃ¼tzung von JellyLooter!',
         'notifications': 'Benachrichtigungen',
         'notification_urls': 'Benachrichtigungs-URLs (Apprise)',
-        'notification_hint': 'Eine URL pro Zeile. Unterstützt Discord, Telegram, E-Mail und 80+ Dienste.',
+        'notification_hint': 'Eine URL pro Zeile. UnterstÃ¼tzt Discord, Telegram, E-Mail und 80+ Dienste.',
         'notify_complete': 'Bei Download-Abschluss benachrichtigen',
         'notify_error': 'Bei Download-Fehler benachrichtigen',
         'transcoding': 'Transkodierung',
@@ -1674,10 +1803,10 @@ TRANSLATIONS = {
         'day_limit': 'Tageslimit (KB/s)',
         'night_limit': 'Nachtlimit (KB/s)',
         'arr_integration': '*arr-Integration',
-        'arr_hint': 'Verbinden Sie Sonarr/Radarr für automatische Ordnerbenennung.',
+        'arr_hint': 'Verbinden Sie Sonarr/Radarr fÃ¼r automatische Ordnerbenennung.',
         'custom_themes': 'Benutzerdefinierte Designs',
         'theme': 'Design',
-        'primary_color': 'Primärfarbe',
+        'primary_color': 'PrimÃ¤rfarbe',
         'accent_color': 'Akzentfarbe',
         'background': 'Hintergrund',
         'card_background': 'Karten-Hintergrund',
@@ -1685,18 +1814,18 @@ TRANSLATIONS = {
         'border_color': 'Randfarbe',
         'apply_theme': 'Design anwenden',
         'multiple_servers': 'Mehrere lokale Server',
-        'multiple_servers_hint': 'Verbinden Sie mehrere lokale Server für einheitliche Duplikaterkennung.',
-        'add_local_server': 'Lokalen Server hinzufügen',
+        'multiple_servers_hint': 'Verbinden Sie mehrere lokale Server fÃ¼r einheitliche Duplikaterkennung.',
+        'add_local_server': 'Lokalen Server hinzufÃ¼gen',
         'save_pro': 'Pro-Einstellungen speichern',
         'collapse_panel': 'Einklappen',
         'expand_panel': 'Ausklappen',
         'move_up': 'Nach oben',
         'move_down': 'Nach unten',
-        'reset_layout': 'Layout zurücksetzen',
+        'reset_layout': 'Layout zurÃ¼cksetzen',
         'backup_restore': 'Sichern & Wiederherstellen',
         'export_config': 'Config exportieren',
         'import_config': 'Config importieren',
-        'export_hint': 'Export speichert Einstellungen (API-Schlüssel maskiert). Import stellt wieder her und behält vorhandene Schlüssel.',
+        'export_hint': 'Export speichert Einstellungen (API-SchlÃ¼ssel maskiert). Import stellt wieder her und behÃ¤lt vorhandene SchlÃ¼ssel.',
     }
 }
 
@@ -1877,7 +2006,7 @@ def verify_api_key():
     
     # Log suspicious activity (without revealing the key)
     if api_failed_attempts[client_ip]['count'] >= 3:
-        log(f"⚠️ [API] Multiple failed auth attempts from {client_ip} ({api_failed_attempts[client_ip]['count']} attempts)")
+        log(f"âš ï¸ [API] Multiple failed auth attempts from {client_ip} ({api_failed_attempts[client_ip]['count']} attempts)")
     
     return False, "Invalid API key"
 
@@ -1957,8 +2086,8 @@ def get_local_time():
         except Exception as e:
             # Log once on first failure
             if not hasattr(get_local_time, '_tz_error_logged'):
-                print(f"⚠️ Timezone error for '{tz_name}': {e}")
-                print(f"⚠️ Falling back to UTC. Install tzdata package for timezone support.")
+                print(f"âš ï¸ Timezone error for '{tz_name}': {e}")
+                print(f"âš ï¸ Falling back to UTC. Install tzdata package for timezone support.")
                 get_local_time._tz_error_logged = True
     
     # Fallback to UTC
@@ -1977,13 +2106,13 @@ def check_timezone_support():
         try:
             tz = ZoneInfo(tz_name)
             test_time = datetime.datetime.now(tz)
-            print(f"✅ Timezone support: {tz_name} (current time: {test_time.strftime('%H:%M:%S %Z')})")
+            print(f"âœ… Timezone support: {tz_name} (current time: {test_time.strftime('%H:%M:%S %Z')})")
             return True
         except Exception as e:
-            print(f"⚠️ Timezone '{tz_name}' not available: {e}")
-            print(f"⚠️ Available timezones may require tzdata package")
+            print(f"âš ï¸ Timezone '{tz_name}' not available: {e}")
+            print(f"âš ï¸ Available timezones may require tzdata package")
     else:
-        print(f"⚠️ ZoneInfo not available - timezone support disabled")
+        print(f"âš ï¸ ZoneInfo not available - timezone support disabled")
     return False
 
 
@@ -2027,15 +2156,26 @@ def format_bytes(size):
 
 
 def get_auth_header(token=None):
-    """Generate Jellyfin/Emby auth header"""
-    headers = {
-        'X-Emby-Authorization': f'MediaBrowser Client="JellyLooter", Device="Unraid", DeviceId="JellyLooterId", Version="{VERSION}"'
-    }
+    """Generate Jellyfin/Emby auth header - compatible with all versions"""
+    # Base MediaBrowser auth string
+    auth_string = f'MediaBrowser Client="JellyLooter", Device="Unraid", DeviceId="JellyLooterId", Version="{VERSION}"'
+
     if token:
-        headers['X-Emby-Authorization'] += f', Token="{token}"'
+        auth_string += f', Token="{token}"'
+
+    headers = {
+        'Content-Type': 'application/json',
+        # Primary header for newer Jellyfin (10.9+)
+        'Authorization': auth_string,
+        # Legacy headers for older Jellyfin/Emby compatibility
+        'X-Emby-Authorization': auth_string,
+    }
+
+    # Also add token as separate headers for maximum compatibility
+    if token:
         headers['X-Emby-Token'] = token
         headers['X-MediaBrowser-Token'] = token
-        headers['Authorization'] = f'MediaBrowser Token="{token}"'
+
     return headers
 
 
@@ -2049,7 +2189,7 @@ def check_disk_space(path, required_bytes=0):
             return False, f"Not enough space. Free: {format_bytes(free_bytes)}, Need: {format_bytes(required_bytes)}"
         
         if free_bytes < 1024 * 1024 * 1024:
-            log(f"⚠️ Warning: Low disk space on {path} - {format_bytes(free_bytes)} free")
+            log(f"âš ï¸ Warning: Low disk space on {path} - {format_bytes(free_bytes)} free")
         
         return True, f"Free: {format_bytes(free_bytes)}"
     except Exception as e:
@@ -2152,26 +2292,85 @@ def save_partial_downloads(partials):
         log(f"Error saving partial downloads: {e}")
 
 
-def save_partial_state(task_id, task, downloaded_bytes, total_bytes):
+def save_partial_state(task_id, task, downloaded_bytes, total_bytes, queued=False):
     """Save state for a partial download (Pro feature)"""
     if not is_feature_available('transcoding'):  # Use transcoding as proxy for Pro
         return
     
     partials = load_partial_downloads()
+    server = task.get('server', {}) or {}
+    # Credentials are NOT stored here (headers/keys are rebuilt from the server config on resume)
     partials[task_id] = {
         'task_id': task_id,
         'url': task.get('url', ''),
         'filepath': task.get('filepath', ''),
         'filename': os.path.basename(task.get('filepath', '')),
-        'headers': task.get('headers', {}),
-        'server': task.get('server', {}),
+        'server_id': server.get('id', ''),
+        'server': {'id': server.get('id', ''), 'name': server.get('name', ''), 'url': server.get('url', '')},
         'item_id': task.get('item_id', ''),
+        'item_type': task.get('item_type', ''),
+        'provider_ids': task.get('provider_ids', {}),
+        'series_provider_ids': task.get('series_provider_ids', {}),
         'downloaded': downloaded_bytes,
-        'total': total_bytes,
+        'queued': bool(queued),
+        'total': total_bytes or partials.get(task_id, {}).get('total', 0),
         'timestamp': datetime.datetime.now().isoformat(),
         'partial_file': task.get('filepath', '') + '.partial'
     }
     save_partial_downloads(partials)
+
+
+def task_from_partial(task_id, info):
+    """Rebuild a download task from saved partial state using the current server credentials."""
+    cfg = load_config()
+    sid = info.get('server_id') or (info.get('server') or {}).get('id')
+    server = next((s for s in get_all_servers(cfg) if s.get('id') == sid), None)
+    if not server:
+        return None
+    return {
+        'task_id': task_id,
+        'url': info.get('url', ''),
+        'filepath': info.get('filepath', ''),
+        'headers': get_auth_header(server.get('key', '')),
+        'server': server,
+        'item_id': info.get('item_id', ''),
+        'item_type': info.get('item_type', ''),
+        'provider_ids': info.get('provider_ids', {}),
+        'series_provider_ids': info.get('series_provider_ids', {}),
+        'resume': True
+    }
+
+
+def _partial_bytes(info):
+    pf = info.get('partial_file', '')
+    if pf and os.path.exists(pf):
+        return os.path.getsize(pf)
+    if pf and os.path.exists(pf + '.jlseg'):
+        return sum(os.path.getsize(s) for s in glob.glob(pf + '.seg*'))
+    return None
+
+
+def auto_resume_partials():
+    """After a restart / power cut, put unfinished downloads back in the queue (Pro)."""
+    if not is_feature_available('transcoding') or not load_config().get('auto_resume_downloads', True):
+        return
+    resumed = 0
+    for task_id, info in list(load_partial_downloads().items()):
+        if os.path.exists(info.get('filepath', '')):
+            clear_partial_state(task_id)  # finished before the restart
+            continue
+        if _partial_bytes(info) is None and not info.get('queued'):
+            continue
+        task = task_from_partial(task_id, info)
+        if not task:
+            continue
+        with download_lock:
+            pending_display.append({'id': task_id, 'name': f"🔄 {info.get('filename', 'Unknown')}"})
+        server = task['server']
+        queue_to_server_or_global(task, server.get('id') or server.get('url', 'unknown'), server.get('name'))
+        resumed += 1
+    if resumed:
+        log(f"🔄 Auto-resumed {resumed} unfinished download(s) after restart")
 
 
 def clear_partial_state(task_id):
@@ -2188,9 +2387,8 @@ def get_resumable_downloads():
     resumable = []
     
     for task_id, info in partials.items():
-        partial_file = info.get('partial_file', '')
-        if partial_file and os.path.exists(partial_file):
-            actual_size = os.path.getsize(partial_file)
+        actual_size = _partial_bytes(info)
+        if actual_size is not None:
             resumable.append({
                 'task_id': task_id,
                 'filename': info.get('filename', 'Unknown'),
@@ -2285,6 +2483,7 @@ def get_default_config():
         # Metadata API settings (Free feature)
         "tmdb_api_key": "",
         "tvdb_api_key": "",  # TVDB v4 API key
+        "tvdb_subscriber_pin": "",  # TVDB v4 subscriber PIN (required)
         "omdb_api_key": "",
         "imdb_lookup_enabled": True,  # IMDB direct lookup (no API key needed)
         "metadata_lookup_on_browse": False,  # True = lookup on browse (slower), False = lookup on download only (faster)
@@ -2388,7 +2587,7 @@ def _decrypt_config_keys(config):
             result[arr_key] = decrypt_sensitive(result[arr_key])
     
     # Decrypt metadata API keys
-    for meta_key in ['tmdb_api_key', 'tvdb_api_key', 'omdb_api_key']:
+    for meta_key in ['tmdb_api_key', 'tvdb_api_key', 'tvdb_subscriber_pin', 'omdb_api_key']:
         if result.get(meta_key) and is_encrypted(result[meta_key]):
             result[meta_key] = decrypt_sensitive(result[meta_key])
     
@@ -2483,7 +2682,7 @@ def save_config(data):
             data_to_save[arr_key] = encrypt_sensitive(data_to_save[arr_key])
     
     # Encrypt metadata API keys
-    for meta_key in ['tmdb_api_key', 'tvdb_api_key', 'omdb_api_key']:
+    for meta_key in ['tmdb_api_key', 'tvdb_api_key', 'tvdb_subscriber_pin', 'omdb_api_key']:
         if data_to_save.get(meta_key) and not is_encrypted(data_to_save[meta_key]):
             data_to_save[meta_key] = encrypt_sensitive(data_to_save[meta_key])
     
@@ -2503,7 +2702,7 @@ def save_config(data):
     adjust_workers(data.get('max_concurrent_downloads', 2))
     
     # Adjust transcode workers if Pro user OR test mode enabled
-    test_mode = data.get('_transcode_test_mode', False)
+    test_mode = (DEV_MODE and data.get('_transcode_test_mode', False))
     transcode_enabled = data.get('transcode_enabled', False)
     if (transcode_enabled and is_feature_available('transcoding')) or test_mode:
         adjust_transcode_workers(data.get('max_concurrent_transcodes', 1), force=test_mode)
@@ -2534,6 +2733,15 @@ def load_cache_from_disk():
                 episode_id_cache = set(data.get('episode_ids', []))
                 series_episode_counts = data.get('series_episodes', {})
                 cache_timestamp = data.get('timestamp', 'Unknown')
+                m = data.get('match', {})
+                local_match_index.update({
+                    'movie_ids': set(m.get('movie_ids', [])),
+                    'series_ids': set(m.get('series_ids', [])),
+                    'movie_titles': m.get('movie_titles', {}),
+                    'series_titles': m.get('series_titles', {}),
+                    'episode_titles': set(m.get('episode_titles', [])),
+                    'built': bool(m),
+                })
         except Exception:
             pass
 
@@ -2549,8 +2757,9 @@ def cache_worker():
     
     # Check new multi-server format first
     if cfg.get('local_servers'):
-        local_servers = cfg.get('local_servers', [])
-    
+        # v4 keeps remote servers in this list too - only index servers marked local
+        local_servers = [s for s in cfg.get('local_servers', []) if s.get('type', 'local') == 'local']
+
     # Fall back to old single-server format
     if not local_servers and cfg.get('local_server_url') and cfg.get('local_server_key'):
         local_servers = [{
@@ -2581,6 +2790,8 @@ def cache_worker():
             'ids': set(),              # All provider IDs
             'episode_ids': set(),      # Episode-specific IDs (for episode-level checking)
             'series_episodes': {},     # series_id -> count of episodes locally
+            'match': {'movie_ids': set(), 'series_ids': set(), 'movie_titles': {}, 'series_titles': {},
+                      'episode_titles': set(), 'series_counts': {}},
         }
         timeout = cfg.get('connection_timeout', 30)
         total_items_scanned = 0
@@ -2623,16 +2834,23 @@ def cache_worker():
                 
                 log(f"Scanning {name}...")
                 
-                u_res = requests.get(f"{url}/Users", headers=headers, timeout=timeout)
-                if not u_res.ok:
-                    log(f"Scan Failed for {name}: Could not get users")
-                    continue
-                uid = u_res.json()[0]['Id']
+                # Scan as the configured account (not just the first user on the server)
+                uid = server.get('user_id')
+                if not uid:
+                    me_res = requests.get(f"{url}/Users/Me", headers=headers, timeout=timeout)
+                    if me_res.ok:
+                        uid = me_res.json().get('Id')
+                if not uid:
+                    u_res = requests.get(f"{url}/Users", headers=headers, timeout=timeout)
+                    if not u_res.ok:
+                        log(f"Scan Failed for {name}: Could not get users")
+                        continue
+                    uid = u_res.json()[0]['Id']
 
                 params = {
                     'Recursive': 'true',
                     'IncludeItemTypes': 'Movie,Series,Episode',
-                    'Fields': 'ProviderIds,SeriesProviderIds',
+                    'Fields': 'ProviderIds,SeriesProviderIds,OriginalTitle',
                     'Limit': 0
                 }
                 total_res = requests.get(
@@ -2647,7 +2865,7 @@ def cache_worker():
                     'status': f"Scanning {name}: {total_count} items"
                 })
 
-                limit = 100
+                limit = 500
                 offset = 0
 
                 while offset < total_count:
@@ -2662,7 +2880,33 @@ def cache_worker():
                         providers = item.get('ProviderIds', {})
                         series_providers = item.get('SeriesProviderIds', {})
                         item_type = item.get('Type', '')
-                        
+
+                        # Rich match index: every provider id + normalized titles
+                        mi = new_cache['match']
+                        pkeys = _provider_keys(providers)
+                        year = item.get('ProductionYear') or 0
+                        if item_type == 'Movie':
+                            mi['movie_ids'] |= pkeys
+                            for n in (item.get('Name'), item.get('OriginalTitle')):
+                                if normalize_title(n):
+                                    mi['movie_titles'].setdefault(normalize_title(n), set()).add(year)
+                        elif item_type == 'Series':
+                            mi['series_ids'] |= pkeys
+                            for n in (item.get('Name'), item.get('OriginalTitle')):
+                                if normalize_title(n):
+                                    mi['series_titles'].setdefault(normalize_title(n), set()).add(year)
+                        elif item_type == 'Episode':
+                            new_cache['episode_ids'] |= pkeys
+                            spkeys = _provider_keys(series_providers)
+                            mi['series_ids'] |= spkeys
+                            for k in spkeys:
+                                mi['series_counts'][k] = mi['series_counts'].get(k, 0) + 1
+                            sname = normalize_title(item.get('SeriesName'))
+                            if sname:
+                                mi['series_titles'].setdefault(sname, set()).add(0)
+                                if item.get('IndexNumber') is not None:
+                                    mi['episode_titles'].add(f"{sname}|{item.get('ParentIndexNumber')}|{item.get('IndexNumber')}")
+
                         # Store item's own provider IDs
                         if 'Imdb' in providers:
                             new_cache['ids'].add(f"imdb_{providers['Imdb']}")
@@ -2717,17 +2961,34 @@ def cache_worker():
         local_id_cache.update(new_cache['ids'])
         episode_id_cache.clear()
         episode_id_cache.update(new_cache['episode_ids'])
+        mi = new_cache['match']
+        # Count episodes under every series id (not just the first one found)
+        for k, n in mi['series_counts'].items():
+            new_cache['series_episodes'][k] = max(new_cache['series_episodes'].get(k, 0), n)
         series_episode_counts.clear()
         series_episode_counts.update(new_cache['series_episodes'])
+        local_match_index.update({
+            'movie_ids': mi['movie_ids'], 'series_ids': mi['series_ids'],
+            'movie_titles': {k: sorted(v) for k, v in mi['movie_titles'].items()},
+            'series_titles': {k: sorted(v) for k, v in mi['series_titles'].items()},
+            'episode_titles': mi['episode_titles'],
+            'built': True,
+        })
         cache_timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-        
+
         os.makedirs(os.path.dirname(CACHE_FILE), exist_ok=True)
         with open(CACHE_FILE, 'w') as f:
             json.dump({
                 'timestamp': cache_timestamp,
                 'ids': list(new_cache['ids']),
                 'episode_ids': list(new_cache['episode_ids']),
-                'series_episodes': new_cache['series_episodes']
+                'series_episodes': new_cache['series_episodes'],
+                'match': {
+                    'movie_ids': list(mi['movie_ids']), 'series_ids': list(mi['series_ids']),
+                    'movie_titles': local_match_index['movie_titles'],
+                    'series_titles': local_match_index['series_titles'],
+                    'episode_titles': list(mi['episode_titles']),
+                }
             }, f)
 
         log(f"Scan Complete. Cached {len(new_cache['ids'])} IDs, {len(new_cache['episode_ids'])} episode IDs, {len(new_cache['series_episodes'])} series episode counts.")
@@ -2748,6 +3009,80 @@ def cache_worker():
             "total": 0,
             "status": f"Error: {str(e)}"
         }
+
+
+import unicodedata
+
+# Richer local index for duplicate detection (title + every provider id)
+local_match_index = {'movie_ids': set(), 'series_ids': set(), 'movie_titles': {}, 'series_titles': {}, 'episode_titles': set(), 'built': False}
+
+
+def normalize_title(name):
+    """Lowercase, strip accents/punctuation/leading article/trailing (year) for title matching."""
+    if not name:
+        return ''
+    s = unicodedata.normalize('NFKD', str(name))
+    s = ''.join(c for c in s if not unicodedata.combining(c)).lower()
+    s = re.sub(r'\(\s*\d{4}\s*\)\s*$', '', s).replace('&', ' and ')
+    s = re.sub(r"['â€™`]", '', s)
+    s = re.sub(r'[\W_]+', ' ', s).strip()
+    return re.sub(r'^(the|a|an) ', '', s)
+
+
+def _provider_keys(providers):
+    return {f"{k.lower()}_{v}" for k, v in (providers or {}).items() if v}
+
+
+def _title_hit(index, names, year):
+    """True if any normalized name is in index with a compatible year (Â±1, or unknown)."""
+    for name in names:
+        years = index.get(normalize_title(name))
+        if years is None:
+            continue
+        if not year or not years or 0 in years or any(abs(int(y) - int(year)) <= 1 for y in years):
+            return True
+    return False
+
+
+def series_exists_locally(series_providers, series_names, year=None):
+    idx = local_match_index
+    keys = _provider_keys(series_providers)
+    series_ids = idx['series_ids'] if idx.get('built') else (idx['series_ids'] | local_id_cache)  # no full index yet: legacy ids too
+    if keys & series_ids or any(series_episode_counts.get(k, 0) > 0 for k in keys):
+        return True
+    return _title_hit(idx['series_titles'], [n for n in series_names if n], year)
+
+
+def local_match_status(item):
+    """'full', 'partial' or False for a remote Jellyfin item (ids, then title/year)."""
+    get_existing_ids()
+    idx = local_match_index
+    t = item.get('Type', '')
+    prov = _provider_keys(item.get('ProviderIds'))
+    names = [item.get('Name'), item.get('OriginalTitle')]
+    year = item.get('ProductionYear')
+    movie_ids = idx['movie_ids'] if idx.get('built') else (idx['movie_ids'] | local_id_cache)  # no full index yet: legacy ids too
+    if t == 'Episode':
+        if prov & episode_id_cache:
+            return 'full'
+        if item.get('IndexNumber') is not None:
+            key = f"{normalize_title(item.get('SeriesName'))}|{item.get('ParentIndexNumber')}|{item.get('IndexNumber')}"
+            if key in idx['episode_titles']:
+                return 'full'
+        return False
+    if t == 'Series':
+        return 'full' if series_exists_locally(item.get('ProviderIds'), names, year) else False
+    if t == 'Season':
+        return 'partial' if series_exists_locally(item.get('SeriesProviderIds'), [item.get('SeriesName')]) else False
+    if t in ('Movie', 'Video', 'MusicVideo'):
+        if prov & movie_ids or _title_hit(idx['movie_titles'], [n for n in names if n], year):
+            return 'full'
+    return False
+
+
+def local_series_episode_count(item):
+    keys = _provider_keys(item.get('ProviderIds'))
+    return max([series_episode_counts.get(k, 0) for k in keys] or [0])
 
 
 def get_existing_ids():
@@ -2808,7 +3143,7 @@ def update_cache_for_download(provider_ids, series_provider_ids=None, item_type=
             if series_key:
                 series_episode_counts[series_key] = series_episode_counts.get(series_key, 0) + 1
                 updated = True
-                log(f"📊 Cache updated: {series_key} now has {series_episode_counts[series_key]} episodes")
+                log(f"ðŸ“Š Cache updated: {series_key} now has {series_episode_counts[series_key]} episodes")
             
             # Also add series-level IDs to main cache
             for key_type in ['Imdb', 'Tmdb', 'Tvdb']:
@@ -2820,22 +3155,34 @@ def update_cache_for_download(provider_ids, series_provider_ids=None, item_type=
     
     elif item_type == 'Movie':
         # Movies just need main cache update (already done above)
-        log(f"📊 Cache updated: Added movie {provider_ids.get('Imdb') or provider_ids.get('Tmdb')}")
+        log(f"ðŸ“Š Cache updated: Added movie {provider_ids.get('Imdb') or provider_ids.get('Tmdb')}")
     
     # Save updated cache to disk
     if updated:
         try:
             cache_timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
             os.makedirs(os.path.dirname(CACHE_FILE), exist_ok=True)
-            with open(CACHE_FILE, 'w') as f:
-                json.dump({
-                    'timestamp': cache_timestamp,
-                    'ids': list(local_id_cache),
-                    'episode_ids': list(episode_id_cache),
-                    'series_episodes': series_episode_counts
-                }, f)
+            mi = local_match_index
+            data = {
+                'timestamp': cache_timestamp,
+                'ids': list(local_id_cache),
+                'episode_ids': list(episode_id_cache),
+                'series_episodes': series_episode_counts,
+            }
+            if mi.get('built'):
+                # Keep the title/ID match index (losing it broke duplicate detection after a restart)
+                data['match'] = {
+                    'movie_ids': list(mi['movie_ids']), 'series_ids': list(mi['series_ids']),
+                    'movie_titles': {k: sorted(set(v)) for k, v in mi['movie_titles'].items()},
+                    'series_titles': {k: sorted(set(v)) for k, v in mi['series_titles'].items()},
+                    'episode_titles': list(mi['episode_titles']),
+                }
+            tmp = CACHE_FILE + '.tmp'
+            with open(tmp, 'w') as f:
+                json.dump(data, f)
+            os.replace(tmp, CACHE_FILE)
         except Exception as e:
-            log(f"⚠️ Failed to save cache update: {e}")
+            log(f"âš ï¸ Failed to save cache update: {e}")
 
 
 # --- Schedule Management ---
@@ -2892,7 +3239,7 @@ def adjust_transcode_workers(new_count, force=False):
     
     # Only Pro users can have transcode workers (unless forced for test mode)
     if not force and not is_feature_available('transcoding'):
-        log(f"⚠️ Transcode workers require Pro license (use test mode to bypass)")
+        log(f"âš ï¸ Transcode workers require Pro license (use test mode to bypass)")
         return
     
     with worker_lock:
@@ -2947,7 +3294,7 @@ def ensure_server_workers(server_id, server_name=None):
                 )
                 t.start()
             
-            log(f"📡 Started {workers_per_server} worker(s) for server: {server_name or server_id}")
+            log(f"ðŸ“¡ Started {workers_per_server} worker(s) for server: {server_name or server_id}")
             return True
     return True
 
@@ -2962,7 +3309,7 @@ def server_worker(server_id, server_name):
         # Check if server workers are still enabled
         with server_worker_lock:
             if server_id not in server_workers or not server_workers[server_id].get('active', False):
-                log(f"📡 Server worker stopping for: {server_name}")
+                log(f"ðŸ“¡ Server worker stopping for: {server_name}")
                 return
         
         # Check global stop after current
@@ -2988,7 +3335,7 @@ def server_worker(server_id, server_name):
             continue
         
         tid = task['task_id']
-        log(f"📡 Server worker ({server_name}) picked up task: {tid[:8]}...")
+        log(f"ðŸ“¡ Server worker ({server_name}) picked up task: {tid[:8]}...")
         
         with download_lock:
             pending_display = [x for x in pending_display if x['id'] != tid]
@@ -3009,6 +3356,12 @@ def server_worker(server_id, server_name):
 def queue_to_server_or_global(task, server_id, server_name=None):
     """Route task to server-specific queue or global queue"""
     cfg = load_config()
+    # Pro: remember queued downloads so a restart/power cut doesn't lose the queue
+    if is_feature_available('transcoding') and not task.get('resume'):
+        try:
+            save_partial_state(task['task_id'], task, 0, 0, queued=True)
+        except Exception as e:
+            log(f"Could not save queue state: {e}")
     
     # Check if per-server workers are enabled (Pro feature)
     if cfg.get('per_server_workers', False) and is_feature_available('arr_integration'):
@@ -3018,11 +3371,11 @@ def queue_to_server_or_global(task, server_id, server_name=None):
         # Queue to server-specific queue
         server_queue = get_server_queue(server_id)
         server_queue.put(task)
-        log(f"📡 Queued to server worker: {server_name or server_id}")
+        log(f"ðŸ“¡ Queued to server worker: {server_name or server_id}")
     else:
         # Use global queue
         task_queue.put(task)
-        log(f"📥 Queued to global worker pool: {task.get('filepath', 'unknown')[-50:]}")
+        log(f"ðŸ“¥ Queued to global worker pool: {task.get('filepath', 'unknown')[-50:]}")
 
 
 def get_per_server_status():
@@ -3051,12 +3404,12 @@ def stop_server_workers():
                 for _ in range(server_workers[server_id].get('count', 1)):
                     server_queues[server_id].put(None)
         server_workers.clear()
-        log("📡 All per-server workers stopped")
+        log("ðŸ“¡ All per-server workers stopped")
 
 
 def worker():
     """Download worker thread"""
-    global active_workers, pending_display, stop_after_current
+    global active_workers, pending_display, stop_after_current, is_paused
     
     while True:
         with worker_lock:
@@ -3065,16 +3418,19 @@ def worker():
                 log(f"Stopped worker (total: {active_workers})")
                 return
         
-        # Check if we should stop after current (only check when queue is empty or getting new task)
+        # Stop after current: once running downloads finish, pause the queue (Resume ▶️ restarts it)
         if stop_after_current:
-            # Only stop if no active downloads (let current ones finish)
             with download_lock:
-                if len(active_downloads) == 0:
-                    log("Stop after current: No more active downloads, pausing queue")
-                    stop_after_current = False  # Reset flag
-                    # Pause by not taking more tasks
-                    time.sleep(1)
-                    continue
+                running = len(active_downloads)
+            if running == 0:
+                is_paused = True
+                stop_after_current = False
+                log("⏹️ Current downloads finished - queue paused (press Resume to continue)")
+            time.sleep(1)
+            continue
+        if is_paused:
+            time.sleep(1)
+            continue
         
         try:
             task = task_queue.get(timeout=5)
@@ -3094,13 +3450,14 @@ def worker():
             continue
         
         tid = task['task_id']
-        log(f"📥 Worker picked up task: {tid[:8]}...")
+        log(f"ðŸ“¥ Worker picked up task: {tid[:8]}...")
         
         with download_lock:
             pending_display = [x for x in pending_display if x['id'] != tid]
         
         if tid in cancelled_tasks:
             cancelled_tasks.discard(tid)
+            clear_partial_state(tid)
             task_queue.task_done()
             continue
         
@@ -3143,16 +3500,16 @@ def transcode_worker():
             preset = task['preset']
             total_size = task.get('total_size', 0)
             
-            log(f"🎬 Transcode worker picked up task: {filename} (queue remaining: {transcode_queue.qsize()})")
+            log(f"ðŸŽ¬ Transcode worker picked up task: {filename} (queue remaining: {transcode_queue.qsize()})")
             
             if tid in cancelled_tasks:
                 cancelled_tasks.discard(tid)
                 transcode_queue.task_done()
-                log(f"⏭️ Skipped cancelled transcode: {filename}")
+                log(f"â­ï¸ Skipped cancelled transcode: {filename}")
                 continue
             
             try:
-                log(f"🎬 Transcode worker processing: {filename}")
+                log(f"ðŸŽ¬ Transcode worker processing: {filename}")
                 
                 # Remove from pending transcodes
                 with transcode_lock:
@@ -3162,7 +3519,7 @@ def transcode_worker():
                 with transcode_lock:
                     active_transcodes[tid] = {
                         'id': tid,
-                        'filename': f"🔄 {filename}",
+                        'filename': f"ðŸ”„ {filename}",
                         'total': 100,
                         'current': 0,
                         'speed': 'Starting...',
@@ -3171,16 +3528,16 @@ def transcode_worker():
                         'transcode': True
                     }
                 
-                log(f"📊 Active transcodes: {len(active_transcodes)}, Pending: {len(pending_transcodes)}")
+                log(f"ðŸ“Š Active transcodes: {len(active_transcodes)}, Pending: {len(pending_transcodes)}")
                 
                 # Run transcode
                 transcoded_path = transcode_file(filepath, task_id=tid)
                 
                 # Check if transcode actually produced a new file
                 if transcoded_path and transcoded_path != filepath:
-                    log(f"✅ Transcode complete: {os.path.basename(transcoded_path)}")
+                    log(f"âœ… Transcode complete: {os.path.basename(transcoded_path)}")
                 else:
-                    log(f"⚠️ Transcode skipped/failed, keeping original: {filename}")
+                    log(f"âš ï¸ Transcode skipped/failed, keeping original: {filename}")
                 
                 with transcode_lock:
                     if tid in active_transcodes:
@@ -3220,7 +3577,7 @@ def transcode_worker():
                     # For episodes, use series_provider_ids for Sonarr (episode IDs are useless for Sonarr)
                     arr_provider_ids = task.get('series_provider_ids', {})
                     if not arr_provider_ids:
-                        log(f"⚠️ [ARR] No series_provider_ids for episode - Sonarr add will be skipped")
+                        log(f"âš ï¸ [ARR] No series_provider_ids for episode - Sonarr add will be skipped")
                 else:
                     # For movies, use the item's provider_ids for Radarr
                     arr_provider_ids = task.get('provider_ids', {})
@@ -3233,17 +3590,20 @@ def transcode_worker():
                 update_cache_for_download(provider_ids, series_provider_ids, cache_item_type)
                     
             except Exception as e:
-                log(f"❌ Transcode worker error: {e}")
+                log(f"âŒ Transcode worker error: {e}")
                 with transcode_lock:
                     if tid in active_transcodes:
                         del active_transcodes[tid]
-            
+
+            with transcode_lock:
+                if tid in _transcode_order:
+                    _transcode_order.remove(tid)
             transcode_queue.task_done()
     
     except Exception as worker_error:
-        log(f"❌ Transcode worker crashed: {worker_error}")
+        log(f"âŒ Transcode worker crashed: {worker_error}")
         import traceback
-        log(f"❌ Traceback: {traceback.format_exc()[:500]}")
+        log(f"âŒ Traceback: {traceback.format_exc()[:500]}")
     
     finally:
         with worker_lock:
@@ -3330,18 +3690,277 @@ def download_subtitles(server, item_id, video_filepath, languages=None):
                     with open(sub_filename, 'wb') as f:
                         f.write(sub_response.content)
                     downloaded_count += 1
-                    log(f"📝 Downloaded subtitle: {os.path.basename(sub_filename)}")
+                    log(f"ðŸ“ Downloaded subtitle: {os.path.basename(sub_filename)}")
             except Exception as sub_err:
-                log(f"⚠ Failed to download subtitle {stream_index}: {sub_err}")
+                log(f"âš  Failed to download subtitle {stream_index}: {sub_err}")
         
         if downloaded_count > 0:
-            log(f"📝 Downloaded {downloaded_count} subtitle(s) for {os.path.basename(video_filepath)}")
+            log(f"ðŸ“ Downloaded {downloaded_count} subtitle(s) for {os.path.basename(video_filepath)}")
             
     except Exception as e:
-        log(f"⚠ Subtitle download error: {e}")
+        log(f"âš  Subtitle download error: {e}")
+
+
+SEGMENT_MIN_BYTES = 200 * 1024 * 1024     # only split files bigger than this
+_active_order = []                         # task ids in the order they started (for worker-slot gating)
+
+
+def stream_fallback_allowed():
+    """Pro + the 'Download when a server blocks downloads' switch is on (default on)."""
+    return is_feature_available('stream_downloads') and load_config().get('stream_fallback_enabled', True)
+
+
+def _stream_url_for(task):
+    """Original-quality stream URL (works when a server disallows /Download)."""
+    item_id = task.get('item_id')
+    server = task.get('server') or {}
+    if not item_id or not server.get('url'):
+        return None
+    kind = 'Audio' if task.get('item_type') in ('audio', 'musicvideo_audio') else 'Videos'
+    return f"{server['url'].rstrip('/')}/{kind}/{item_id}/stream?static=true"
+
+
+DOWNLOAD_LOG_FILE = '/config/download_log.jsonl'   # persistent per-file history for detailed stats
+recent_completed = deque(maxlen=500)   # item/series/season ids finished this session (instant ✓)
+
+
+def record_completed_download(task, filepath, size, seconds):
+    """Mark the item as owned right away and append it to the detailed-stats log."""
+    ids = [i for i in (task.get('item_id'), task.get('series_id'), task.get('season_id')) if i]
+    with download_lock:
+        for i in ids:
+            if i not in recent_completed:
+                recent_completed.append(i)
+
+    # Teach the duplicate matcher about it immediately (no rescan needed)
+    t = (task.get('item_type') or '').lower()
+    pkeys = _provider_keys(task.get('provider_ids'))
+    if t == 'movie':
+        local_match_index['movie_ids'] |= pkeys
+        for n in (task.get('title'), task.get('original_title')):
+            if normalize_title(n):
+                local_match_index['movie_titles'].setdefault(normalize_title(n), []).append(task.get('year') or 0)
+    elif t == 'episode':
+        episode_id_cache.update(pkeys)
+        spkeys = _provider_keys(task.get('series_provider_ids'))
+        local_match_index['series_ids'] |= spkeys
+        for k in spkeys:
+            series_episode_counts[k] = series_episode_counts.get(k, 0) + 1
+        sname = normalize_title(task.get('series_name'))
+        if sname:
+            local_match_index['series_titles'].setdefault(sname, []).append(0)
+            local_match_index['episode_titles'].add(f"{sname}|{task.get('season_num')}|{task.get('episode_num')}")
+
+    server = task.get('server') or {}
+    entry = {
+        'ts': datetime.datetime.now().isoformat(timespec='seconds'),
+        'type': t or 'other',
+        'title': task.get('title'),
+        'series': task.get('series_name'),
+        'season': task.get('season_num'),
+        'episode': task.get('episode_num'),
+        'year': task.get('year'),
+        'file': os.path.basename(filepath),
+        'size': int(size or (os.path.getsize(filepath) if os.path.exists(filepath) else 0)),
+        'seconds': round(max(seconds, 0.001), 1),
+        'server_id': server.get('id'),
+        'server': server.get('name'),
+    }
+    entry['speed'] = int(entry['size'] / entry['seconds']) if entry['seconds'] else 0
+    with open(DOWNLOAD_LOG_FILE, 'a', encoding='utf-8') as f:
+        f.write(json.dumps(entry) + '\n')
+
+
+def wait_for_download_slot(tid):
+    """#22: if the worker count was lowered, newer downloads pause until a slot frees up."""
+    while True:
+        # Kill switch holding traffic because the VPN is down -> wait instead of failing
+        if vpn_blocking_downloads() and tid not in cancelled_tasks:
+            with download_lock:
+                if tid in active_downloads:
+                    active_downloads[tid].update({'status': 'Waiting for VPN', 'speed': '0 B/s', 'speed_raw': 0})
+            time.sleep(2)
+            continue
+        with download_lock:
+            if tid not in _active_order:
+                _active_order.append(tid)
+            allowed = _active_order[:max(1, target_workers)]
+            if tid in allowed or tid in cancelled_tasks:
+                if tid in active_downloads and active_downloads[tid].get('status') == 'Waiting for a free slot':
+                    active_downloads[tid]['status'] = 'Downloading'
+                return
+            if tid in active_downloads:
+                active_downloads[tid].update({'status': 'Waiting for a free slot', 'speed': '0 B/s', 'speed_raw': 0})
+        time.sleep(1)
+
+
+def _release_download_slot(tid):
+    with download_lock:
+        if tid in _active_order:
+            _active_order.remove(tid)
+
+
+def _segmented_download(task, partial_file, timeout, speed_limit_kbs, connections):
+    """Pro: multi-connection download into per-segment files, resumable after crashes/outages.
+
+    Returns the total size on success, or None when the server can't do ranges / the file is small
+    (caller then falls back to a single stream). Raises InterruptedError when cancelled.
+    """
+    tid = task['task_id']
+    filename = os.path.basename(task['filepath'])
+    headers = dict(task.get('headers', {}))
+
+    probe = requests.get(task['url'], headers={**headers, 'Range': 'bytes=0-0'}, stream=True, timeout=timeout)
+    if probe.status_code == 403 and '/Download' in task['url']:
+        probe.close()
+        alt = _stream_url_for(task) if stream_fallback_allowed() else None
+        if not alt:
+            return None          # single-stream path reports the "needs Pro" message
+        log(f"⬇️ Server refused /Download for {filename} - using original-quality stream instead")
+        task['url'] = alt
+        probe = requests.get(alt, headers={**headers, 'Range': 'bytes=0-0'}, stream=True, timeout=timeout)
+    content_range = probe.headers.get('Content-Range', '')
+    probe.close()
+    if probe.status_code != 206 or '/' not in content_range:
+        return None
+    try:
+        total = int(content_range.split('/')[-1])
+    except ValueError:
+        return None
+    if total < SEGMENT_MIN_BYTES:
+        return None
+
+    state_file = partial_file + '.jlseg'
+    state = None
+    if os.path.exists(state_file):
+        try:
+            with open(state_file) as f:
+                state = json.load(f)
+        except (OSError, ValueError):
+            state = None
+    if not state or state.get('total') != total:
+        part = total // connections
+        ranges = [[i * part, (total - 1) if i == connections - 1 else (i + 1) * part - 1] for i in range(connections)]
+        state = {'total': total, 'ranges': ranges}
+        for i in range(32):
+            seg = f"{partial_file}.seg{i}"
+            if os.path.exists(seg):
+                os.remove(seg)
+        with open(state_file, 'w') as f:
+            json.dump(state, f)
+    ranges = state['ranges']
+    seg_files = [f"{partial_file}.seg{i}" for i in range(len(ranges))]
+    per_conn_limit = (speed_limit_kbs * 1024 / len(ranges)) if speed_limit_kbs else 0
+    errors = []
+
+    def seg_size(i):
+        return os.path.getsize(seg_files[i]) if os.path.exists(seg_files[i]) else 0
+
+    def run_segment(i):
+        start, end = ranges[i]
+        expected = end - start + 1
+        attempts = 0
+        while True:
+            have = seg_size(i)
+            if have >= expected or tid in cancelled_tasks:
+                return
+            try:
+                h = {**headers, 'Range': f'bytes={start + have}-{end}'}
+                with requests.get(task['url'], headers=h, stream=True, timeout=timeout) as r:
+                    if r.status_code != 206:
+                        raise IOError(f"segment {i}: HTTP {r.status_code}")
+                    with open(seg_files[i], 'ab') as f:
+                        t0, got = time.time(), 0
+                        for chunk in r.iter_content(1024 * 1024):
+                            if tid in cancelled_tasks:
+                                return
+                            while is_paused and tid not in cancelled_tasks:
+                                time.sleep(0.5)
+                            if not chunk:
+                                continue
+                            f.write(chunk)
+                            got += len(chunk)
+                            if per_conn_limit:
+                                ahead = got / per_conn_limit - (time.time() - t0)
+                                if ahead > 0:
+                                    time.sleep(ahead)
+                attempts = 0
+            except Exception as e:
+                attempts += 1
+                if attempts > 30:  # ~15+ minutes of failures for one segment
+                    errors.append(f"segment {i}: {e}")
+                    return
+                log(f"⚠️ {filename}: connection dropped on part {i + 1} ({type(e).__name__}) - retrying")
+                for _ in range(min(30, 2 * attempts)):
+                    if tid in cancelled_tasks:
+                        return
+                    time.sleep(1)
+
+    threads = [threading.Thread(target=run_segment, args=(i,), daemon=True) for i in range(len(ranges))]
+    for t in threads:
+        t.start()
+    last_bytes, last_t = sum(seg_size(i) for i in range(len(ranges))), time.time()
+    while any(t.is_alive() for t in threads):
+        time.sleep(1)
+        done = sum(seg_size(i) for i in range(len(ranges)))
+        now = time.time()
+        speed = max(0, (done - last_bytes) / (now - last_t)) if now > last_t else 0
+        last_bytes, last_t = done, now
+        with download_lock:
+            if tid in active_downloads:
+                active_downloads[tid].update({
+                    'current': done, 'total': total, 'speed_raw': speed,
+                    'speed': f"{format_bytes(speed)}/s",
+                    'percent': int(done * 100 / total) if total else 0,
+                    'status': 'Paused' if is_paused else f'Downloading ({len(ranges)} connections)'
+                })
+    if tid in cancelled_tasks:
+        raise InterruptedError("Download cancelled")
+    if errors:
+        raise IOError('; '.join(errors))
+
+    # Verify every part, then join them into the .partial file
+    for i, (start, end) in enumerate(ranges):
+        if seg_size(i) != end - start + 1:
+            raise IOError(f"part {i + 1} is incomplete ({seg_size(i)} of {end - start + 1} bytes)")
+    with download_lock:
+        if tid in active_downloads:
+            active_downloads[tid]['status'] = 'Verifying & joining'
+    with open(partial_file, 'wb') as out:
+        for seg in seg_files:
+            with open(seg, 'rb') as src:
+                shutil.copyfileobj(src, out, 8 * 1024 * 1024)
+    if os.path.getsize(partial_file) != total:
+        os.remove(partial_file)
+        raise IOError("joined file size does not match the server - will retry")
+    for seg in seg_files:
+        os.remove(seg)
+    os.remove(state_file)
+    return total
+
+
+def _verify_media_file(path):
+    """Quick integrity check of a finished video with ffprobe (True if OK or not checkable)."""
+    if not path.lower().endswith(('.mkv', '.mp4', '.m4v', '.avi', '.mov', '.ts', '.webm')) or not shutil.which('ffprobe'):
+        return True
+    try:
+        r = subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', path],
+                           capture_output=True, text=True, timeout=120)
+        return r.returncode == 0 and r.stdout.strip() not in ('', 'N/A')
+    except Exception:
+        return True
 
 
 def download_file(task):
+    """Download one file, holding a worker slot (so lowering the worker count pauses extras)."""
+    tid = task['task_id']
+    try:
+        return _download_file(task)
+    finally:
+        _release_download_slot(tid)
+
+
+def _download_file(task):
     """Download a single file with speed limiting, pause support, resume capability (Pro), and auto-retry"""
     global is_paused
     
@@ -3369,12 +3988,15 @@ def download_file(task):
     retry_delay = cfg.get('download_retry_delay', 30)
     retry_count = task.get('_retry_count', 0)
     
+    # Check Pro once per download - never inside the chunk loop
+    pro_downloads = is_feature_available('transcoding')
+
     # Check for existing partial file (Pro resume feature)
     resume_bytes = 0
-    if is_feature_available('transcoding') and os.path.exists(partial_file):
+    if pro_downloads and os.path.exists(partial_file):
         resume_bytes = os.path.getsize(partial_file)
         is_resume = True
-        log(f"🔄 Resuming download from {format_bytes(resume_bytes)}: {filename}")
+        log(f"ðŸ”„ Resuming download from {format_bytes(resume_bytes)}: {filename}")
     
     def should_retry(error):
         """Check if error is retryable"""
@@ -3397,8 +4019,8 @@ def download_file(task):
         nonlocal retry_count
         if auto_retry and retry_count < max_retries:
             retry_count += 1
-            log(f"⚠️ {error_msg}")
-            log(f"🔄 Retrying in {retry_delay}s (attempt {retry_count}/{max_retries})...")
+            log(f"âš ï¸ {error_msg}")
+            log(f"ðŸ”„ Retrying in {retry_delay}s (attempt {retry_count}/{max_retries})...")
             
             with download_lock:
                 if tid in active_downloads:
@@ -3452,159 +4074,215 @@ def download_file(task):
                 'status': status_msg
             }
         
-        # Prepare headers with Range for resume
-        headers = task.get('headers', {}).copy()
-        if resume_bytes > 0:
-            headers['Range'] = f'bytes={resume_bytes}-'
-        
-        # Connection with retry handling
-        try:
-            response = requests.get(task['url'], stream=True, timeout=timeout, headers=headers)
-            response.raise_for_status()
-        except Exception as conn_error:
-            if should_retry(conn_error) and do_retry(f"Connection failed for {filename}: {type(conn_error).__name__}"):
-                return download_file(task)
-            raise
-        
-        # Handle resume response codes
-        if response.status_code == 416:  # Range not satisfiable - file complete or changed
-            log(f"⚠ Cannot resume {filename} - restarting download")
-            resume_bytes = 0
-            if os.path.exists(partial_file):
-                os.remove(partial_file)
-            # Retry without Range header
-            headers.pop('Range', None)
-            response = requests.get(task['url'], stream=True, timeout=timeout, headers=headers)
-            response.raise_for_status()
-        
-        # Get total size - handle both fresh and resumed downloads
-        if response.status_code == 206:  # Partial content (resume)
-            content_range = response.headers.get('Content-Range', '')
-            if '/' in content_range:
-                total_size = int(content_range.split('/')[-1])
-            else:
-                total_size = resume_bytes + int(response.headers.get('content-length', 0))
+        wait_for_download_slot(tid)
+        transfer_started = time.time()
+        if pro_downloads:
+            save_partial_state(tid, task, resume_bytes, 0)  # now "in progress" for crash recovery
+
+        segmented_total = None
+        if pro_downloads and cfg.get('advanced_downloads', True) and resume_bytes == 0:
+            try:
+                connections = max(2, min(8, int(cfg.get('download_connections', 4))))
+                segmented_total = _segmented_download(task, partial_file, timeout, speed_limit, connections)
+            except InterruptedError:
+                raise
+            except Exception as seg_error:
+                if do_retry(f"Multi-connection download failed for {filename}: {seg_error}"):
+                    return download_file(task)
+                raise
+        if segmented_total is not None:
+            total_size = segmented_total
         else:
-            total_size = int(response.headers.get('content-length', 0))
-            resume_bytes = 0  # Fresh download
+            # Prepare headers with Range for resume
+            headers = task.get('headers', {}).copy()
+            if resume_bytes > 0:
+                headers['Range'] = f'bytes={resume_bytes}-'
         
-        if total_size > 0 and resume_bytes == 0:
-            space_ok, space_msg = check_disk_space(dir_path, total_size)
-            if not space_ok:
-                raise Exception(space_msg)
+            # Connection with retry handling
+            try:
+                response = requests.get(task['url'], stream=True, timeout=timeout, headers=headers)
+                if response.status_code == 403 and '/Download' in task['url']:
+                    # The server has downloads turned off for this account
+                    response.close()
+                    if not is_feature_available('stream_downloads'):
+                        raise PermissionError("This server has downloads turned off. JellyLooter Pro can download "
+                                              "the original-quality stream instead.")
+                    if not stream_fallback_allowed():
+                        raise PermissionError("This server has downloads turned off. Turn on \"Download when a server "
+                                              "blocks downloads\" in Settings -> Pro to use the stream instead.")
+                    if not _stream_url_for(task):
+                        raise PermissionError("This server has downloads turned off and no stream is available")
+                    log(f"⬇️ Server refused /Download for {filename} - using original-quality stream instead (Pro)")
+                    task['url'] = _stream_url_for(task)
+                    response = requests.get(task['url'], stream=True, timeout=timeout, headers=headers)
+                elif response.status_code == 401:
+                    response.close()
+                    raise PermissionError("The server rejected the saved login - edit the server in Settings and log in again")
+                response.raise_for_status()
+            except Exception as conn_error:
+                if should_retry(conn_error) and do_retry(f"Connection failed for {filename}: {type(conn_error).__name__}"):
+                    return download_file(task)
+                raise
         
-        with download_lock:
-            active_downloads[tid]['total'] = total_size
+            # Handle resume response codes
+            if response.status_code == 416:  # Range not satisfiable - file complete or changed
+                log(f"âš  Cannot resume {filename} - restarting download")
+                resume_bytes = 0
+                if os.path.exists(partial_file):
+                    os.remove(partial_file)
+                # Retry without Range header
+                headers.pop('Range', None)
+                response = requests.get(task['url'], stream=True, timeout=timeout, headers=headers)
+                response.raise_for_status()
         
-        downloaded = resume_bytes
-        speed_window = []
-        last_speed_update = time.time()
-        last_config_check = time.time()
-        last_partial_save = time.time()
+            # Get total size - handle both fresh and resumed downloads
+            if response.status_code == 206:  # Partial content (resume)
+                content_range = response.headers.get('Content-Range', '')
+                if '/' in content_range:
+                    total_size = int(content_range.split('/')[-1])
+                else:
+                    total_size = resume_bytes + int(response.headers.get('content-length', 0))
+            else:
+                total_size = int(response.headers.get('content-length', 0))
+                resume_bytes = 0  # Fresh download
         
-        # Open file in append mode for resume, write mode for fresh
-        file_mode = 'ab' if resume_bytes > 0 else 'wb'
-        write_file = partial_file  # Always write to partial file first
+            if total_size > 0 and resume_bytes == 0:
+                space_ok, space_msg = check_disk_space(dir_path, total_size)
+                if not space_ok:
+                    raise Exception(space_msg)
         
-        try:
-            with open(write_file, file_mode) as f:
-                for chunk in response.iter_content(chunk_size=chunk_size):
-                    if tid in cancelled_tasks:
-                        raise InterruptedError("Download cancelled")
-                    
-                    while is_paused:
-                        with download_lock:
-                            if tid in active_downloads:
-                                active_downloads[tid].update({
-                                    'status': 'Paused',
-                                    'speed': '0 B/s'
-                                })
-                        time.sleep(0.5)
-                        
+            with download_lock:
+                active_downloads[tid]['total'] = total_size
+        
+            downloaded = resume_bytes
+            speed_window = []
+            last_speed_update = time.time()
+            last_config_check = time.time()
+            last_partial_save = time.time()
+        
+            # Open file in append mode for resume, write mode for fresh
+            file_mode = 'ab' if resume_bytes > 0 else 'wb'
+            write_file = partial_file  # Always write to partial file first
+        
+            try:
+                with open(write_file, file_mode) as f:
+                    for chunk in response.iter_content(chunk_size=chunk_size):
                         if tid in cancelled_tasks:
                             raise InterruptedError("Download cancelled")
                     
-                    if not chunk:
-                        continue
-                    
-                    chunk_start = time.time()
-                    
-                    try:
-                        f.write(chunk)
-                    except OSError as e:
-                        if e.errno == 28:
-                            raise Exception(f"Disk full while writing to {dir_path}")
-                        raise
-                    
-                    chunk_len = len(chunk)
-                    downloaded += chunk_len
-                    
-                    now = time.time()
-                    if now - last_config_check > 10:
-                        cfg = load_config()
-                        speed_limit = cfg.get('speed_limit_kbs', 0)
-                        last_config_check = now
-                    
-                    if speed_limit > 0:
-                        target_time = chunk_len / (speed_limit * 1024)
-                        elapsed = time.time() - chunk_start
-                        sleep_time = target_time - elapsed
-                        if sleep_time > 0:
-                            time.sleep(sleep_time)
-                    
-                    now = time.time()
-                    speed_window.append((now, chunk_len))
-                    speed_window = [(t, s) for t, s in speed_window if now - t < 2]
-                    
-                    if now - last_speed_update >= 0.5:
-                        if speed_window:
-                            window_time = now - speed_window[0][0]
-                            window_bytes = sum(s for _, s in speed_window)
-                            speed = window_bytes / window_time if window_time > 0 else 0
-                        else:
-                            speed = 0
+                        while is_paused:
+                            with download_lock:
+                                if tid in active_downloads:
+                                    active_downloads[tid].update({
+                                        'status': 'Paused',
+                                        'speed': '0 B/s'
+                                    })
+                            time.sleep(0.5)
                         
-                        with download_lock:
-                            if tid in active_downloads:
-                                active_downloads[tid].update({
-                                    'current': downloaded,
-                                    'speed': f"{format_bytes(speed)}/s",
-                                    'speed_raw': speed,  # Raw bytes/sec for ETA calc
-                                    'status': 'Downloading',
-                                    'percent': int((downloaded / total_size) * 100) if total_size > 0 else 0
-                                })
-                        last_speed_update = now
+                            if tid in cancelled_tasks:
+                                raise InterruptedError("Download cancelled")
                     
-                    # Save partial state periodically (Pro feature) - every 30 seconds
-                    if is_feature_available('transcoding') and now - last_partial_save >= 30:
-                        save_partial_state(tid, task, downloaded, total_size)
-                        last_partial_save = now
-        except (requests.exceptions.ChunkedEncodingError, requests.exceptions.ConnectionError,
-                ConnectionResetError, BrokenPipeError) as transfer_error:
-            # Connection error during transfer - try to retry
-            if should_retry(transfer_error) and do_retry(f"Transfer failed for {filename}: {type(transfer_error).__name__}"):
-                return download_file(task)
-            raise
-        finally:
-            # Close the response connection
-            try:
-                response.close()
-            except:
-                pass
+                        if not chunk:
+                            continue
+                    
+                        chunk_start = time.time()
+                    
+                        try:
+                            f.write(chunk)
+                        except OSError as e:
+                            if e.errno == 28:
+                                raise Exception(f"Disk full while writing to {dir_path}")
+                            raise
+                    
+                        chunk_len = len(chunk)
+                        downloaded += chunk_len
+                    
+                        now = time.time()
+                        if now - last_config_check > 10:
+                            cfg = load_config()
+                            speed_limit = cfg.get('speed_limit_kbs', 0)
+                            last_config_check = now
+                    
+                        if speed_limit > 0:
+                            target_time = chunk_len / (speed_limit * 1024)
+                            elapsed = time.time() - chunk_start
+                            sleep_time = target_time - elapsed
+                            if sleep_time > 0:
+                                time.sleep(sleep_time)
+                    
+                        now = time.time()
+                        speed_window.append((now, chunk_len))
+                        speed_window = [(t, s) for t, s in speed_window if now - t < 2]
+                    
+                        if now - last_speed_update >= 0.5:
+                            if speed_window:
+                                window_time = now - speed_window[0][0]
+                                window_bytes = sum(s for _, s in speed_window)
+                                speed = window_bytes / window_time if window_time > 0 else 0
+                            else:
+                                speed = 0
+                        
+                            with download_lock:
+                                if tid in active_downloads:
+                                    active_downloads[tid].update({
+                                        'current': downloaded,
+                                        'speed': f"{format_bytes(speed)}/s",
+                                        'speed_raw': speed,  # Raw bytes/sec for ETA calc
+                                        'status': 'Downloading',
+                                        'percent': int((downloaded / total_size) * 100) if total_size > 0 else 0
+                                    })
+                            last_speed_update = now
+                    
+                        # Save partial state periodically (Pro feature) - every 30 seconds
+                        if pro_downloads and now - last_partial_save >= 30:
+                            save_partial_state(tid, task, downloaded, total_size)
+                            last_partial_save = now
+            except (requests.exceptions.ChunkedEncodingError, requests.exceptions.ConnectionError,
+                    ConnectionResetError, BrokenPipeError) as transfer_error:
+                # Connection error during transfer - try to retry
+                if should_retry(transfer_error) and do_retry(f"Transfer failed for {filename}: {type(transfer_error).__name__}"):
+                    return download_file(task)
+                raise
+            finally:
+                # Close the response connection
+                try:
+                    response.close()
+                except:
+                    pass
         
         # Download complete - rename partial to final
         if os.path.exists(partial_file):
             if os.path.exists(filepath):
                 os.remove(filepath)
             os.rename(partial_file, filepath)
+        if pro_downloads and cfg.get('verify_downloads', True) and os.path.exists(filepath):
+            with download_lock:
+                if tid in active_downloads:
+                    active_downloads[tid]['status'] = 'Verifying file'
+            if not _verify_media_file(filepath):
+                os.remove(filepath)
+                if not task.get('_verify_retry'):
+                    task['_verify_retry'] = True
+                    log(f"⚠️ {filename} failed the integrity check - downloading it again")
+                    return download_file(task)
+                raise Exception('File failed the integrity check twice')
         
         # Clear partial state on successful completion
         clear_partial_state(tid)
+        try:
+            record_completed_download(task, filepath, total_size, time.time() - transfer_started)
+        except Exception as rec_error:
+            log(f"Stats record error: {rec_error}")
+        if task.get('replace_local_id'):
+            try:
+                filepath = _replace_local_copy(task, filepath)
+            except Exception as rep_error:
+                log(f"⚠️ Quality upgrade: couldn't swap in the new file ({rep_error}) - your old copy is untouched")
         
         with download_lock:
             if tid in active_downloads:
                 del active_downloads[tid]
-        log(f"✓ Completed: {filename}")
+        log(f"âœ“ Completed: {filename}")
         
         # Download subtitles if enabled (Free feature)
         cfg = load_config()
@@ -3612,39 +4290,39 @@ def download_file(task):
             try:
                 download_subtitles(task['server'], task['item_id'], filepath, cfg.get('subtitle_languages', ['eng']))
             except Exception as sub_error:
-                log(f"⚠ Subtitle download failed: {sub_error}")
+                log(f"âš  Subtitle download failed: {sub_error}")
         
         # Queue for transcode if enabled (Pro feature) or test mode
-        test_mode = cfg.get('_transcode_test_mode', False)
+        test_mode = (DEV_MODE and cfg.get('_transcode_test_mode', False))
         transcode_enabled = cfg.get('transcode_enabled', False)
         has_transcode_feature = is_feature_available('transcoding')
         preset = cfg.get('transcode_preset', 'original')
         
         # Log transcode status for debugging
-        log(f"🎬 [TRANSCODE CHECK] test_mode={test_mode}, enabled={transcode_enabled}, has_feature={has_transcode_feature}, preset={preset}")
+        log(f"ðŸŽ¬ [TRANSCODE CHECK] test_mode={test_mode}, enabled={transcode_enabled}, has_feature={has_transcode_feature}, preset={preset}")
         
         if (transcode_enabled and has_transcode_feature) or test_mode:
             if preset != 'original':
                 # Ensure transcode workers are running
                 num_transcode_workers = cfg.get('max_concurrent_transcodes', 1)
                 if active_transcode_workers < num_transcode_workers:
-                    log(f"🔧 Starting transcode workers (have: {active_transcode_workers}, need: {num_transcode_workers})")
+                    log(f"ðŸ”§ Starting transcode workers (have: {active_transcode_workers}, need: {num_transcode_workers})")
                     adjust_transcode_workers(num_transcode_workers, force=test_mode)
                 elif active_transcode_workers == 0:
-                    log(f"⚠️ No transcode workers running, forcing restart")
+                    log(f"âš ï¸ No transcode workers running, forcing restart")
                     adjust_transcode_workers(num_transcode_workers, force=test_mode)
                 
                 # Wait if transcode queue is full (max 10 pending)
                 max_pending_transcodes = 10
                 while transcode_queue.qsize() >= max_pending_transcodes:
-                    log(f"⏳ Transcode queue full ({max_pending_transcodes}), waiting...")
+                    log(f"â³ Transcode queue full ({max_pending_transcodes}), waiting...")
                     time.sleep(5)
                     # Check for cancellation while waiting
                     if tid in cancelled_tasks:
-                        log(f"⏭️ Cancelled while waiting for transcode queue: {filename}")
+                        log(f"â­ï¸ Cancelled while waiting for transcode queue: {filename}")
                         return
                 
-                log(f"🎬 Queuing for transcode: {filename} (queue: {transcode_queue.qsize() + 1})")
+                log(f"ðŸŽ¬ Queuing for transcode: {filename} (queue: {transcode_queue.qsize() + 1})")
                 # Add to transcode queue instead of processing inline
                 transcode_task = {
                     'task_id': tid,
@@ -3670,15 +4348,15 @@ def download_file(task):
                 
                 # Don't add to history yet - transcode worker will do it
                 # Send notification if enabled (Pro feature)
-                send_notification(f"✓ Download Complete: {filename} (queued for transcode)", "download_complete")
+                send_notification(f"âœ“ Download Complete: {filename} (queued for transcode)", "download_complete")
                 return  # Exit here, transcode worker will handle the rest
             else:
-                log(f"ℹ️ [TRANSCODE] Skipping - preset is 'original'")
+                log(f"â„¹ï¸ [TRANSCODE] Skipping - preset is 'original'")
         else:
             if not test_mode and not transcode_enabled:
-                log(f"ℹ️ [TRANSCODE] Skipping - transcoding not enabled (enable in settings or use test mode)")
+                log(f"â„¹ï¸ [TRANSCODE] Skipping - transcoding not enabled (enable in settings or use test mode)")
             elif not has_transcode_feature:
-                log(f"ℹ️ [TRANSCODE] Skipping - Pro feature not available")
+                log(f"â„¹ï¸ [TRANSCODE] Skipping - Pro feature not available")
         
         # Add to download history (only if not transcoding)
         final_size = os.path.getsize(filepath) if os.path.exists(filepath) else total_size
@@ -3707,7 +4385,7 @@ def download_file(task):
             # For episodes, use series_provider_ids for Sonarr (episode IDs are useless for Sonarr)
             arr_provider_ids = task.get('series_provider_ids', {})
             if not arr_provider_ids:
-                log(f"⚠️ [ARR] No series_provider_ids for episode - Sonarr add will be skipped")
+                log(f"âš ï¸ [ARR] No series_provider_ids for episode - Sonarr add will be skipped")
         else:
             # For movies, use the item's provider_ids for Radarr
             arr_provider_ids = task.get('provider_ids', {})
@@ -3720,32 +4398,34 @@ def download_file(task):
         update_cache_for_download(provider_ids, series_provider_ids, cache_item_type)
         
         # Send notification if enabled (Pro feature)
-        send_notification(f"✓ Download Complete: {filename}", "download_complete")
+        send_notification(f"âœ“ Download Complete: {filename}", "download_complete")
         
     except InterruptedError:
-        log(f"✗ Cancelled: {filename}")
+        log(f"âœ— Cancelled: {filename}")
         # Save partial state for Pro users to resume later
         if is_feature_available('transcoding') and 'downloaded' in dir() and 'total_size' in dir():
             save_partial_state(tid, task, downloaded, total_size)
-            log(f"💾 Partial download saved for resume: {filename}")
+            log(f"ðŸ’¾ Partial download saved for resume: {filename}")
         _cleanup_download(tid, filepath, keep_partial=is_feature_available('transcoding'))
         
     except Exception as e:
-        log(f"✗ Failed {filename}: {e}")
+        log(f"âœ— Failed {filename}: {e}")
         # Save partial state for Pro users to resume later
         if is_feature_available('transcoding'):
             try:
                 partial_file = filepath + '.partial'
-                if os.path.exists(partial_file):
+                if os.path.exists(partial_file + '.jlseg'):
+                    save_partial_state(tid, task, sum(os.path.getsize(s) for s in glob.glob(partial_file + '.seg*')), 0)
+                elif os.path.exists(partial_file):
                     downloaded = os.path.getsize(partial_file)
                     total_size = task.get('total_size', 0)
                     save_partial_state(tid, task, downloaded, total_size)
-                    log(f"💾 Partial download saved for resume: {filename}")
+                    log(f"ðŸ’¾ Partial download saved for resume: {filename}")
             except:
                 pass
         _cleanup_download(tid, filepath, keep_partial=is_feature_available('transcoding'))
         # Send error notification if enabled
-        send_notification(f"✗ Download Failed: {filename} - {e}", "download_error")
+        send_notification(f"âœ— Download Failed: {filename} - {e}", "download_error")
 
 
 def _cleanup_download(tid, filepath, keep_partial=False):
@@ -3765,10 +4445,10 @@ def _cleanup_download(tid, filepath, keep_partial=False):
     # Delete partial file unless keeping for resume
     if not keep_partial:
         partial_file = filepath + '.partial'
-        if os.path.exists(partial_file):
+        for leftover in [partial_file, partial_file + '.jlseg'] + glob.glob(partial_file + '.seg*'):
             try:
-                os.remove(partial_file)
-            except Exception:
+                os.remove(leftover)
+            except OSError:
                 pass
         clear_partial_state(tid)
 
@@ -3903,7 +4583,7 @@ def transcode_file(filepath, force_software=False, task_id=None):
     cfg = load_config()
     
     # Check if test mode OR production transcoding is enabled
-    test_mode = cfg.get('_transcode_test_mode', False)
+    test_mode = (DEV_MODE and cfg.get('_transcode_test_mode', False))
     transcode_enabled = cfg.get('transcode_enabled', False)
     has_pro = is_feature_available('transcoding')
     
@@ -3912,24 +4592,24 @@ def transcode_file(filepath, force_software=False, task_id=None):
         return filepath
     
     mode_label = "TEST MODE" if test_mode else "PRO"
-    log(f"🎬 [TRANSCODE {mode_label}] Processing: {os.path.basename(filepath)}")
+    log(f"ðŸŽ¬ [TRANSCODE {mode_label}] Processing: {os.path.basename(filepath)}")
     
     preset = cfg.get('transcode_preset', 'original')
     if preset == 'original':
-        log(f"ℹ️ [TRANSCODE] Preset is 'original' - skipping transcode")
+        log(f"â„¹ï¸ [TRANSCODE] Preset is 'original' - skipping transcode")
         return filepath
     
     # Check if file is a video
     video_extensions = ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm', '.m4v']
     ext = os.path.splitext(filepath)[1].lower()
     if ext not in video_extensions:
-        log(f"ℹ️ [TRANSCODE] Not a video file ({ext}) - skipping")
+        log(f"â„¹ï¸ [TRANSCODE] Not a video file ({ext}) - skipping")
         return filepath
     
     # Get video duration for progress tracking
     duration = get_video_duration(filepath)
     if duration > 0:
-        log(f"📊 [TRANSCODE] Video duration: {duration:.1f}s ({duration/60:.1f} min)")
+        log(f"ðŸ“Š [TRANSCODE] Video duration: {duration:.1f}s ({duration/60:.1f} min)")
     
     # Build FFmpeg command based on preset and encoder
     base_name = os.path.splitext(filepath)[0]
@@ -3961,15 +4641,15 @@ def transcode_file(filepath, force_software=False, task_id=None):
             
             # Use cache path for transcoding
             output_path = os.path.join(cache_path, f"{filename_only}_transcoded{output_ext}")
-            log(f"📁 [TRANSCODE] Using cache drive: {cache_path}")
+            log(f"ðŸ“ [TRANSCODE] Using cache drive: {cache_path}")
         except Exception as cache_error:
-            log(f"⚠️ [TRANSCODE] Cache drive not accessible ({cache_error}), using source directory")
+            log(f"âš ï¸ [TRANSCODE] Cache drive not accessible ({cache_error}), using source directory")
             output_path = final_output_path
             use_cache = False
     else:
         output_path = final_output_path
     
-    log(f"🎬 [TRANSCODE] Settings: preset={preset}, encoder={encoder}, output={output_ext}")
+    log(f"ðŸŽ¬ [TRANSCODE] Settings: preset={preset}, encoder={encoder}, output={output_ext}")
     
     # Encoder mappings
     h264_encoders = {
@@ -3989,9 +4669,9 @@ def transcode_file(filepath, force_software=False, task_id=None):
         # Check if ffmpeg is available
         ffmpeg_check = subprocess.run(['ffmpeg', '-version'], capture_output=True, text=True, timeout=10)
         if ffmpeg_check.returncode != 0:
-            log(f"❌ [TRANSCODE] FFmpeg check failed: {ffmpeg_check.stderr[:200]}")
+            log(f"âŒ [TRANSCODE] FFmpeg check failed: {ffmpeg_check.stderr[:200]}")
             return filepath
-        log(f"✅ [TRANSCODE] FFmpeg found: {ffmpeg_check.stdout.split(chr(10))[0][:80]}")
+        log(f"âœ… [TRANSCODE] FFmpeg found: {ffmpeg_check.stdout.split(chr(10))[0][:80]}")
         
         # Check available encoders
         encoder_check = subprocess.run(['ffmpeg', '-encoders'], capture_output=True, text=True, timeout=10)
@@ -4003,14 +4683,14 @@ def transcode_file(filepath, force_software=False, task_id=None):
             if enc in available_encoders:
                 hw_encoders_available.append(enc)
         if hw_encoders_available:
-            log(f"✅ [TRANSCODE] Hardware encoders available: {', '.join(hw_encoders_available)}")
+            log(f"âœ… [TRANSCODE] Hardware encoders available: {', '.join(hw_encoders_available)}")
         else:
-            log(f"⚠️ [TRANSCODE] No hardware encoders found, will use software encoding")
+            log(f"âš ï¸ [TRANSCODE] No hardware encoders found, will use software encoding")
         
         # AVI preset uses mpeg4 codec (software only, no hardware acceleration)
         if preset == 'avi':
             target_encoder = 'mpeg4'
-            log(f"🎬 [TRANSCODE] AVI preset uses mpeg4 codec (software)")
+            log(f"ðŸŽ¬ [TRANSCODE] AVI preset uses mpeg4 codec (software)")
         # Determine target encoder based on preset
         elif preset in ['h265', '4k']:
             target_encoder = h265_encoders.get(encoder, 'libx265')
@@ -4019,8 +4699,8 @@ def transcode_file(filepath, force_software=False, task_id=None):
         
         # Check if hardware encoder is available, fall back to software if not (skip for AVI)
         if preset != 'avi' and encoder != 'software' and target_encoder not in available_encoders:
-            log(f"⚠️ [TRANSCODE] {target_encoder} not available in this FFmpeg build")
-            log(f"⚠️ [TRANSCODE] Falling back to software encoding")
+            log(f"âš ï¸ [TRANSCODE] {target_encoder} not available in this FFmpeg build")
+            log(f"âš ï¸ [TRANSCODE] Falling back to software encoding")
             encoder = 'software'
             if preset in ['h265', '4k']:
                 target_encoder = 'libx265'
@@ -4030,11 +4710,11 @@ def transcode_file(filepath, force_software=False, task_id=None):
         # Verify software encoder availability as final check (skip for AVI)
         if preset != 'avi' and encoder == 'software':
             if 'libx265' in target_encoder and 'libx265' not in available_encoders:
-                log(f"⚠️ [TRANSCODE] libx265 not available, trying libx264 instead")
+                log(f"âš ï¸ [TRANSCODE] libx265 not available, trying libx264 instead")
                 target_encoder = 'libx264'
                 preset = 'h264' if preset == 'h265' else preset
             if 'libx264' in target_encoder and 'libx264' not in available_encoders:
-                log(f"❌ [TRANSCODE] No compatible encoders available (libx264/libx265)")
+                log(f"âŒ [TRANSCODE] No compatible encoders available (libx264/libx265)")
                 return filepath
         
         # Base ffmpeg args - use warning level for more visibility
@@ -4044,13 +4724,13 @@ def transcode_file(filepath, force_software=False, task_id=None):
         thread_args = get_ffmpeg_thread_args()
         if thread_args:
             base_args.extend(thread_args)
-            log(f"🔧 [TRANSCODE] Thread limit: {thread_args[1]} threads")
+            log(f"ðŸ”§ [TRANSCODE] Thread limit: {thread_args[1]} threads")
         
         base_args.extend(['-i', filepath])
         
         # Use the target_encoder we already validated
         video_codec = target_encoder
-        log(f"🎬 [TRANSCODE] Using codec: {video_codec}")
+        log(f"ðŸŽ¬ [TRANSCODE] Using codec: {video_codec}")
         
         if preset == 'h265':
             # H.265/HEVC encoding for smaller files
@@ -4089,7 +4769,7 @@ def transcode_file(filepath, force_software=False, task_id=None):
                 '-c:a', 'mp3', '-b:a', '192k',
                 '-y', output_path
             ]
-            log(f"🎬 [TRANSCODE] Using AVI preset (mpeg4 + mp3)")
+            log(f"ðŸŽ¬ [TRANSCODE] Using AVI preset (mpeg4 + mp3)")
         elif preset == 'mobile':
             # Mobile-friendly (720p, lower bitrate) - mobile uses h264
             cmd = base_args + [
@@ -4109,35 +4789,35 @@ def transcode_file(filepath, force_software=False, task_id=None):
             # Custom FFmpeg arguments with sanitization
             custom_args = cfg.get('transcode_custom_args', '')
             if not custom_args:
-                log(f"❌ [TRANSCODE] Custom preset selected but no custom args provided")
+                log(f"âŒ [TRANSCODE] Custom preset selected but no custom args provided")
                 return filepath
-            log(f"🎬 [TRANSCODE] Using custom args: {custom_args[:100]}...")
+            log(f"ðŸŽ¬ [TRANSCODE] Using custom args: {custom_args[:100]}...")
             # Sanitize: remove dangerous characters and limit arg length
             # Only allow alphanumeric, spaces, hyphens, colons, periods, equals
             import re
             sanitized = re.sub(r'[^a-zA-Z0-9\s\-\.:=]', '', custom_args)
             if len(sanitized) > 500:  # Limit total length
-                log("⚠️ [TRANSCODE] Custom transcode args too long, truncating to 500 chars")
+                log("âš ï¸ [TRANSCODE] Custom transcode args too long, truncating to 500 chars")
                 sanitized = sanitized[:500]
             # Block dangerous ffmpeg options
             dangerous = ['-filter_complex', 'concat', 'file:', 'http:', 'https:', 'ftp:', 
                         'pipe:', 'tcp:', 'udp:', '-f', 'lavfi', 'movie=', 'amovie=']
             for d in dangerous:
                 if d.lower() in sanitized.lower():
-                    log(f"❌ [TRANSCODE] Blocked dangerous ffmpeg arg: {d}")
+                    log(f"âŒ [TRANSCODE] Blocked dangerous ffmpeg arg: {d}")
                     return filepath
             cmd = base_args + sanitized.split() + ['-y', output_path]
         else:
-            log(f"❌ [TRANSCODE] Unknown preset: {preset}")
+            log(f"âŒ [TRANSCODE] Unknown preset: {preset}")
             return filepath
         
         original_name = os.path.basename(filepath)
         original_size = os.path.getsize(filepath)
-        log(f"🔄 [TRANSCODE] Starting: {original_name} ({format_bytes(original_size)})")
-        log(f"🔄 [TRANSCODE] Full command: {' '.join(cmd)}")
+        log(f"ðŸ”„ [TRANSCODE] Starting: {original_name} ({format_bytes(original_size)})")
+        log(f"ðŸ”„ [TRANSCODE] Full command: {' '.join(cmd)}")
         
         start_time = time.time()
-        log(f"🔄 [TRANSCODE] Executing FFmpeg... (this may take a while for large files)")
+        log(f"ðŸ”„ [TRANSCODE] Executing FFmpeg... (this may take a while for large files)")
         
         # Use Popen for real-time progress tracking
         process = None
@@ -4163,7 +4843,7 @@ def transcode_file(filepath, force_software=False, task_id=None):
             process_prefix = build_process_prefix()
             if process_prefix:
                 cmd_with_progress = process_prefix + cmd_with_progress
-                log(f"🔧 [TRANSCODE] Process priority: {' '.join(process_prefix)}")
+                log(f"ðŸ”§ [TRANSCODE] Process priority: {' '.join(process_prefix)}")
             
             process = subprocess.Popen(
                 cmd_with_progress,
@@ -4192,17 +4872,40 @@ def transcode_file(filepath, force_software=False, task_id=None):
                 nonblocking = True
             except:
                 nonblocking = False
-                log(f"⚠️ [TRANSCODE] Non-blocking mode not available, cancellation may be delayed")
+                log(f"âš ï¸ [TRANSCODE] Non-blocking mode not available, cancellation may be delayed")
             
             # Read progress from stdout
+            if task_id:
+                with transcode_lock:
+                    if task_id not in _transcode_order:
+                        _transcode_order.append(task_id)
+            suspended = False
             while True:
                 now = time.time()
-                
+
                 # Check for cancellation every 0.5 seconds
                 if task_id and (now - last_cancel_check) > 0.5:
                     last_cancel_check = now
+                    # #22: fewer transcode workers -> freeze the newest ffmpeg until a slot frees up
+                    with transcode_lock:
+                        allowed = task_id in _transcode_order[:max(1, target_transcode_workers)]
+                    if not allowed and not suspended and task_id not in cancelled_tasks:
+                        process.send_signal(signal.SIGSTOP)
+                        suspended = True
+                        log(f"⏸️ [TRANSCODE] Paused (worker count lowered) - will continue when a slot frees")
+                        with transcode_lock:
+                            if task_id in active_transcodes:
+                                active_transcodes[task_id]['status'] = 'Waiting for a free slot'
+                    elif (allowed or task_id in cancelled_tasks) and suspended:
+                        process.send_signal(signal.SIGCONT)
+                        suspended = False
+                        log(f"▶️ [TRANSCODE] Continuing")
+                    if suspended:
+                        last_progress_update = now  # don't count frozen time as a stall
+                        time.sleep(0.5)
+                        continue
                     if task_id in cancelled_tasks:
-                        log(f"⚠️ [TRANSCODE] Cancellation requested, stopping FFmpeg...")
+                        log(f"âš ï¸ [TRANSCODE] Cancellation requested, stopping FFmpeg...")
                         process.terminate()
                         try:
                             process.wait(timeout=5)
@@ -4215,10 +4918,10 @@ def transcode_file(filepath, force_software=False, task_id=None):
                 time_since_progress = now - last_progress_update
                 if time_since_progress > 120 and not stall_warning_given:
                     stall_warning_given = True
-                    log(f"⚠️ [TRANSCODE] WARNING: No progress for 2 minutes, may be stuck at {last_progress_percent}%")
+                    log(f"âš ï¸ [TRANSCODE] WARNING: No progress for 2 minutes, may be stuck at {last_progress_percent}%")
                 
                 if time_since_progress > 300:  # 5 minutes with no progress
-                    log(f"❌ [TRANSCODE] STALLED: No progress for 5 minutes, killing ffmpeg")
+                    log(f"âŒ [TRANSCODE] STALLED: No progress for 5 minutes, killing ffmpeg")
                     process.kill()
                     break
                 
@@ -4228,9 +4931,9 @@ def transcode_file(filepath, force_software=False, task_id=None):
                     percent = last_progress_percent
                     stall_time = int(time_since_progress)
                     if stall_time > 30:
-                        log(f"💓 [TRANSCODE] Running: {os.path.basename(filepath)} ({percent}%) - no progress for {stall_time}s")
+                        log(f"ðŸ’“ [TRANSCODE] Running: {os.path.basename(filepath)} ({percent}%) - no progress for {stall_time}s")
                     else:
-                        log(f"💓 [TRANSCODE] Running: {os.path.basename(filepath)} ({percent}%)")
+                        log(f"ðŸ’“ [TRANSCODE] Running: {os.path.basename(filepath)} ({percent}%)")
                 
                 # Check if process finished
                 if process.poll() is not None:
@@ -4308,7 +5011,7 @@ def transcode_file(filepath, force_software=False, task_id=None):
                 try:
                     return_code = process.wait(timeout=30)  # Wait up to 30 seconds for finalization
                 except subprocess.TimeoutExpired:
-                    log(f"⚠️ [TRANSCODE] Process didn't finish in time, killing...")
+                    log(f"âš ï¸ [TRANSCODE] Process didn't finish in time, killing...")
                     process.kill()
                     return_code = process.wait()
             else:
@@ -4317,7 +5020,7 @@ def transcode_file(filepath, force_software=False, task_id=None):
             last_stderr = ''.join(stderr_lines)
             
         except Exception as run_error:
-            log(f"❌ [TRANSCODE] subprocess failed: {type(run_error).__name__}: {run_error}")
+            log(f"âŒ [TRANSCODE] subprocess failed: {type(run_error).__name__}: {run_error}")
             if process:
                 try:
                     process.kill()
@@ -4331,24 +5034,24 @@ def transcode_file(filepath, force_software=False, task_id=None):
         
         # Handle cancellation
         if cancelled:
-            log(f"❌ [TRANSCODE] Cancelled by user after {elapsed:.1f}s")
+            log(f"âŒ [TRANSCODE] Cancelled by user after {elapsed:.1f}s")
             if os.path.exists(output_path):
                 os.remove(output_path)
             cancelled_tasks.discard(task_id)
             return filepath
         
-        log(f"🔄 [TRANSCODE] FFmpeg finished in {elapsed:.1f}s with return code {return_code}")
+        log(f"ðŸ”„ [TRANSCODE] FFmpeg finished in {elapsed:.1f}s with return code {return_code}")
         
         # Log any stderr output (filtered to exclude progress lines)
         if last_stderr:
             stderr_errors = [line for line in last_stderr.split('\n') 
                            if line.strip() and not line.strip().startswith('frame=')]
             if stderr_errors:
-                log(f"📋 [TRANSCODE] FFmpeg stderr: {' | '.join(stderr_errors)[:500]}")
+                log(f"ðŸ“‹ [TRANSCODE] FFmpeg stderr: {' | '.join(stderr_errors)[:500]}")
         
         # Special handling for return_code None (process killed or crashed)
         if return_code is None:
-            log(f"⚠️ [TRANSCODE] Process exited abnormally (return code None)")
+            log(f"âš ï¸ [TRANSCODE] Process exited abnormally (return code None)")
             
             # Check if output file exists and is valid (sometimes ffmpeg writes good output before crash)
             if os.path.exists(output_path):
@@ -4363,14 +5066,14 @@ def transcode_file(filepath, force_software=False, task_id=None):
                             capture_output=True, text=True, timeout=30
                         )
                         if probe_result.returncode == 0 and 'duration' in probe_result.stdout:
-                            log(f"✅ [TRANSCODE] Output file appears valid despite abnormal exit ({format_bytes(output_size)})")
+                            log(f"âœ… [TRANSCODE] Output file appears valid despite abnormal exit ({format_bytes(output_size)})")
                             return_code = 0  # Treat as success
                         else:
-                            log(f"⚠️ [TRANSCODE] Output file validation failed: {probe_result.stderr[:200]}")
+                            log(f"âš ï¸ [TRANSCODE] Output file validation failed: {probe_result.stderr[:200]}")
                     except Exception as probe_error:
-                        log(f"⚠️ [TRANSCODE] Cannot validate output file: {probe_error}")
+                        log(f"âš ï¸ [TRANSCODE] Cannot validate output file: {probe_error}")
                 else:
-                    log(f"⚠️ [TRANSCODE] Output file too small ({format_bytes(output_size)})")
+                    log(f"âš ï¸ [TRANSCODE] Output file too small ({format_bytes(output_size)})")
         
         if return_code == 0 and os.path.exists(output_path):
             new_size = os.path.getsize(output_path)
@@ -4381,8 +5084,8 @@ def transcode_file(filepath, force_software=False, task_id=None):
             if new_size >= original_size and skip_larger:
                 # Keep original, delete transcoded
                 os.remove(output_path)
-                log(f"⚠️ [TRANSCODE] Skipped: transcoded file larger ({format_bytes(new_size)} vs {format_bytes(original_size)})")
-                log(f"⚠️ [TRANSCODE] Keeping original file: {os.path.basename(filepath)}")
+                log(f"âš ï¸ [TRANSCODE] Skipped: transcoded file larger ({format_bytes(new_size)} vs {format_bytes(original_size)})")
+                log(f"âš ï¸ [TRANSCODE] Keeping original file: {os.path.basename(filepath)}")
                 update_transcode_stats(original_size, new_size, kept_original=True)
                 return filepath
             
@@ -4390,30 +5093,30 @@ def transcode_file(filepath, force_software=False, task_id=None):
             actual_final_path = output_path
             if use_cache and output_path != final_output_path:
                 try:
-                    log(f"📦 [TRANSCODE] Moving from cache to final destination...")
+                    log(f"ðŸ“¦ [TRANSCODE] Moving from cache to final destination...")
                     # Use shutil.move for cross-filesystem moves
                     import shutil
                     shutil.move(output_path, final_output_path)
                     actual_final_path = final_output_path
-                    log(f"✅ [TRANSCODE] Moved to: {final_output_path}")
+                    log(f"âœ… [TRANSCODE] Moved to: {final_output_path}")
                 except Exception as move_error:
-                    log(f"❌ [TRANSCODE] Failed to move from cache: {move_error}")
+                    log(f"âŒ [TRANSCODE] Failed to move from cache: {move_error}")
                     # Try copy + delete as fallback
                     try:
                         shutil.copy2(output_path, final_output_path)
                         os.remove(output_path)
                         actual_final_path = final_output_path
-                        log(f"✅ [TRANSCODE] Copied to: {final_output_path}")
+                        log(f"âœ… [TRANSCODE] Copied to: {final_output_path}")
                     except Exception as copy_error:
-                        log(f"❌ [TRANSCODE] Copy also failed: {copy_error}")
-                        log(f"⚠️ [TRANSCODE] Leaving file in cache: {output_path}")
+                        log(f"âŒ [TRANSCODE] Copy also failed: {copy_error}")
+                        log(f"âš ï¸ [TRANSCODE] Leaving file in cache: {output_path}")
                         actual_final_path = output_path
             
             # Remove original, keep transcoded
             os.remove(filepath)
-            log(f"✅ [TRANSCODE] Success: {os.path.basename(actual_final_path)}")
-            log(f"✅ [TRANSCODE] Size: {format_bytes(original_size)} → {format_bytes(new_size)} (saved {savings:.1f}%)")
-            log(f"✅ [TRANSCODE] Time: {elapsed:.1f}s ({format_bytes(original_size/elapsed)}/s)")
+            log(f"âœ… [TRANSCODE] Success: {os.path.basename(actual_final_path)}")
+            log(f"âœ… [TRANSCODE] Size: {format_bytes(original_size)} â†’ {format_bytes(new_size)} (saved {savings:.1f}%)")
+            log(f"âœ… [TRANSCODE] Time: {elapsed:.1f}s ({format_bytes(original_size/elapsed)}/s)")
             
             # Update stats
             update_transcode_stats(original_size, new_size, kept_original=False)
@@ -4425,10 +5128,10 @@ def transcode_file(filepath, force_software=False, task_id=None):
                           if line.strip() and not line.strip().startswith('frame=')]
             error_msg = '\n'.join(error_lines) if error_lines else 'No error details (only progress output)'
             
-            log(f"❌ [TRANSCODE] Failed after {elapsed:.1f}s")
-            log(f"❌ [TRANSCODE] Return code: {return_code}")
+            log(f"âŒ [TRANSCODE] Failed after {elapsed:.1f}s")
+            log(f"âŒ [TRANSCODE] Return code: {return_code}")
             if error_lines:
-                log(f"❌ [TRANSCODE] Error: {error_msg[:500]}")
+                log(f"âŒ [TRANSCODE] Error: {error_msg[:500]}")
             
             # Check for hardware encoder errors and fallback to software
             hw_error_indicators = ['nvenc', 'qsv', 'vaapi', 'libnvidia', 'cuda', 'driver', 'gpu', 'hwaccel', 
@@ -4436,29 +5139,29 @@ def transcode_file(filepath, force_software=False, task_id=None):
                                    'could not open', 'unknown encoder']
             if not force_software and encoder != 'software':
                 if any(ind in error_msg.lower() for ind in hw_error_indicators):
-                    log(f"⚠️ [TRANSCODE] Hardware encoder ({encoder}) failed, retrying with software encoding...")
+                    log(f"âš ï¸ [TRANSCODE] Hardware encoder ({encoder}) failed, retrying with software encoding...")
                     if os.path.exists(output_path):
                         os.remove(output_path)
                     return transcode_file(filepath, force_software=True, task_id=task_id)
             
             if os.path.exists(output_path):
                 os.remove(output_path)
-                log(f"🗑️ [TRANSCODE] Cleaned up partial output file")
+                log(f"ðŸ—‘ï¸ [TRANSCODE] Cleaned up partial output file")
             return filepath
             
     except subprocess.TimeoutExpired:
-        log(f"❌ [TRANSCODE] Timeout (2 hours exceeded): {os.path.basename(filepath)}")
+        log(f"âŒ [TRANSCODE] Timeout (2 hours exceeded): {os.path.basename(filepath)}")
         if os.path.exists(output_path):
             os.remove(output_path)
         return filepath
     except FileNotFoundError:
-        log("❌ [TRANSCODE] FFmpeg not found - is it installed in the container?")
-        log("❌ [TRANSCODE] Install with: apt-get update && apt-get install -y ffmpeg")
+        log("âŒ [TRANSCODE] FFmpeg not found - is it installed in the container?")
+        log("âŒ [TRANSCODE] Install with: apt-get update && apt-get install -y ffmpeg")
         return filepath
     except Exception as e:
-        log(f"❌ [TRANSCODE] Unexpected error: {type(e).__name__}: {e}")
+        log(f"âŒ [TRANSCODE] Unexpected error: {type(e).__name__}: {e}")
         import traceback
-        log(f"❌ [TRANSCODE] Traceback: {traceback.format_exc()[:500]}")
+        log(f"âŒ [TRANSCODE] Traceback: {traceback.format_exc()[:500]}")
         return filepath
 
 
@@ -4580,7 +5283,16 @@ def login_with_creds(url, username, password):
             
             if token:
                 log(f"Got access token: {token[:20]}... for user: {user_id}")
-                return {"token": token, "user_id": user_id}
+                # Try to get server name
+                server_name = data.get("ServerId", "")
+                if not server_name:
+                    try:
+                        info_resp = requests.get(f"{url}/System/Info/Public", timeout=5)
+                        if info_resp.ok:
+                            server_name = info_resp.json().get('ServerName', '')
+                    except:
+                        pass
+                return {"token": token, "user_id": user_id, "server_name": server_name}
             else:
                 log(f"No token found in response. Full response: {str(data)[:500]}")
                 return None
@@ -4603,6 +5315,13 @@ def login_with_creds(url, username, password):
 @app.route('/static/<path:filename>')
 def serve_static(filename):
     return send_from_directory(app.static_folder, filename)
+
+@app.route('/favicon.ico')
+@app.route('/favicon.png')
+@app.route('/favicon.svg')  # legacy path from older templates/bookmarks
+def serve_favicon():
+    """Serve the app icon (same artwork as the header logo) as the favicon"""
+    return send_from_directory(app.static_folder, 'favicon-32.png', mimetype='image/png')
 
 
 # --- Flask Routes: Health Check (No Auth Required) ---
@@ -4705,7 +5424,7 @@ def api_generate_key():
     cfg['api_enabled'] = True
     save_config(cfg)
     
-    log(f"🔑 [API] New API key generated")
+    log(f"ðŸ”‘ [API] New API key generated")
     
     return jsonify({
         'success': True,
@@ -4723,7 +5442,7 @@ def api_revoke_key():
     cfg['api_enabled'] = False
     save_config(cfg)
     
-    log(f"🔑 [API] API key revoked")
+    log(f"ðŸ”‘ [API] API key revoked")
     
     return jsonify({
         'success': True,
@@ -4913,7 +5632,7 @@ def api_v1_queue_add():
             daemon=True
         ).start()
         
-        log(f"📡 [API] Download queued via API: item={item_id} server={server.get('name')}")
+        log(f"ðŸ“¡ [API] Download queued via API: item={item_id} server={server.get('name')}")
         
         return jsonify({
             'success': True,
@@ -4939,7 +5658,7 @@ def api_v1_queue_remove(task_id):
     if task_id in active_downloads:
         download_cancel_flags[task_id] = True
         cancelled = True
-        log(f"📡 [API] Cancelling active download: {task_id}")
+        log(f"ðŸ“¡ [API] Cancelling active download: {task_id}")
     
     # Check pending
     with download_lock:
@@ -4947,7 +5666,7 @@ def api_v1_queue_remove(task_id):
         pending_display = [p for p in pending_display if p.get('id') != task_id]
         if len(pending_display) < before:
             cancelled = True
-            log(f"📡 [API] Removed pending download: {task_id}")
+            log(f"ðŸ“¡ [API] Removed pending download: {task_id}")
     
     if cancelled:
         return jsonify({
@@ -4967,7 +5686,7 @@ def api_v1_queue_pause():
     """Pause all downloads"""
     global is_paused
     is_paused = True
-    log(f"📡 [API] Downloads paused via API")
+    log(f"ðŸ“¡ [API] Downloads paused via API")
     
     return jsonify({
         'success': True,
@@ -4982,7 +5701,7 @@ def api_v1_queue_resume():
     """Resume downloads"""
     global is_paused
     is_paused = False
-    log(f"📡 [API] Downloads resumed via API")
+    log(f"ðŸ“¡ [API] Downloads resumed via API")
     
     return jsonify({
         'success': True,
@@ -5010,7 +5729,7 @@ def api_v1_queue_clear():
     except:
         pass
     
-    log(f"📡 [API] Cleared {count + cleared_from_queue} pending downloads via API")
+    log(f"ðŸ“¡ [API] Cleared {count + cleared_from_queue} pending downloads via API")
     
     return jsonify({
         'success': True,
@@ -5361,14 +6080,16 @@ def api_v1_docs():
 @login_required
 def transcode_test_mode():
     """
-    Hidden endpoint to toggle transcode test mode for development/debugging.
+    Developer endpoint to toggle transcode test mode (JELLYLOOTER_DEV=1 only).
     GET: Check current status
     POST: Toggle on/off (pass {"enabled": true/false})
     """
+    if not DEV_MODE:
+        return jsonify({'error': 'Not found'}), 404
     cfg = load_config()
     
     if request.method == 'GET':
-        test_mode = cfg.get('_transcode_test_mode', False)
+        test_mode = (DEV_MODE and cfg.get('_transcode_test_mode', False))
         return jsonify({
             'test_mode_enabled': test_mode,
             'transcode_enabled': cfg.get('transcode_enabled', False),
@@ -5383,7 +6104,7 @@ def transcode_test_mode():
     
     # POST - toggle test mode
     data = request.json or {}
-    enabled = data.get('enabled', not cfg.get('_transcode_test_mode', False))
+    enabled = data.get('enabled', not (DEV_MODE and cfg.get('_transcode_test_mode', False)))
     
     cfg['_transcode_test_mode'] = enabled
     save_config(cfg)
@@ -5394,7 +6115,7 @@ def transcode_test_mode():
         adjust_transcode_workers(num_workers, force=True)  # Force=True for test mode
     
     status = 'enabled' if enabled else 'disabled'
-    log(f"🧪 [TRANSCODE TEST MODE] {status.upper()} by user")
+    log(f"ðŸ§ª [TRANSCODE TEST MODE] {status.upper()} by user")
     
     return jsonify({
         'success': True,
@@ -5451,7 +6172,8 @@ def api_license_status():
         'limits': limits,
         'trial_days_remaining': get_trial_days_remaining() if tier == 'trial' else 0,
         'is_pro': is_pro(),
-        'is_trial': is_trial()
+        'is_trial': is_trial(),
+        'trial_available': tier == 'free' and not license_data.get('trial_started')
     }
     
     if tier == 'pro':
@@ -5495,6 +6217,7 @@ def api_deactivate_license():
 
 
 @app.route('/api/license/check_backup', methods=['GET'])
+@login_required
 def api_check_backup_license():
     """Check if a backup license exists in library folders"""
     backup = check_backup_license()
@@ -5505,6 +6228,7 @@ def api_check_backup_license():
 
 
 @app.route('/api/license/restore', methods=['POST'])
+@login_required
 def api_restore_license():
     """Restore license from backup in library folders"""
     result = restore_from_backup()
@@ -5521,6 +6245,7 @@ def api_restore_license():
 
 
 @app.route('/api/license/purge_all', methods=['POST'])
+@login_required
 def api_purge_all_licenses():
     """
     NUCLEAR OPTION: Remove ALL licenses including backups.
@@ -5543,7 +6268,7 @@ def api_purge_all_licenses():
         if os.path.exists(LICENSE_FILE):
             os.remove(LICENSE_FILE)
             removed['primary'] = True
-            log("🗑️ Primary license removed")
+            log("ðŸ—‘ï¸ Primary license removed")
     except Exception as e:
         log(f"Error removing primary license: {e}")
     
@@ -5557,7 +6282,7 @@ def api_purge_all_licenses():
             if os.path.exists(backup_file):
                 os.remove(backup_file)
                 removed['backups'] += 1
-                log(f"🗑️ Backup license removed from {path}")
+                log(f"ðŸ—‘ï¸ Backup license removed from {path}")
             
             # Also remove the hidden folder if empty
             if os.path.exists(backup_dir) and not os.listdir(backup_dir):
@@ -5565,7 +6290,7 @@ def api_purge_all_licenses():
         except Exception as e:
             log(f"Error removing backup from {path}: {e}")
     
-    log(f"☢️ License purge complete: primary={removed['primary']}, backups={removed['backups']}")
+    log(f"â˜¢ï¸ License purge complete: primary={removed['primary']}, backups={removed['backups']}")
     
     return jsonify({
         'success': True,
@@ -5664,11 +6389,13 @@ def api_login():
 def index():
     cfg = load_config()
     lang = cfg.get('language', 'en')
-    return render_template('index.html', 
-                           lang=lang, 
+    return render_template('index.html',
+                           lang=lang,
                            translations=get_all_translations(lang),
                            version=VERSION,
-                           config=cfg)
+                           config=cfg,
+                           is_pro=get_license_tier() in ('pro', 'trial'),
+                           dev_mode=DEV_MODE)
 
 
 @app.route('/changelog')
@@ -5697,35 +6424,44 @@ def help_page():
 @login_required
 def config_api():
     if request.method == 'POST':
-        new_config = request.json
+        updates = dict(request.json or {})
+        # Servers are managed via /api/local_servers; GET /api/config sends them without
+        # credentials, so never let a posted copy overwrite the stored keys.
+        for protected in ('servers', 'local_servers', 'local_server_key', 'license_tier',
+                          'vpn_wg_conf', 'vpn_pia_username', 'vpn_pia_password', 'vpn_enabled'):
+            updates.pop(protected, None)   # VPN settings go through /api/vpn/save
+        if updates.get('api_key') == '***REDACTED***':
+            updates.pop('api_key')
         old_config = load_config()
-        
+
+        # Merge updates into existing config (preserves settings not sent)
+        new_config = {**old_config, **updates}
         save_config(new_config)
         
         # Check if transcode settings changed
         new_transcode_enabled = new_config.get('transcode_enabled', False)
         new_transcode_workers = new_config.get('max_concurrent_transcodes', 1)
-        test_mode = new_config.get('_transcode_test_mode', False)
+        test_mode = (DEV_MODE and new_config.get('_transcode_test_mode', False))
         preset = new_config.get('transcode_preset', 'original')
         
         # Log transcode settings when enabled
         if new_transcode_enabled or test_mode:
-            log(f"🎬 Transcode settings: enabled={new_transcode_enabled}, test_mode={test_mode}, preset={preset}, workers={new_transcode_workers}")
+            log(f"ðŸŽ¬ Transcode settings: enabled={new_transcode_enabled}, test_mode={test_mode}, preset={preset}, workers={new_transcode_workers}")
             
             # Always ensure transcode workers are running when transcoding is enabled
             if is_feature_available('transcoding') or test_mode:
                 if active_transcode_workers < new_transcode_workers:
-                    log(f"🎬 Starting transcode workers (have: {active_transcode_workers}, need: {new_transcode_workers})...")
+                    log(f"ðŸŽ¬ Starting transcode workers (have: {active_transcode_workers}, need: {new_transcode_workers})...")
                     adjust_transcode_workers(new_transcode_workers, force=test_mode)
-                log(f"🎬 Active transcode workers: {active_transcode_workers}")
+                log(f"ðŸŽ¬ Active transcode workers: {active_transcode_workers}")
             else:
-                log(f"⚠️ Transcoding requires Pro license (or enable test mode)")
+                log(f"âš ï¸ Transcoding requires Pro license (or enable test mode)")
         
         # Check if download worker count changed
         old_workers = old_config.get('max_concurrent_downloads', 2)
         new_workers = new_config.get('max_concurrent_downloads', 2)
         if old_workers != new_workers:
-            log(f"📥 Download workers changed: {old_workers} -> {new_workers}")
+            log(f"ðŸ“¥ Download workers changed: {old_workers} -> {new_workers}")
             adjust_workers(new_workers)
         
         return jsonify({"status": "ok"})
@@ -5735,11 +6471,17 @@ def config_api():
     
     # SECURITY: Redact sensitive keys from API response
     # These should never be sent to the frontend
-    sensitive_keys = ['api_key']
+    sensitive_keys = ['api_key', 'local_server_key']
     for key in sensitive_keys:
         if cfg.get(key):
             cfg[key] = '***REDACTED***'
-    
+    for key in ('vpn_wg_conf', 'vpn_pia_username', 'vpn_pia_password'):
+        cfg.pop(key, None)
+    # Server credentials never leave the backend (UI edits use PUT /api/local_servers/<id>)
+    for list_name in ('servers', 'local_servers'):
+        if cfg.get(list_name):
+            cfg[list_name] = [_public_server(s) for s in cfg[list_name]]
+
     return jsonify(cfg)
 
 
@@ -5871,7 +6613,7 @@ def export_config():
         export_data['api_key'] = '***MASKED***'
     
     # Mask metadata API keys
-    for meta_key in ['tmdb_api_key', 'tvdb_api_key', 'omdb_api_key']:
+    for meta_key in ['tmdb_api_key', 'tvdb_api_key', 'tvdb_subscriber_pin', 'omdb_api_key']:
         if export_data.get(meta_key):
             export_data[meta_key] = '***MASKED***'
     
@@ -5880,6 +6622,8 @@ def export_config():
         export_data['notification_urls'] = ['***MASKED***' for _ in export_data['notification_urls']]
     
     # Add export metadata
+    for vpn_secret in ('vpn_wg_conf', 'vpn_pia_username', 'vpn_pia_password'):
+        export_data.pop(vpn_secret, None)   # VPN private keys/passwords never leave the server
     export_data['_export'] = {
         'version': VERSION,
         'exported_at': datetime.datetime.now().isoformat(),
@@ -5891,7 +6635,7 @@ def export_config():
     response.headers['Content-Type'] = 'application/json'
     response.headers['Content-Disposition'] = f'attachment; filename=jellylooter_config_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
     
-    log("📤 Config exported")
+    log("ðŸ“¤ Config exported")
     return response
 
 
@@ -5918,7 +6662,7 @@ def import_config():
             for i, server in enumerate(import_data['servers']):
                 if server.get('key') == '***MASKED***':
                     # Try to find matching server in current config by URL
-                    for curr_server in current_config.get('servers', []):
+                    for curr_server in get_all_servers(current_config):
                         if curr_server.get('url') == server.get('url'):
                             server['key'] = curr_server.get('key', '')
                             break
@@ -5926,7 +6670,7 @@ def import_config():
                         server['key'] = ''  # No match found
                 
                 if server.get('password') == '***MASKED***':
-                    for curr_server in current_config.get('servers', []):
+                    for curr_server in get_all_servers(current_config):
                         if curr_server.get('url') == server.get('url'):
                             server['password'] = curr_server.get('password', '')
                             break
@@ -5940,7 +6684,7 @@ def import_config():
         if 'local_servers' in import_data:
             for server in import_data['local_servers']:
                 if server.get('key') == '***MASKED***':
-                    for curr_server in current_config.get('local_servers', []):
+                    for curr_server in get_all_servers(current_config):
                         if curr_server.get('url') == server.get('url'):
                             server['key'] = curr_server.get('key', '')
                             break
@@ -5957,10 +6701,13 @@ def import_config():
             if all(url == '***MASKED***' for url in import_data['notification_urls']):
                 import_data['notification_urls'] = current_config.get('notification_urls', [])
         
-        # Save the merged config
+        # Save, then upgrade v3.x layouts (remote 'servers' list, software-in-'type') to v4
+        import_data['config_version'] = 0
         save_config(import_data)
+        migrate_config_file()
+        load_config(force_reload=True)
         
-        log("📥 Config imported successfully")
+        log("ðŸ“¥ Config imported successfully")
         return jsonify({
             'success': True,
             'message': 'Configuration imported. Masked API keys were preserved from existing config.'
@@ -6003,6 +6750,9 @@ def status():
         "pending": pending_list,
         "pending_transcodes": pending_transcode_list,
         "paused": is_paused,
+        "stop_after_current": stop_after_current,
+        "recent_completed": list(recent_completed),
+        "worker_target": target_workers,
         "cache_time": cache_timestamp,
         "cache_count": len(local_id_cache),
         "scan_progress": dict(scan_progress),
@@ -6190,9 +6940,9 @@ def reset_dl_stats():
     reset_download_stats(session_only=session_only)
     
     if session_only:
-        log("📊 Session download statistics reset")
+        log("ðŸ“Š Session download statistics reset")
     else:
-        log("📊 All download statistics reset")
+        log("ðŸ“Š All download statistics reset")
     
     return jsonify({'success': True, 'message': 'Download stats reset', 'session_only': session_only})
 
@@ -6279,11 +7029,11 @@ def clear_transcode_cache():
                         os.remove(entry.path)
                         files_deleted += 1
                         space_freed += file_size
-                        log(f"🗑️ Cleared cache file: {entry.name} ({format_bytes(file_size)})")
+                        log(f"ðŸ—‘ï¸ Cleared cache file: {entry.name} ({format_bytes(file_size)})")
                     except Exception as del_error:
                         errors.append(f"{entry.name}: {del_error}")
         
-        log(f"🧹 Transcode cache cleared: {files_deleted} files, {format_bytes(space_freed)} freed")
+        log(f"ðŸ§¹ Transcode cache cleared: {files_deleted} files, {format_bytes(space_freed)} freed")
         
         return jsonify({
             'success': True,
@@ -6294,7 +7044,7 @@ def clear_transcode_cache():
         })
         
     except Exception as e:
-        log(f"❌ Failed to clear transcode cache: {e}")
+        log(f"âŒ Failed to clear transcode cache: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 
@@ -6336,23 +7086,17 @@ def resume_partial():
         return jsonify({'success': False, 'error': 'Partial download not found'})
     
     info = partials[task_id]
-    
-    # Reconstruct the task
-    task = {
-        'task_id': task_id,
-        'url': info.get('url', ''),
-        'filepath': info.get('filepath', ''),
-        'headers': info.get('headers', {}),
-        'server': info.get('server', {}),
-        'item_id': info.get('item_id', ''),
-        'resume': True
-    }
+
+    # Reconstruct the task (credentials come from the current server config)
+    task = task_from_partial(task_id, info)
+    if not task:
+        return jsonify({'success': False, 'error': 'The server for this download no longer exists'})
     
     # Add to pending and queue
     with download_lock:
         pending_display.append({
             'id': task_id,
-            'name': f"🔄 {info.get('filename', 'Unknown')}"
+            'name': f"ðŸ”„ {info.get('filename', 'Unknown')}"
         })
     
     # Route to server-specific queue or global queue
@@ -6361,7 +7105,7 @@ def resume_partial():
     server_name = server.get('name') or server.get('url', 'Unknown')
     queue_to_server_or_global(task, server_id, server_name)
     
-    log(f"🔄 Queued resume: {info.get('filename', 'Unknown')}")
+    log(f"ðŸ”„ Queued resume: {info.get('filename', 'Unknown')}")
     return jsonify({'success': True, 'message': f"Resuming {info.get('filename', 'Unknown')}"})
 
 
@@ -6395,7 +7139,7 @@ def delete_partial():
     # Remove from manifest
     clear_partial_state(task_id)
     
-    log(f"🗑️ Deleted partial: {info.get('filename', 'Unknown')}")
+    log(f"ðŸ—‘ï¸ Deleted partial: {info.get('filename', 'Unknown')}")
     return jsonify({'success': True, 'message': 'Partial download deleted'})
 
 
@@ -6467,27 +7211,60 @@ def cancel_dl():
 @login_required
 def test_connection():
     data = request.json
+
+    # Handle TVDB API test
+    if data.get('type') == 'tvdb':
+        token, error = tvdb_login(data.get('api_key', ''), data.get('pin', ''))
+        return jsonify({"success": True} if token else {"success": False, "error": error})
+
+    if data.get('type') == 'omdb':
+        key = re.sub(r'\s+', '', data.get('api_key', '') or '')
+        if not key:
+            return jsonify({"success": False, "error": "Enter an OMDb API key"})
+        try:
+            r = requests.get('https://www.omdbapi.com/', params={'apikey': key, 'i': 'tt0111161'}, timeout=15)
+            j = r.json() if r.content else {}
+        except Exception as e:
+            return jsonify({"success": False, "error": f"Couldn't reach OMDb ({type(e).__name__})"})
+        if j.get('Response') == 'True':
+            return jsonify({"success": True})
+        err = j.get('Error') or f"HTTP {r.status_code}"
+        if 'not activated' in err.lower():
+            err = "OMDb key isn't activated yet - click the activation link OMDb emailed you"
+        elif 'invalid' in err.lower():
+            err = "OMDb says this API key is invalid - check it at omdbapi.com/apikey.aspx"
+        elif 'limit' in err.lower():
+            err = "OMDb daily request limit reached for this key (free keys get 1,000/day)"
+        return jsonify({"success": False, "error": err})
+
     url = data.get('url', '').rstrip('/')
-    
+
     # Validate URL
     url_valid, url_msg = validate_url(url)
     if not url_valid:
-        return jsonify({"status": "error", "error": url_msg})
-    
+        return jsonify({"success": False, "error": url_msg})
+
+    # Determine auth type - check explicit auth_type
+    auth_type = data.get('auth_type', 'password')
+
+    log(f"[TEST_CONN] Testing connection to {url}, auth_type={auth_type}")
+
     try:
-        if data.get('username'):
-            # Username/password auth - validate inputs
+        if auth_type == 'password':
+            # Username/password auth
             username = data.get('username', '').strip()
             password = data.get('password', '')
-            
+            log(f"[TEST_CONN] Password auth for user: {username}")
+
             if not username:
-                return jsonify({"status": "error", "error": "Username is required"})
-            
+                return jsonify({"success": False, "error": "Username is required"})
+
             auth_result = login_with_creds(url, username, password)
             if auth_result and auth_result.get('token'):
                 token = auth_result['token']
                 user_id = auth_result.get('user_id')
-                
+                server_name = auth_result.get('server_name', '')
+
                 # Verify the token works by accessing the user's own data
                 verify_response = requests.get(
                     f"{url}/Users/{user_id}" if user_id else f"{url}/Users",
@@ -6495,17 +7272,20 @@ def test_connection():
                     timeout=10
                 )
                 if verify_response.ok:
-                    return jsonify({"status": "ok", "key": token, "user_id": user_id})
+                    return jsonify({"success": True, "key": token, "user_id": user_id, "server_name": server_name})
                 else:
-                    return jsonify({"status": "error", "error": "Token verification failed"})
-            return jsonify({"status": "error", "error": "Invalid credentials"})
+                    return jsonify({"success": False, "error": "Token verification failed"})
+            return jsonify({"success": False, "error": "Invalid credentials"})
         else:
-            # API key auth - validate key format
-            key = data.get('key', '').strip()
+            # API key auth - accept both 'key' and 'api_key'
+            key = data.get('key', '').strip() or data.get('api_key', '').strip()
+            if not key:
+                return jsonify({"success": False, "error": "API key is required"})
+
             key_valid, key_msg = validate_api_key(key)
             if not key_valid:
-                return jsonify({"status": "error", "error": key_msg})
-            
+                return jsonify({"success": False, "error": key_msg})
+
             response = requests.get(
                 f"{url}/Users",
                 headers=get_auth_header(key),
@@ -6514,16 +7294,24 @@ def test_connection():
             if response.ok:
                 users = response.json()
                 if users and len(users) > 0:
-                    return jsonify({"status": "ok", "key": key})
+                    # Try to get server name
+                    server_name = ""
+                    try:
+                        info_resp = requests.get(f"{url}/System/Info/Public", timeout=5)
+                        if info_resp.ok:
+                            server_name = info_resp.json().get('ServerName', '')
+                    except:
+                        pass
+                    return jsonify({"success": True, "key": key, "server_name": server_name})
                 else:
-                    return jsonify({"status": "error", "error": "No users found - invalid API key?"})
-            return jsonify({"status": "error", "error": f"Server returned {response.status_code}"})
+                    return jsonify({"success": False, "error": "No users found - invalid API key?"})
+            return jsonify({"success": False, "error": f"Server returned {response.status_code}"})
     except requests.exceptions.Timeout:
-        return jsonify({"status": "error", "error": "Connection timeout"})
+        return jsonify({"success": False, "error": "Connection timeout"})
     except requests.exceptions.ConnectionError:
-        return jsonify({"status": "error", "error": "Cannot connect to server"})
+        return jsonify({"success": False, "error": "Cannot connect to server"})
     except Exception as e:
-        return jsonify({"status": "error", "error": str(e)})
+        return jsonify({"success": False, "error": str(e)})
 
 
 @app.route('/api/rebuild_cache', methods=['POST'])
@@ -6562,8 +7350,15 @@ def get_local_servers():
             'key': cfg.get('local_server_key', ''),
             'type': cfg.get('local_server_type', 'jellyfin')
         }]
-    
-    return jsonify({"servers": local_servers})
+
+    return jsonify({"servers": [_public_server(s) for s in local_servers]})
+
+
+def _public_server(server):
+    """Server entry safe to send to the browser (credentials removed)."""
+    safe = {k: v for k, v in server.items() if k not in ('key', 'password')}
+    safe['has_key'] = bool(server.get('key'))
+    return safe
 
 
 @app.route('/api/local_servers', methods=['POST'])
@@ -6586,31 +7381,57 @@ def add_local_server():
             'type': cfg.get('local_server_type', 'jellyfin')
         }]
     
-    # Check limit
-    max_local = get_feature_limit('max_local_servers')
-    if len(local_servers) >= max_local:
-        return jsonify({"status": "error", "error": f"Maximum {max_local} local server(s) allowed. Upgrade to Pro for unlimited."})
-    
+    # Check limit for this server type (local and remote share this list)
+    server_type = data.get('type', 'remote')  # 'local' or 'remote'
+    if server_type == 'local':
+        max_allowed = get_feature_limit('max_local_servers')
+        same_type = [s for s in local_servers if s.get('type') == 'local']
+        label = 'local'
+    else:
+        max_allowed = get_feature_limit('max_remote_servers')
+        same_type = [s for s in local_servers if s.get('type') != 'local'] + list(cfg.get('servers') or [])
+        label = 'remote'
+    if len(same_type) >= max_allowed:
+        return jsonify({"status": "error", "limit_reached": True, "limit": max_allowed, "limit_type": label,
+                        "error": f"The free plan includes {max_allowed} {label} server{'s' if max_allowed != 1 else ''}. Upgrade to Pro to add more."})
+
     # Add new server
     new_server = {
         'id': generate_id(),
-        'name': data.get('name', 'Local Server'),
+        'name': data.get('name', 'Server'),
         'url': data.get('url', '').rstrip('/'),
         'key': data.get('key', ''),
         'user_id': data.get('user_id'),
-        'type': data.get('type', 'jellyfin')
+        'username': data.get('username', ''),
+        'type': server_type,  # 'local' or 'remote'
+        'server_type': 'jellyfin'  # 'jellyfin' or 'emby'
     }
-    
+
+    # Discover and save library names right away (names/ids only, no items)
+    lib_error = None
+    try:
+        libs, user_id = fetch_server_libraries(new_server)
+        new_server['libraries'] = libs
+        new_server['libraries_updated'] = datetime.datetime.now().isoformat(timespec='seconds')
+        if user_id and not new_server.get('user_id'):
+            new_server['user_id'] = user_id
+    except Exception as e:
+        lib_error = _library_error_message(e)
+        new_server['libraries'] = []
+        log(f"Could not load libraries for new server {new_server['name']}: {lib_error}")
+
     local_servers.append(new_server)
     cfg['local_servers'] = local_servers
-    
+
     # Also update old format for backward compatibility
     if len(local_servers) == 1:
         cfg['local_server_url'] = new_server['url']
         cfg['local_server_key'] = new_server['key']
-    
+
     save_config(cfg)
-    return jsonify({"status": "ok", "server": new_server})
+    safe_server = {k: v for k, v in new_server.items() if k != 'key'}
+    return jsonify({"status": "ok", "server": safe_server,
+                    "libraries": new_server['libraries'], "library_error": lib_error})
 
 
 @app.route('/api/local_servers/<server_id>', methods=['DELETE'])
@@ -6631,41 +7452,775 @@ def delete_local_server(server_id):
     return jsonify({"status": "ok"})
 
 
+def get_all_servers(cfg):
+    """Return remote (source) servers plus local servers, de-duplicated by id."""
+    seen = set()
+    merged = []
+    for s in (cfg.get('servers') or []) + (cfg.get('local_servers') or []):
+        if s.get('id') not in seen:
+            seen.add(s.get('id'))
+            merged.append(s)
+    return merged
+
+
+class ServerAuthError(Exception):
+    """Raised when a media server rejects the stored credentials."""
+
+
+def fetch_server_libraries(server, timeout=10):
+    """Fetch a server's top-level libraries (names/ids only, no items).
+
+    Returns (libraries, user_id). Raises ServerAuthError on 401/403 and
+    other exceptions on connection problems.
+    """
+    url = server['url'].rstrip('/')
+    headers = get_auth_header(server.get('key', ''))
+    user_id = server.get('user_id')
+
+    if not user_id:
+        # /Users/Me works for user tokens (password login); /Users needs an admin/API key
+        me = requests.get(f"{url}/Users/Me", headers=headers, timeout=timeout)
+        if me.ok:
+            user_id = me.json().get('Id')
+        else:
+            users = requests.get(f"{url}/Users", headers=headers, timeout=timeout)
+            if users.status_code in (401, 403):
+                raise ServerAuthError(f"Server rejected the saved login ({users.status_code}). Edit the server in Settings and log in again.")
+            users.raise_for_status()
+            users_data = users.json()
+            if not users_data:
+                raise ServerAuthError("No users returned - check the API key")
+            user_id = users_data[0]['Id']
+
+    views = requests.get(f"{url}/Users/{user_id}/Views", headers=headers, timeout=timeout)
+    if views.status_code in (401, 403):
+        raise ServerAuthError(f"Server rejected the saved login ({views.status_code}). Edit the server in Settings and log in again.")
+    views.raise_for_status()
+
+    libraries = [{
+        'Id': item['Id'],
+        'Name': item.get('Name', 'Library'),
+        'CollectionType': item.get('CollectionType')
+    } for item in views.json().get('Items', [])]
+    return libraries, user_id
+
+
+def _store_server_libraries(cfg, server_id, libraries, user_id=None):
+    """Write fetched libraries (and a discovered user_id) onto the server entry in cfg."""
+    stamp = datetime.datetime.now().isoformat(timespec='seconds')
+    for list_name in ('servers', 'local_servers'):
+        updated = []
+        for s in cfg.get(list_name) or []:
+            s = dict(s)
+            if s.get('id') == server_id:
+                s['libraries'] = libraries
+                s['libraries_updated'] = stamp
+                if user_id and not s.get('user_id'):
+                    s['user_id'] = user_id
+            updated.append(s)
+        if list_name in cfg:
+            cfg[list_name] = updated
+
+
+def _library_error_message(e):
+    if isinstance(e, ServerAuthError):
+        return str(e)
+    if isinstance(e, requests.exceptions.Timeout):
+        return "Connection timed out"
+    if isinstance(e, requests.exceptions.ConnectionError):
+        return "Cannot connect to server"
+    return str(e)
+
+
 @app.route('/api/scan_libs')
 @login_required
 def scan_libs():
+    """Refresh and return library lists for every configured server.
+
+    Each entry: {server_id, server_name, type, libs, error, updated}.
+    On failure, the last saved library list is returned with an error message.
+    """
     cfg = load_config()
     results = []
-    
-    for server in cfg['servers']:
+    changed = False
+
+    for server in get_all_servers(cfg):
+        entry = {
+            "server_id": server['id'],
+            "server_name": server.get('name', server.get('url', '')),
+            "type": server.get('type', 'remote'),
+            "libs": server.get('libraries', []),
+            "updated": server.get('libraries_updated'),
+            "error": None
+        }
         try:
-            headers = get_auth_header(server['key'])
-            
-            # Use stored user_id if available (for username/password auth)
-            user_id = server.get('user_id')
-            
-            if not user_id:
-                user_id = requests.get(
-                    f"{server['url']}/Users",
-                    headers=headers,
-                    timeout=10
-                ).json()[0]['Id']
-            
-            libs = requests.get(
-                f"{server['url']}/Users/{user_id}/Views",
-                headers=headers,
-                timeout=10
-            ).json().get('Items', [])
-            
-            results.append({
-                "server_id": server['id'],
-                "server_name": server['name'],
-                "libs": libs
-            })
+            libs, user_id = fetch_server_libraries(server)
+            _store_server_libraries(cfg, server['id'], libs, user_id)
+            entry['libs'] = libs
+            entry['updated'] = datetime.datetime.now().isoformat(timespec='seconds')
+            changed = True
         except Exception as e:
-            log(f"Scan libs error for {server.get('name', 'unknown')}: {e}")
-    
+            entry['error'] = _library_error_message(e)
+            log(f"Scan libs error for {entry['server_name']}: {entry['error']}")
+        results.append(entry)
+
+    if changed:
+        save_config(cfg)
+
     return jsonify(results)
+
+
+@app.route('/api/local_servers/<server_id>/libraries', methods=['POST'])
+@login_required
+def refresh_server_libraries(server_id):
+    """Refresh and save the library list for one server."""
+    cfg = load_config()
+    server = next((s for s in get_all_servers(cfg) if s['id'] == server_id), None)
+    if not server:
+        return jsonify({"success": False, "error": "Server not found", "libraries": []}), 404
+    try:
+        libs, user_id = fetch_server_libraries(server)
+        _store_server_libraries(cfg, server_id, libs, user_id)
+        save_config(cfg)
+        return jsonify({"success": True, "libraries": libs})
+    except Exception as e:
+        msg = _library_error_message(e)
+        log(f"Library refresh error for {server.get('name')}: {msg}")
+        return jsonify({"success": False, "error": msg, "libraries": server.get('libraries', [])})
+
+
+@app.route('/api/local_servers/<server_id>', methods=['PUT'])
+@login_required
+def update_local_server(server_id):
+    """Edit a server in place (keeps its id so sync mappings stay attached)."""
+    cfg = load_config()
+    data = request.json or {}
+    found = None
+    for list_name in ('local_servers', 'servers'):
+        servers = [dict(s) for s in cfg.get(list_name) or []]
+        for s in servers:
+            if s.get('id') == server_id:
+                if data.get('name'):
+                    s['name'] = data['name']
+                if data.get('url'):
+                    s['url'] = data['url'].rstrip('/')
+                if data.get('type') in ('local', 'remote'):
+                    s['type'] = data['type']
+                if 'username' in data:
+                    s['username'] = data.get('username', '')
+                if data.get('key'):
+                    # New credentials: replace key and user id
+                    s['key'] = data['key']
+                    s['user_id'] = data.get('user_id')
+                found = s
+        if found:
+            cfg[list_name] = servers
+            break
+    if not found:
+        return jsonify({"status": "error", "error": "Server not found"}), 404
+
+    lib_error = None
+    try:
+        libs, user_id = fetch_server_libraries(found)
+        _store_server_libraries(cfg, server_id, libs, user_id)
+    except Exception as e:
+        lib_error = _library_error_message(e)
+    save_config(cfg)
+    saved = next((s for s in get_all_servers(load_config()) if s['id'] == server_id), found)
+    return jsonify({"status": "ok", "server": {k: v for k, v in saved.items() if k != 'key'},
+                    "libraries": saved.get('libraries', []), "library_error": lib_error})
+
+
+_IMAGE_ID_RE = re.compile(r'^[A-Za-z0-9-]{1,64}$')
+
+
+@app.route('/api/image/<server_id>/<item_id>')
+@login_required
+def proxy_item_image(server_id, item_id):
+    """Proxy a poster from a media server so the browser never needs direct access to it."""
+    if not _IMAGE_ID_RE.match(server_id) or not _IMAGE_ID_RE.match(item_id):
+        return '', 400
+    cfg = load_config()
+    server = next((s for s in get_all_servers(cfg) if s['id'] == server_id), None)
+    if not server:
+        return '', 404
+    try:
+        max_width = max(50, min(int(request.args.get('maxWidth', 300)), 800))
+    except ValueError:
+        max_width = 300
+    try:
+        upstream = requests.get(
+            f"{server['url'].rstrip('/')}/Items/{item_id}/Images/Primary",
+            headers=get_auth_header(server.get('key', '')),
+            params={'maxWidth': max_width, 'quality': 85},
+            timeout=15
+        )
+    except requests.RequestException:
+        return '', 502
+    if not upstream.ok:
+        return '', upstream.status_code if upstream.status_code in (401, 403, 404) else 502
+    resp = make_response(upstream.content)
+    resp.headers['Content-Type'] = upstream.headers.get('Content-Type', 'image/jpeg')
+    resp.headers['Cache-Control'] = 'private, max-age=86400'
+    return resp
+
+
+def _server_and_user(server_id):
+    cfg = load_config()
+    server = next((s for s in get_all_servers(cfg) if s['id'] == server_id), None)
+    if not server:
+        return None, None, None
+    headers = get_auth_header(server.get('key', ''))
+    uid = server.get('user_id')
+    if not uid:
+        me = requests.get(f"{server['url']}/Users/Me", headers=headers, timeout=10)
+        uid = me.json().get('Id') if me.ok else None
+    return server, headers, uid
+
+
+_size_cache = {}          # (server_id, item_id) -> (timestamp, bytes)
+_SIZE_CACHE_SECONDS = 6 * 3600
+
+
+def _item_size(server, headers, uid, item_id):
+    """Total bytes of a movie/episode, or of everything inside a series/season/folder."""
+    key = (server['id'], item_id)
+    hit = _size_cache.get(key)
+    if hit and time.time() - hit[0] < _SIZE_CACHE_SECONDS:
+        return hit[1]
+    base = f"{server['url']}/Users/{uid}/Items"
+    item = requests.get(f"{base}/{item_id}", headers=headers, timeout=20).json()
+    total = 0
+    if item.get('IsFolder'):
+        start = 0
+        while True:
+            page = requests.get(base, headers=headers, timeout=60, params={
+                'ParentId': item_id, 'Recursive': 'true', 'IncludeItemTypes': 'Movie,Episode,Audio,MusicVideo',
+                'Fields': 'MediaSources', 'StartIndex': start, 'Limit': 500}).json()
+            items = page.get('Items', [])
+            for it in items:
+                srcs = it.get('MediaSources') or []
+                total += (srcs[0].get('Size') or 0) if srcs else 0
+            start += len(items)
+            if not items or start >= page.get('TotalRecordCount', 0):
+                break
+    else:
+        srcs = item.get('MediaSources') or []
+        total = (srcs[0].get('Size') or 0) if srcs else 0
+    _size_cache[key] = (time.time(), total)
+    return total
+
+
+@app.route('/api/item_sizes', methods=['POST'])
+@login_required
+def api_item_sizes():
+    """Sizes for poster cards: {ids: [...]} -> {sizes: {id: {bytes, human}}}."""
+    data = request.json or {}
+    ids = [i for i in (data.get('ids') or [])[:100] if _IMAGE_ID_RE.match(str(i))]
+    server, headers, uid = _server_and_user(data.get('server_id'))
+    if not server or not uid:
+        return jsonify({'sizes': {}, 'error': 'Server not available'})
+    out = {}
+
+    def one(i):
+        try:
+            b = _item_size(server, headers, uid, i)
+            out[i] = {'bytes': b, 'human': format_bytes(b) if b else ''}
+        except Exception:
+            pass
+    threads = [threading.Thread(target=one, args=(i,)) for i in ids]
+    for k in range(0, len(threads), 6):          # 6 at a time - be gentle on the remote server
+        batch = threads[k:k + 6]
+        for t in batch:
+            t.start()
+        for t in batch:
+            t.join(timeout=90)
+    return jsonify({'sizes': out})
+
+
+# ---------------------------------------------------------------------------
+# Compare a remote show/movie with your local copy: missing episodes + quality
+# ---------------------------------------------------------------------------
+QUALITY_LABELS = {4: '4K', 3: '1080p', 2: '720p', 1: 'SD', 0: '?'}
+_compare_cache = {}
+_COMPARE_CACHE_SECONDS = 900
+
+
+def _video_rank(media_streams):
+    for s in media_streams or []:
+        if s.get('Type') == 'Video':
+            w, h = s.get('Width') or 0, s.get('Height') or 0
+            if w >= 3800 or h >= 2100:
+                return 4
+            if w >= 1900 or h >= 1000:
+                return 3
+            if w >= 1260 or h >= 700:
+                return 2
+            return 1 if (w or h) else 0
+    return 0
+
+
+def _episode_list(server, headers, uid, parent_id):
+    out, start = [], 0
+    while True:
+        page = requests.get(f"{server['url']}/Users/{uid}/Items", headers=headers, timeout=60, params={
+            'ParentId': parent_id, 'Recursive': 'true', 'IncludeItemTypes': 'Episode',
+            'Fields': 'MediaStreams,ProviderIds,Path', 'StartIndex': start, 'Limit': 500}).json()
+        items = page.get('Items', [])
+        out += [e for e in items if e.get('LocationType') != 'Virtual']
+        start += len(items)
+        if not items or start >= page.get('TotalRecordCount', 0):
+            return out
+
+
+def _to_storage_path(jf_path):
+    """Map a path as the local Jellyfin sees it (e.g. /data/tv/Show) to JellyLooter's /storage view."""
+    if not jf_path:
+        return None
+    parts = [p for p in jf_path.replace('\\', '/').split('/') if p]
+    for i in range(len(parts)):
+        cand = os.path.join('/storage', *parts[i:])
+        if os.path.exists(cand):
+            return cand
+    return None
+
+
+def _local_servers_with_user():
+    cfg = load_config()
+    out = []
+    for s in get_all_servers(cfg):
+        if s.get('type') != 'local':
+            continue
+        h = get_auth_header(s.get('key', ''))
+        uid = s.get('user_id')
+        if not uid:
+            me = requests.get(f"{s['url']}/Users/Me", headers=h, timeout=10)
+            uid = me.json().get('Id') if me.ok else None
+        if uid:
+            out.append((s, h, uid))
+    return out
+
+
+def _find_local_copy(remote_item):
+    """Find the local server's copy of a remote Series/Movie (provider IDs first, then title + year)."""
+    kind = remote_item.get('Type')
+    rkeys = _provider_keys(remote_item.get('ProviderIds'))
+    names = [n for n in (remote_item.get('Name'), remote_item.get('OriginalTitle')) if n]
+
+    def year_of(it):
+        y = it.get('ProductionYear') or (it.get('PremiereDate') or '')[:4]
+        try:
+            return int(y)
+        except (TypeError, ValueError):
+            return None
+
+    ryear = year_of(remote_item)
+    title_hits = []
+    for server, h, uid in _local_servers_with_user():
+        for name in names:
+            res = requests.get(f"{server['url']}/Users/{uid}/Items", headers=h, timeout=30, params={
+                'IncludeItemTypes': kind, 'Recursive': 'true', 'SearchTerm': name,
+                'Fields': 'ProviderIds,Path,ProductionYear,PremiereDate,MediaStreams', 'Limit': 25}).json().get('Items', [])
+            for c in res:
+                if rkeys & _provider_keys(c.get('ProviderIds')):
+                    return server, h, uid, c          # same IMDb/TMDB/TVDB/... id: definitely the same title
+            for c in res:
+                if normalize_title(c.get('Name')) != normalize_title(name):
+                    continue
+                cy = year_of(c)
+                if ryear and cy and abs(cy - ryear) > 1:
+                    continue                          # e.g. One Piece (1999 anime) vs One Piece (2023)
+                if c['Id'] not in [x[3]['Id'] for x in title_hits]:
+                    title_hits.append((server, h, uid, c))
+    # Title-only match must be unambiguous - never guess between two same-named shows
+    if len(title_hits) == 1:
+        return title_hits[0]
+    if len(title_hits) > 1 and ryear:
+        exact = [t for t in title_hits if year_of(t[3]) == ryear]
+        if len(exact) == 1:
+            return exact[0]
+    return None
+
+
+def compare_with_local(server, headers, uid, item_id):
+    """What you have vs the remote: missing episodes, better-quality copies, and your folder."""
+    key = (server['id'], item_id)
+    hit = _compare_cache.get(key)
+    if hit and time.time() - hit[0] < _COMPARE_CACHE_SECONDS:
+        return hit[1]
+    remote = requests.get(f"{server['url']}/Users/{uid}/Items/{item_id}", headers=headers, timeout=20).json()
+    result = {'id': item_id, 'type': remote.get('Type'), 'owned': False}
+    found = _find_local_copy(remote) if remote.get('Type') in ('Series', 'Movie') else None
+    if not found:
+        _compare_cache[key] = (time.time(), result)
+        return result
+    lserver, lh, luid, local = found
+    result.update(owned=True, local_id=local['Id'], local_dir=_to_storage_path(local.get('Path')),
+                  can_replace=True)
+    if remote.get('Type') == 'Movie':
+        rq = _video_rank(remote.get('MediaStreams'))
+        lq = _video_rank(local.get('MediaStreams'))
+        result.update(remote_quality=QUALITY_LABELS[rq], local_quality=QUALITY_LABELS[lq],
+                      upgrade=rq > lq > 0, missing=0, missing_ids=[],
+                      upgrades=[{'remote_id': item_id, 'local_id': local['Id']}] if rq > lq > 0 else [])
+        if result['local_dir'] and os.path.isfile(result['local_dir']):
+            result['local_dir'] = os.path.dirname(result['local_dir'])
+    else:
+        r_eps = {(e.get('ParentIndexNumber'), e.get('IndexNumber')): e for e in _episode_list(server, headers, uid, item_id)
+                 if e.get('IndexNumber') is not None and (e.get('ParentIndexNumber') or 0) > 0}
+        l_eps = {(e.get('ParentIndexNumber'), e.get('IndexNumber')): e for e in _episode_list(lserver, lh, luid, local['Id'])
+                 if e.get('IndexNumber') is not None}
+        missing = sorted(k for k in r_eps if k not in l_eps)
+        upgrades, lq_counts = [], {}
+        for k, le in l_eps.items():
+            lq = _video_rank(le.get('MediaStreams'))
+            lq_counts[lq] = lq_counts.get(lq, 0) + 1
+            re_ = r_eps.get(k)
+            if re_ and _video_rank(re_.get('MediaStreams')) > lq > 0:
+                upgrades.append({'remote_id': re_['Id'], 'local_id': le['Id']})
+        rq_best = max([_video_rank(e.get('MediaStreams')) for e in r_eps.values()] or [0])
+        lq_common = max(lq_counts, key=lq_counts.get) if lq_counts else 0
+        result.update(total=len(r_eps), have=len(r_eps) - len(missing), missing=len(missing),
+                      missing_ids=[r_eps[k]['Id'] for k in missing],
+                      missing_labels=[f"S{k[0]:02d}E{k[1]:02d}" for k in missing[:50]],
+                      upgrade=bool(upgrades), upgrades=upgrades,
+                      remote_quality=QUALITY_LABELS[rq_best], local_quality=QUALITY_LABELS[lq_common])
+    _compare_cache[key] = (time.time(), result)
+    return result
+
+
+@app.route('/api/compare_items', methods=['POST'])
+@login_required
+def api_compare_items():
+    """Batch compare for poster badges: {server_id, ids[], refresh?} -> {results: {id: {...}}}."""
+    data = request.json or {}
+    ids = [i for i in (data.get('ids') or [])[:60] if _IMAGE_ID_RE.match(str(i))]
+    server, headers, uid = _server_and_user(data.get('server_id'))
+    if not server or not uid or server.get('type') == 'local':
+        return jsonify({'results': {}})
+    if data.get('refresh'):
+        for i in ids:
+            _compare_cache.pop((server['id'], i), None)
+    out = {}
+
+    def one(i):
+        try:
+            r = compare_with_local(server, headers, uid, i)
+            out[i] = {k: r.get(k) for k in ('owned', 'type', 'total', 'have', 'missing', 'upgrade',
+                                            'remote_quality', 'local_quality')}
+            out[i]['upgrade_count'] = len(r.get('upgrades') or [])
+        except Exception as e:
+            out[i] = {'error': str(e)[:100]}
+    threads = [threading.Thread(target=one, args=(i,)) for i in ids]
+    for k in range(0, len(threads), 4):
+        batch = threads[k:k + 4]
+        for t in batch:
+            t.start()
+        for t in batch:
+            t.join(timeout=120)
+    return jsonify({'results': out, 'upgrades_pro': not is_feature_available('quality_upgrades')})
+
+
+@app.route('/api/compare_detail', methods=['POST'])
+@login_required
+def api_compare_detail():
+    """Full comparison for one show/movie (used by the banner inside a show)."""
+    data = request.json or {}
+    item_id = data.get('item_id', '')
+    if not _IMAGE_ID_RE.match(str(item_id)):
+        return jsonify({'error': 'Invalid item'}), 400
+    server, headers, uid = _server_and_user(data.get('server_id'))
+    if not server or not uid or server.get('type') == 'local':
+        return jsonify({'owned': False})
+    if data.get('refresh'):
+        _compare_cache.pop((server['id'], item_id), None)
+    try:
+        r = dict(compare_with_local(server, headers, uid, item_id))
+    except Exception as e:
+        return jsonify({'owned': False, 'error': str(e)})
+    r['upgrades_allowed'] = is_feature_available('quality_upgrades')
+    return jsonify(r)
+
+
+def _sync_series_dir(server, headers, uid, series_id):
+    """/storage folder of the local copy of a remote series (None if it can't be found)."""
+    try:
+        remote_series = requests.get(f"{server['url']}/Users/{uid}/Items/{series_id}", headers=headers, timeout=20).json()
+        found = _find_local_copy(remote_series)
+        return _to_storage_path(found[3].get('Path')) if found else None
+    except Exception:
+        return None
+
+
+def _replace_local_copy(task, filepath):
+    """After a verified better-quality download: swap the file in place, or remove the old copy via Jellyfin."""
+    local_id = task.get('replace_local_id')
+    final_path = task.get('replace_final_path')
+    servers = _local_servers_with_user()
+    refresh_targets = []
+    for server, h, uid in servers:   # look up the show BEFORE anything is removed
+        try:
+            it = requests.get(f"{server['url']}/Users/{uid}/Items/{local_id}", headers=h, timeout=15)
+            if it.ok:
+                refresh_targets.append((server, h, it.json().get('SeriesId') or local_id))
+        except Exception:
+            pass
+    if final_path:
+        # Same file name: atomically put the new file where the old one was
+        os.replace(filepath, final_path)
+        filepath = final_path
+        log(f"⬆️ Replaced with better quality: {os.path.basename(final_path)}")
+    else:
+        deleted = False
+        for server, h, uid in servers:
+            r = requests.delete(f"{server['url']}/Items/{local_id}", headers=h, timeout=30)
+            if r.status_code in (200, 204):
+                deleted = True
+                break
+        if deleted:
+            log(f"⬆️ Better quality downloaded; removed the old copy via Jellyfin ({os.path.basename(filepath)})")
+        else:
+            log(f"⚠️ Better quality downloaded, but Jellyfin wouldn't delete the old copy - both are kept. "
+                f"Allow content deletion for the JellyLooter user, or delete it yourself.")
+    for server, h, target in refresh_targets:
+        try:
+            requests.post(f"{server['url']}/Items/{target}/Refresh", headers=h, timeout=15,
+                          params={'Recursive': 'true', 'MetadataRefreshMode': 'Default', 'ImageRefreshMode': 'Default'})
+        except Exception:
+            pass
+    return filepath
+
+
+@app.route('/api/item_info', methods=['POST'])
+@login_required
+def api_item_info():
+    """What's about to be downloaded: size, episode count and whether there are specials."""
+    data = request.json or {}
+    item_id = data.get('item_id', '')
+    if not _IMAGE_ID_RE.match(str(item_id)):
+        return jsonify({'error': 'Invalid item'}), 400
+    server, headers, uid = _server_and_user(data.get('server_id'))
+    if not server or not uid:
+        return jsonify({'error': 'Server not available'})
+    base = f"{server['url']}/Users/{uid}/Items"
+    item = requests.get(f"{base}/{item_id}", headers=headers, timeout=20).json()
+    info = {'type': item.get('Type'), 'name': item.get('Name'), 'is_folder': bool(item.get('IsFolder')),
+            'has_specials': False, 'specials_count': 0, 'episode_count': 0}
+    # Continuing vs ended (from the series itself, or the parent series for a season/episode)
+    status = item.get('Status')
+    if not status and item.get('SeriesId') and item.get('Type') in ('Season', 'Episode'):
+        try:
+            status = requests.get(f"{base}/{item['SeriesId']}", headers=headers, timeout=15).json().get('Status')
+        except Exception:
+            status = None
+    info['series_status'] = status
+    cfg = load_config()
+    info['sonarr_ready'] = bool(is_feature_available('arr_integration') and cfg.get('arr_auto_import', True)
+                                and cfg.get('sonarr_url') and cfg.get('sonarr_api_key'))
+    if item.get('Type') in ('Series', 'Season', 'BoxSet', 'Folder', 'CollectionFolder'):
+        eps = requests.get(base, headers=headers, timeout=60, params={
+            'ParentId': item_id, 'Recursive': 'true', 'IncludeItemTypes': 'Episode,Movie', 'Limit': 5000}).json().get('Items', [])
+        info['episode_count'] = len(eps)
+        info['specials_count'] = sum(1 for e in eps if e.get('Type') == 'Episode' and e.get('ParentIndexNumber') == 0)
+        info['has_specials'] = info['specials_count'] > 0
+    try:
+        size = _item_size(server, headers, uid, item_id)
+        info.update(size=size, size_human=format_bytes(size) if size else '')
+    except Exception:
+        pass
+    return jsonify(info)
+
+
+@app.route('/api/stats/detailed')
+@login_required
+def api_stats_detailed():
+    """Tautulli-style download statistics from the persistent download log (Pro)."""
+    if not is_feature_available('analytics'):
+        return jsonify({'pro_required': True})
+    days = max(1, min(int(request.args.get('days', 30)), 3650))
+    since = datetime.datetime.now() - datetime.timedelta(days=days)
+    rows = []
+    if os.path.exists(DOWNLOAD_LOG_FILE):
+        with open(DOWNLOAD_LOG_FILE, encoding='utf-8') as f:
+            for line in f:
+                try:
+                    r = json.loads(line)
+                    if datetime.datetime.fromisoformat(r['ts']) >= since:
+                        rows.append(r)
+                except (ValueError, KeyError):
+                    continue
+    by_day, by_type, by_server, by_hour, by_weekday, shows = {}, {}, {}, [0] * 24, [0] * 7, {}
+    for r in rows:
+        ts = datetime.datetime.fromisoformat(r['ts'])
+        d = by_day.setdefault(ts.date().isoformat(), {'count': 0, 'bytes': 0})
+        d['count'] += 1
+        d['bytes'] += r.get('size', 0)
+        t = by_type.setdefault(r.get('type') or 'other', {'count': 0, 'bytes': 0})
+        t['count'] += 1
+        t['bytes'] += r.get('size', 0)
+        s = by_server.setdefault(r.get('server') or 'Unknown', {'count': 0, 'bytes': 0})
+        s['count'] += 1
+        s['bytes'] += r.get('size', 0)
+        by_hour[ts.hour] += 1
+        by_weekday[ts.weekday()] += 1
+        name = r.get('series') or r.get('title') or r.get('file')
+        sh = shows.setdefault(name, {'name': name, 'type': r.get('type'), 'count': 0, 'bytes': 0, 'last': r['ts']})
+        sh['count'] += 1
+        sh['bytes'] += r.get('size', 0)
+        sh['last'] = max(sh['last'], r['ts'])
+    total_bytes = sum(r.get('size', 0) for r in rows)
+    total_secs = sum(r.get('seconds', 0) for r in rows)
+    day_list = []
+    for i in range(days if days <= 90 else 90):
+        day = (datetime.date.today() - datetime.timedelta(days=i)).isoformat()
+        v = by_day.get(day, {'count': 0, 'bytes': 0})
+        day_list.append({'date': day, **v})
+    day_list.reverse()
+    top = sorted(shows.values(), key=lambda x: x['bytes'], reverse=True)[:15]
+    for x in top:
+        x['human'] = format_bytes(x['bytes'])
+    largest = sorted(rows, key=lambda r: r.get('size', 0), reverse=True)[:10]
+    fastest = sorted(rows, key=lambda r: r.get('speed', 0), reverse=True)[:5]
+    return jsonify({
+        'days': days,
+        'total_files': len(rows),
+        'total_bytes': total_bytes,
+        'total_human': format_bytes(total_bytes),
+        'avg_speed_human': f"{format_bytes(total_bytes / total_secs)}/s" if total_secs else '—',
+        'avg_size_human': format_bytes(total_bytes / len(rows)) if rows else '—',
+        'by_day': day_list,
+        'by_type': {k: {**v, 'human': format_bytes(v['bytes'])} for k, v in by_type.items()},
+        'by_server': {k: {**v, 'human': format_bytes(v['bytes'])} for k, v in by_server.items()},
+        'by_hour': by_hour,
+        'by_weekday': by_weekday,
+        'top': top,
+        'largest': [{'file': r.get('file'), 'human': format_bytes(r.get('size', 0)), 'ts': r['ts']} for r in largest],
+        'fastest': [{'file': r.get('file'), 'speed': f"{format_bytes(r.get('speed', 0))}/s"} for r in fastest],
+        'recent': [{**r, 'human': format_bytes(r.get('size', 0))} for r in sorted(rows, key=lambda r: r['ts'], reverse=True)[:25]],
+    })
+
+
+@app.route('/api/arr_detect_storage', methods=['POST'])
+@login_required
+def api_arr_detect_storage():
+    """Work out how Sonarr/Radarr/Lidarr see JellyLooter's /storage, from their root folders."""
+    cfg = load_config()
+    try:
+        local_dirs = {e.name.lower(): e.name for e in os.scandir('/storage') if e.is_dir()}
+    except OSError:
+        local_dirs = {}
+    guesses = {}
+    for app_name, api in (('sonarr', 'v3'), ('radarr', 'v3'), ('lidarr', 'v1')):
+        url = (cfg.get(f'{app_name}_url') or '').rstrip('/')
+        key = cfg.get(f'{app_name}_api_key')
+        if not url or not key:
+            continue
+        try:
+            roots = requests.get(f"{url}/api/{api}/rootfolder", headers={'X-Api-Key': key}, timeout=10).json()
+        except Exception:
+            continue
+        for r in roots:
+            p = (r.get('path') or '').rstrip('/')
+            parent, leaf = os.path.dirname(p), os.path.basename(p).lower()
+            if leaf in local_dirs:
+                guesses[parent] = guesses.get(parent, 0) + 1
+    if not guesses:
+        return jsonify({'success': False, 'error': "Couldn't match any *arr root folder to a folder in /storage"})
+    best = max(guesses, key=guesses.get)
+    return jsonify({'success': True, 'arr_storage_path': best})
+
+
+@app.route('/api/mappings', methods=['POST'])
+@login_required
+def add_mapping():
+    """Add a sync mapping: remote library -> local folder."""
+    cfg = load_config()
+    data = request.json or {}
+    server_id = data.get('server_id')
+    lib_id = data.get('lib_id')
+    local_path = os.path.normpath(data.get('local_path') or '')
+
+    if not server_id or not lib_id or not data.get('local_path'):
+        return jsonify({"success": False, "error": "Server, library and destination folder are required"}), 400
+    map_server = next((s for s in get_all_servers(cfg) if s['id'] == server_id), None)
+    if not map_server:
+        return jsonify({"success": False, "error": "Server not found"}), 404
+    if map_server.get('type') == 'local':
+        return jsonify({"success": False, "error": "Pick a remote server - your local server is where media is synced to"}), 400
+    if '..' in local_path or not any(local_path == b or local_path.startswith(b + '/') for b in ('/storage', '/mnt')):
+        return jsonify({"success": False, "error": "Destination must be inside /storage"}), 400
+
+    mappings = list(cfg.get('mappings') or [])
+    max_maps = get_feature_limit('max_sync_mappings')
+    if len(mappings) >= max_maps:
+        return jsonify({"success": False, "limit_reached": True, "limit": max_maps, "limit_type": "mapping",
+                        "error": f"The free plan includes {max_maps} sync mapping{'s' if max_maps != 1 else ''}. Upgrade to Pro for unlimited."}), 403
+    if any(m.get('server_id') == server_id and m.get('lib_id') == lib_id and m.get('local_path') == local_path for m in mappings):
+        return jsonify({"success": False, "error": "That mapping already exists"}), 409
+
+    mapping = {
+        'id': generate_id(),
+        'server_id': server_id,
+        'lib_id': lib_id,
+        'lib_name': data.get('lib_name') or lib_id,
+        'local_path': local_path
+    }
+    mappings.append(mapping)
+    cfg['mappings'] = mappings
+    save_config(cfg)
+    return jsonify({"success": True, "mapping": mapping})
+
+
+@app.route('/api/mappings/<mapping_id>', methods=['PUT'])
+@login_required
+def update_mapping(mapping_id):
+    """Change where a mapped library is saved."""
+    cfg = load_config()
+    local_path = os.path.normpath((request.json or {}).get('local_path') or '')
+    if '..' in local_path.split('/') or not (local_path == '/storage' or local_path.startswith('/storage/')):
+        return jsonify({"success": False, "error": "Destination must be inside /storage"}), 400
+    mappings = [dict(m) for m in cfg.get('mappings') or []]
+    for m in mappings:
+        if m.get('id') == mapping_id:
+            m['local_path'] = local_path
+            cfg['mappings'] = mappings
+            save_config(cfg)
+            return jsonify({"success": True, "mapping": m})
+    return jsonify({"success": False, "error": "Mapping not found"}), 404
+
+
+@app.route('/api/mappings/<mapping_id>', methods=['DELETE'])
+@login_required
+def delete_mapping(mapping_id):
+    cfg = load_config()
+    cfg['mappings'] = [m for m in cfg.get('mappings') or [] if m.get('id') != mapping_id]
+    save_config(cfg)
+    return jsonify({"success": True})
+
+
+@app.route('/api/queue/clear', methods=['POST'])
+@login_required
+def ui_queue_clear():
+    """Clear pending downloads (UI version of /api/v1/queue/clear; active downloads keep going)."""
+    global pending_display
+    with download_lock:
+        for item in pending_display:
+            cancelled_tasks.add(item['id'])
+        cleared_ids = [item['id'] for item in pending_display]
+        count = len(pending_display)
+        pending_display = []
+    for cid in cleared_ids:
+        clear_partial_state(cid)
+    cleared = 0
+    while True:
+        try:
+            task_queue.get_nowait()
+            task_queue.task_done()
+            cleared += 1
+        except queue.Empty:
+            break
+    log(f"Cleared {count + cleared} pending downloads")
+    return jsonify({"success": True, "cleared": count + cleared})
 
 
 # --- Metadata Lookup Functions ---
@@ -6785,30 +8340,65 @@ def lookup_tmdb(title, year=None, media_type='movie'):
         log(f"TMDB lookup error: {e}")
         return None
 
-def lookup_tvdb(title, year=None, media_type='series'):
-    """Lookup metadata from TVDB API v4"""
-    cfg = load_config()
+_tvdb_token_cache = {'key': None, 'token': None, 'at': 0.0}
+
+
+def tvdb_login(api_key, pin=''):
+    """Log in to TVDB v4. Returns (token, error). PIN is only needed for user-supported keys."""
+    api_key = re.sub(r'\s+', '', api_key or '')
+    pin = re.sub(r'\s+', '', pin or '')
+    if not api_key:
+        return None, "Enter a TVDB API key"
+    body = {'apikey': api_key}
+    if pin:
+        body['pin'] = pin
+    try:
+        r = requests.post('https://api4.thetvdb.com/v4/login', json=body, timeout=15)
+    except requests.RequestException as e:
+        return None, f"Couldn't reach TVDB ({type(e).__name__})"
+    try:
+        j = r.json()
+    except ValueError:
+        j = {}
+    token = (j.get('data') or {}).get('token')
+    if r.ok and token:
+        return token, None
+    msg = (j.get('message') or '').lower()
+    if 'apikey' in msg or 'api key' in msg:
+        hint = ("TVDB says this API key is invalid. Use a v4 key from thetvdb.com → Dashboard → API Keys "
+                "(it looks like xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx). Old v2/v3 \"legacy\" keys no longer work - TVDB shut that API down.")
+        if not pin:
+            hint += " If your key is a user-supported (subscriber) key, also enter your subscriber PIN."
+        return None, hint
+    if 'pin' in msg:
+        return None, "TVDB rejected the subscriber PIN - copy it from your thetvdb.com account (only needed for user-supported keys)"
+    return None, f"TVDB login failed: {j.get('message') or 'HTTP ' + str(r.status_code)}"
+
+
+def _tvdb_token(cfg):
+    """Cached TVDB token for lookups (tokens last ~30 days; refresh daily)."""
     api_key = cfg.get('tvdb_api_key', '')
     if not api_key:
         return None
-    
+    c = _tvdb_token_cache
+    if c['key'] == api_key and c['token'] and time.time() - c['at'] < 86400:
+        return c['token']
+    token, error = tvdb_login(api_key, cfg.get('tvdb_subscriber_pin', ''))
+    if not token:
+        log(f"TVDB login failed: {error}")
+        return None
+    c.update(key=api_key, token=token, at=time.time())
+    return token
+
+
+def lookup_tvdb(title, year=None, media_type='series'):
+    """Lookup metadata from TVDB API v4"""
+    cfg = load_config()
     try:
-        # TVDB v4 requires Bearer token auth
-        # First, get a token
-        auth_resp = requests.post(
-            'https://api4.thetvdb.com/v4/login',
-            json={'apikey': api_key},
-            timeout=10
-        )
-        
-        if auth_resp.status_code != 200:
-            log(f"TVDB auth failed: {auth_resp.status_code}")
-            return None
-        
-        token = auth_resp.json().get('data', {}).get('token')
+        token = _tvdb_token(cfg)
         if not token:
             return None
-        
+
         headers = {'Authorization': f'Bearer {token}'}
         
         # Search for the title
@@ -6992,7 +8582,7 @@ def lookup_metadata(title, year=None, media_type='movie', providers=None):
     # Check cache first (Pro feature)
     cached = get_cached_metadata(title, year, media_type)
     if cached:
-        log(f"📋 Metadata cache hit: {title} ({year or 'unknown year'})")
+        log(f"ðŸ“‹ Metadata cache hit: {title} ({year or 'unknown year'})")
         return cached
     
     # If we already have all the IDs we need, just return them
@@ -7003,7 +8593,7 @@ def lookup_metadata(title, year=None, media_type='movie', providers=None):
         
         # If we have at least IMDB (for movies) or TVDB (for shows), we're good
         if (media_type == 'movie' and imdb) or (media_type != 'movie' and (tvdb or imdb)):
-            log(f"✅ Metadata from remote server: {title} - IMDB:{imdb or 'N/A'} TVDB:{tvdb or 'N/A'} TMDB:{tmdb or 'N/A'}")
+            log(f"âœ… Metadata from remote server: {title} - IMDB:{imdb or 'N/A'} TVDB:{tvdb or 'N/A'} TMDB:{tmdb or 'N/A'}")
             result = {
                 'imdb_id': f"tt{imdb}" if imdb and not imdb.startswith('tt') else imdb,
                 'tvdb_id': str(tvdb) if tvdb else '',
@@ -7023,9 +8613,9 @@ def lookup_metadata(title, year=None, media_type='movie', providers=None):
                 missing.append('TVDB')
             if media_type == 'movie' and not tmdb:
                 missing.append('TMDB')
-            log(f"⚠️ Remote server missing IDs for '{title}': {', '.join(missing)} - attempting API lookup")
+            log(f"âš ï¸ Remote server missing IDs for '{title}': {', '.join(missing)} - attempting API lookup")
     else:
-        log(f"⚠️ No provider IDs from remote server for '{title}' - attempting API lookup")
+        log(f"âš ï¸ No provider IDs from remote server for '{title}' - attempting API lookup")
     
     cfg = load_config()
     result = None
@@ -7038,7 +8628,7 @@ def lookup_metadata(title, year=None, media_type='movie', providers=None):
     has_imdb = cfg.get('imdb_lookup_enabled', True)  # IMDB doesn't need API key, enabled by default
     
     if not has_tmdb and not has_tvdb and not has_omdb and not has_imdb:
-        log(f"❌ No metadata APIs enabled - cannot lookup IDs for '{title}'")
+        log(f"âŒ No metadata APIs enabled - cannot lookup IDs for '{title}'")
         return None
     
     # Try TMDB first (best for movies, also has TV)
@@ -7046,20 +8636,20 @@ def lookup_metadata(title, year=None, media_type='movie', providers=None):
         apis_tried.append('TMDB')
         result = lookup_tmdb(title, year, media_type)
         if result and result.get('imdb_id'):
-            log(f"✅ TMDB lookup success: {title} -> IMDB:{result.get('imdb_id')} TMDB:{result.get('tmdb_id')}")
+            log(f"âœ… TMDB lookup success: {title} -> IMDB:{result.get('imdb_id')} TMDB:{result.get('tmdb_id')}")
             cache_metadata(title, year, media_type, result)
             return result
         elif result:
-            log(f"⚠️ TMDB found '{title}' but missing IMDB ID")
+            log(f"âš ï¸ TMDB found '{title}' but missing IMDB ID")
         else:
-            log(f"⚠️ TMDB: No results for '{title}' ({year or 'unknown year'})")
+            log(f"âš ï¸ TMDB: No results for '{title}' ({year or 'unknown year'})")
     
     # Try TVDB for TV shows
     if media_type != 'movie' and has_tvdb:
         apis_tried.append('TVDB')
         tvdb_result = lookup_tvdb(title, year, media_type)
         if tvdb_result:
-            log(f"✅ TVDB lookup success: {title} -> TVDB:{tvdb_result.get('tvdb_id')} IMDB:{tvdb_result.get('imdb_id', 'N/A')}")
+            log(f"âœ… TVDB lookup success: {title} -> TVDB:{tvdb_result.get('tvdb_id')} IMDB:{tvdb_result.get('imdb_id', 'N/A')}")
             # Merge with TMDB result if we have one
             if result:
                 tvdb_result['tmdb_id'] = result.get('tmdb_id', '')
@@ -7070,28 +8660,28 @@ def lookup_metadata(title, year=None, media_type='movie', providers=None):
                 cache_metadata(title, year, media_type, result)
                 return result
         else:
-            log(f"⚠️ TVDB: No results for '{title}' ({year or 'unknown year'})")
+            log(f"âš ï¸ TVDB: No results for '{title}' ({year or 'unknown year'})")
     
     # Try OMDb as fallback (good for IMDB IDs)
     if has_omdb:
         apis_tried.append('OMDb')
         omdb_result = lookup_omdb(title, year, media_type)
         if omdb_result:
-            log(f"✅ OMDb lookup success: {title} -> IMDB:{omdb_result.get('imdb_id')}")
+            log(f"âœ… OMDb lookup success: {title} -> IMDB:{omdb_result.get('imdb_id')}")
             # Merge with previous results
             if result:
                 omdb_result['tmdb_id'] = result.get('tmdb_id', '')
                 omdb_result['tvdb_id'] = result.get('tvdb_id', '')
             result = omdb_result
         else:
-            log(f"⚠️ OMDb: No results for '{title}' ({year or 'unknown year'})")
+            log(f"âš ï¸ OMDb: No results for '{title}' ({year or 'unknown year'})")
     
     # Try IMDB direct lookup as final fallback (no API key needed)
     if has_imdb and (not result or not result.get('imdb_id')):
         apis_tried.append('IMDB')
         imdb_result = lookup_imdb(title, year, media_type)
         if imdb_result:
-            log(f"✅ IMDB lookup success: {title} -> IMDB:{imdb_result.get('imdb_id')}")
+            log(f"âœ… IMDB lookup success: {title} -> IMDB:{imdb_result.get('imdb_id')}")
             # Merge with previous results
             if result:
                 imdb_result['tmdb_id'] = result.get('tmdb_id', '')
@@ -7105,13 +8695,13 @@ def lookup_metadata(title, year=None, media_type='movie', providers=None):
                 else:
                     result = imdb_result
         else:
-            log(f"⚠️ IMDB: No results for '{title}' ({year or 'unknown year'})")
+            log(f"âš ï¸ IMDB: No results for '{title}' ({year or 'unknown year'})")
     
     if result:
         cache_metadata(title, year, media_type, result)
-        log(f"✅ Final metadata for '{title}': IMDB:{result.get('imdb_id', 'N/A')} TVDB:{result.get('tvdb_id', 'N/A')} TMDB:{result.get('tmdb_id', 'N/A')}")
+        log(f"âœ… Final metadata for '{title}': IMDB:{result.get('imdb_id', 'N/A')} TVDB:{result.get('tvdb_id', 'N/A')} TMDB:{result.get('tmdb_id', 'N/A')}")
     else:
-        log(f"❌ Metadata lookup failed for '{title}' ({year or 'unknown year'}) - tried: {', '.join(apis_tried)}")
+        log(f"âŒ Metadata lookup failed for '{title}' ({year or 'unknown year'}) - tried: {', '.join(apis_tried)}")
     
     return result
 
@@ -7193,7 +8783,7 @@ def browse_remote():
     cfg = load_config()
     
     server = next(
-        (s for s in cfg['servers'] if s['id'] == data['server_id']),
+        (s for s in get_all_servers(cfg) if s['id'] == data['server_id']),
         None
     )
     if not server:
@@ -7207,15 +8797,24 @@ def browse_remote():
         # Use stored user_id if available (for username/password auth)
         # Otherwise, query /Users to get a user ID (for API key auth)
         user_id = server.get('user_id')
-        
+
+        if not user_id:
+            # User tokens (password login) can read /Users/Me but not /Users
+            me_response = requests.get(f"{server['url']}/Users/Me", headers=headers, timeout=10)
+            if me_response.ok:
+                user_id = me_response.json().get('Id')
+
         if not user_id:
             users_response = requests.get(
                 f"{server['url']}/Users",
                 headers=headers,
                 timeout=10
             )
-            
+
             log(f"Users response: {users_response.status_code}")
+            if users_response.status_code in (401, 403):
+                return jsonify({"items": [], "total": 0, "auth_error": True,
+                                "error": "Server rejected the saved login. Edit this server in Settings and log in again."})
             
             if not users_response.ok:
                 log(f"Browse Error: Server returned {users_response.status_code} - {users_response.text[:200]}")
@@ -7255,7 +8854,8 @@ def browse_remote():
                 "Id": item['Id'],
                 "Name": item['Name'],
                 "IsFolder": True,
-                "HasImage": True
+                "HasImage": True,
+                "CollectionType": item.get('CollectionType')
             } for item in items]
             
             return jsonify({
@@ -7272,7 +8872,7 @@ def browse_remote():
             params = {
                 'ParentId': data['parent_id'],
                 'SortBy': 'SortName',
-                'Fields': 'ImageTags,ProviderIds,SeriesProviderIds,CommunityRating,CriticRating,OfficialRating,MediaStreams,Width,Height,ChildCount,RecursiveItemCount',
+                'Fields': 'ImageTags,ProviderIds,SeriesProviderIds,OriginalTitle,CommunityRating,CriticRating,OfficialRating,MediaStreams,Width,Height,ChildCount,RecursiveItemCount',
                 'StartIndex': skip,
                 'Limit': items_per_page
             }
@@ -7370,6 +8970,11 @@ def browse_remote():
                                        (tmdb_key and tmdb_key in local_ids))
                         exists = 'full' if movie_exists else False
                 
+                # Unified duplicate check: every provider id, then title + year
+                exists = local_match_status(item)
+                if item['Type'] == 'Series':
+                    local_episode_count = local_series_episode_count(item)
+
                 # Check what image types are available
                 image_tags = item.get('ImageTags', {})
                 has_primary = 'Primary' in image_tags
@@ -7445,7 +9050,8 @@ def browse_remote():
                     "IsAtmos": is_atmos,
                     "VideoCodec": video_codec,
                     "ProviderIds": item.get('ProviderIds', {}),
-                    "SeriesProviderIds": item.get('SeriesProviderIds', {})
+                    "SeriesProviderIds": item.get('SeriesProviderIds', {}),
+                    "Status": item.get('Status')          # Series: Continuing / Ended
                 })
             
             total = response.get('TotalRecordCount', 0)
@@ -7483,7 +9089,7 @@ def search_library():
         return jsonify({"items": [], "error": "Query must be at least 2 characters"})
     
     server = next(
-        (s for s in cfg['servers'] if s['id'] == data.get('server_id')),
+        (s for s in get_all_servers(cfg) if s['id'] == data.get('server_id')),
         None
     )
     if not server:
@@ -7523,7 +9129,7 @@ def search_library():
         if parent_id:
             params['ParentId'] = parent_id
         
-        log(f"🔍 Searching for: {query}")
+        log(f"ðŸ” Searching for: {query}")
         
         search_response = requests.get(
             f"{server['url']}/Users/{user_id}/Items",
@@ -7539,7 +9145,7 @@ def search_library():
         response = search_response.json()
         items = response.get('Items', [])
         
-        log(f"🔍 Found {len(items)} results for '{query}'")
+        log(f"ðŸ” Found {len(items)} results for '{query}'")
         
         # Get local cache for exists checking
         local_ids = local_id_cache
@@ -7572,6 +9178,7 @@ def search_library():
                         (tmdb_key and tmdb_key in local_ids)):
                         exists = 'full'
             
+            exists = local_match_status(item)
             clean_items.append({
                 "Id": item['Id'],
                 "Name": item['Name'],
@@ -7610,12 +9217,12 @@ def get_collection_items():
     cfg = load_config()
     
     server = next(
-        (s for s in cfg['servers'] if s['id'] == data['server_id']),
+        (s for s in get_all_servers(cfg) if s['id'] == data['server_id']),
         None
     )
     if not server:
         return jsonify({"items": [], "error": "Server not found"})
-    
+
     collection_id = data.get('collection_id')
     if not collection_id:
         return jsonify({"items": [], "error": "No collection_id provided"})
@@ -7670,7 +9277,7 @@ def get_collection_items():
         
         fetch_items(collection_id)
         
-        log(f"📦 Collection has {len(all_items)} downloadable items")
+        log(f"ðŸ“¦ Collection has {len(all_items)} downloadable items")
         
         return jsonify({
             "items": all_items,
@@ -7686,31 +9293,53 @@ def get_collection_items():
 @login_required
 def batch_download():
     data = request.json
-    log(f"📥 batch_download called: {len(data.get('item_ids', []))} items")
+    log(f"ðŸ“¥ batch_download called: {len(data.get('item_ids', []))} items")
     cfg = load_config()
     
     server = next(
-        (s for s in cfg['servers'] if s['id'] == data['server_id']),
+        (s for s in get_all_servers(cfg) if s['id'] == data['server_id']),
         None
     )
     if not server:
         return jsonify({"status": "error", "message": "Server not found"})
-    
-    download_path = data['path']
+    if server.get('type') == 'local':
+        return jsonify({"status": "error", "message": "That's your own local server - you already have its media."})
+
+    download_path = os.path.normpath(data.get('path') or '')
+    if not (download_path == '/storage' or download_path.startswith('/storage/')):
+        return jsonify({"status": "error", "message": "Downloads must go inside /storage"})
     space_ok, space_msg = check_disk_space(download_path)
     if not space_ok:
         return jsonify({"status": "error", "message": space_msg})
-    
+
     download_order = cfg.get('download_order', 'library')
-    
+    include_specials = bool(data.get('include_specials', False))
+
+    # Missing episodes / upgrades go into the show's existing folder
+    series_dir = data.get('target_series_dir')
+    if series_dir:
+        series_dir = os.path.normpath(series_dir)
+        if not series_dir.startswith('/storage/') or '..' in series_dir.split('/') or not os.path.isdir(series_dir):
+            return jsonify({"status": "error", "message": "That show's folder couldn't be found inside /storage"})
+    replace_map = {str(k): str(v) for k, v in (data.get('replace_map') or {}).items()
+                   if _IMAGE_ID_RE.match(str(k)) and _IMAGE_ID_RE.match(str(v))}
+    if replace_map and not is_feature_available('quality_upgrades'):
+        return jsonify({"status": "error", "message": "Replacing with better quality is a Pro feature"})
+
     for item_id in data['item_ids']:
         tid = generate_id()
         with download_lock:
             pending_display.append({"name": "Resolving...", "id": tid})
-        
+
+        # Step one: tell Sonarr/Radarr/Lidarr about it before any file lands
+        monitor_new = data.get('sonarr_monitor_new')          # None unless asked (continuing shows)
+        monitor_new = None if monitor_new is None else bool(monitor_new)
+        threading.Thread(target=_arr_add_for_download, args=(server, item_id, download_path, monitor_new), daemon=True).start()
+
         threading.Thread(
             target=recursive_resolve,
-            args=(server, item_id, data['path'], tid, cfg.get('speed_limit_kbs', 0), download_order),
+            args=(server, item_id, download_path, tid, cfg.get('speed_limit_kbs', 0), download_order, include_specials,
+                  series_dir, replace_map),
             daemon=True
         ).start()
     
@@ -8049,7 +9678,8 @@ def get_radarr_movie_folder(provider_ids, fallback_name, year=''):
     return None
 
 
-def recursive_resolve(server, item_id, base_path, tid, limit, download_order='library'):
+def recursive_resolve(server, item_id, base_path, tid, limit, download_order='library', include_specials=True,
+                      series_dir=None, replace_map=None):
     """Resolve item and queue downloads (handles series/seasons)"""
     global pending_display
     
@@ -8122,7 +9752,12 @@ def recursive_resolve(server, item_id, base_path, tid, limit, download_order='li
                 raise Exception(f"Children request returned {children_resp.status_code}")
             
             children = children_resp.json().get('Items', [])
-            
+            if not include_specials:
+                before = len(children)
+                children = [c for c in children if not (c.get('Type') == 'Episode' and c.get('ParentIndexNumber') == 0)]
+                if before != len(children):
+                    log(f"Skipping {before - len(children)} special(s) for {item.get('Name')}")
+
             with download_lock:
                 pending_display = [x for x in pending_display if x['id'] != tid]
             
@@ -8131,9 +9766,11 @@ def recursive_resolve(server, item_id, base_path, tid, limit, download_order='li
             
             for child in children:
                 sub_tid = generate_id()
-                queue_item(server, child, base_path, sub_tid, limit)
+                queue_item(server, child, base_path, sub_tid, limit, series_dir=series_dir,
+                           replace_local_id=(replace_map or {}).get(child['Id']))
         else:
-            queue_item(server, item, base_path, tid, limit)
+            queue_item(server, item, base_path, tid, limit, series_dir=series_dir,
+                       replace_local_id=(replace_map or {}).get(item['Id']))
             
     except Exception as e:
         log(f"Resolve Error: {e}")
@@ -8141,9 +9778,14 @@ def recursive_resolve(server, item_id, base_path, tid, limit, download_order='li
             pending_display = [x for x in pending_display if x['id'] != tid]
 
 
-def queue_item(server, item, base_path, tid, limit):
-    """Queue a single item for download"""
+def queue_item(server, item, base_path, tid, limit, series_dir=None, replace_local_id=None):
+    """Queue a single item for download.
+
+    series_dir: put it in this existing show/movie folder (missing episodes, upgrades).
+    replace_local_id: local Jellyfin item to replace once the better copy is verified (Pro).
+    """
     global pending_display
+    full_dir_override = None
     try:
         safe_name = clean_name(item['Name'])
         # Container can be comma-separated if multiple media sources exist (e.g., "mkv,webm")
@@ -8163,29 +9805,31 @@ def queue_item(server, item, base_path, tid, limit):
         
         if item['Type'] == 'Episode':
             series = clean_name(item.get('SeriesName', 'Unknown'))
-            season_num = item.get('ParentIndexNumber', 1)
-            episode_num = item.get('IndexNumber', 0)
+            season_num = item.get('ParentIndexNumber')
+            if season_num is None:
+                season_num = 1
+            episode_num = item.get('IndexNumber') or 0
             
             # Get series provider IDs - need to fetch from parent series, not episode
             series_id = item.get('SeriesId')
             
-            log(f"📺 Episode '{item['Name']}' of series '{series}' - SeriesId: {series_id or 'NOT FOUND'}")
+            log(f"ðŸ“º Episode '{item['Name']}' of series '{series}' - SeriesId: {series_id or 'NOT FOUND'}")
             
             # First, check if SeriesProviderIds was included in the item response
             series_provider_ids = item.get('SeriesProviderIds', {})
             if series_provider_ids:
-                log(f"✅ Got series IDs from item: IMDB:{series_provider_ids.get('Imdb', 'N/A')} TVDB:{series_provider_ids.get('Tvdb', 'N/A')}")
+                log(f"âœ… Got series IDs from item: IMDB:{series_provider_ids.get('Imdb', 'N/A')} TVDB:{series_provider_ids.get('Tvdb', 'N/A')}")
             elif series_id:
                 try:
                     # Fetch the series item to get its provider IDs
                     server_key = server.get('api_key') or server.get('key', '')
                     if not server_key:
-                        log(f"⚠️ No API key found for server {server.get('name', server.get('url', 'unknown'))}")
+                        log(f"âš ï¸ No API key found for server {server.get('name', server.get('url', 'unknown'))}")
                     headers = get_auth_header(server_key)
                     
                     # Try /Items?Ids= endpoint which works more reliably
-                    series_url = f"{server['url']}/Items?Ids={series_id}"
-                    log(f"📡 Fetching series info from: {series_url}")
+                    series_url = f"{server['url']}/Items?Ids={series_id}&Fields=ProviderIds,ProductionYear,OriginalTitle"
+                    log(f"ðŸ“¡ Fetching series info from: {series_url}")
                     series_resp = requests.get(series_url, headers=headers, timeout=cfg.get('connection_timeout', 30))
                     
                     if series_resp.ok:
@@ -8195,24 +9839,24 @@ def queue_item(server, item, base_path, tid, limit):
                             series_data = items[0]
                             series_provider_ids = series_data.get('ProviderIds', {})
                             if series_provider_ids:
-                                log(f"✅ Fetched series IDs for '{series}': IMDB:{series_provider_ids.get('Imdb', 'N/A')} TVDB:{series_provider_ids.get('Tvdb', 'N/A')}")
+                                log(f"âœ… Fetched series IDs for '{series}': IMDB:{series_provider_ids.get('Imdb', 'N/A')} TVDB:{series_provider_ids.get('Tvdb', 'N/A')}")
                             else:
-                                log(f"⚠️ Series '{series}' has no ProviderIds in API response")
+                                log(f"âš ï¸ Series '{series}' has no ProviderIds in API response")
                         else:
-                            log(f"⚠️ Series fetch returned empty Items array")
+                            log(f"âš ï¸ Series fetch returned empty Items array")
                     else:
-                        log(f"⚠️ Series fetch failed: HTTP {series_resp.status_code} - {series_resp.text[:200]}")
+                        log(f"âš ï¸ Series fetch failed: HTTP {series_resp.status_code} - {series_resp.text[:200]}")
                 except Exception as e:
-                    log(f"⚠️ Could not fetch series provider IDs: {type(e).__name__}: {e}")
+                    log(f"âš ï¸ Could not fetch series provider IDs: {type(e).__name__}: {e}")
             else:
-                log(f"⚠️ Episode has no SeriesId field - cannot fetch series info")
+                log(f"âš ï¸ Episode has no SeriesId field - cannot fetch series info")
             
             # Fall back to NO IDs if we couldn't get series IDs
             # This ensures all episodes go into the same folder (just show name)
             # instead of each episode getting its own folder with episode IDs
             if not series_provider_ids:
                 series_provider_ids = {}  # Empty dict = no IDs appended to folder name
-                log(f"⚠️ Using folder name without IDs for '{series}' (series IDs not available)")
+                log(f"âš ï¸ Using folder name without IDs for '{series}' (series IDs not available)")
             
             # Try to get folder name from Sonarr if configured
             arr_folder = get_sonarr_series_folder(series_provider_ids, series)
@@ -8222,8 +9866,24 @@ def queue_item(server, item, base_path, tid, limit):
                 # Build folder name with provider IDs (handles all formats including standard)
                 series_folder = build_folder_name_with_ids(series, series_provider_ids, '', 'series')
             
-            rel_path = os.path.join(series_folder, f"Season {season_num:02d}")
+            # Always a season folder (even for one-season shows); specials go in "Specials"
+            season_folder = "Specials" if season_num == 0 else f"Season {season_num:02d}"
+            rel_path = os.path.join(series_folder, season_folder)
             filename = f"{series_folder} - S{season_num:02d}E{episode_num:02d} - {safe_name}.{ext}"
+            if series_dir:
+                # Existing show folder: reuse its name and its own season folder naming
+                existing_season = None
+                try:
+                    for d in os.listdir(series_dir):
+                        m = re.match(r'(?i)^season\s*0*(\d+)$', d)
+                        if (m and int(m.group(1)) == season_num) or (season_num == 0 and d.lower() in ('specials', 'season 0', 'season 00')):
+                            existing_season = d
+                            break
+                except OSError:
+                    pass
+                series_name = os.path.basename(series_dir.rstrip('/'))
+                full_dir_override = os.path.join(series_dir, existing_season or season_folder)
+                filename = f"{series_name} - S{season_num:02d}E{episode_num:02d} - {safe_name}.{ext}"
         elif item['Type'] == 'Movie':
             # Get year if available
             year = item.get('ProductionYear', '')
@@ -8238,16 +9898,24 @@ def queue_item(server, item, base_path, tid, limit):
             
             rel_path = folder_name
             filename = f"{folder_name}.{ext}"
+            if series_dir:
+                full_dir_override = series_dir
+                filename = f"{os.path.basename(series_dir.rstrip('/'))}.{ext}"
         else:
             # Other media types (music, etc)
             rel_path = ""
             filename = f"{safe_name}.{ext}"
         
-        full_dir = os.path.join(base_path, rel_path)
+        full_dir = full_dir_override or os.path.join(base_path, rel_path)
         os.makedirs(full_dir, exist_ok=True)
-        
+
         filepath = os.path.join(full_dir, filename)
-        
+        replace_final_path = None
+        if replace_local_id and os.path.exists(filepath):
+            # Same name as the copy being upgraded: download to a hidden temp name, swap after verifying
+            replace_final_path = filepath
+            filepath = os.path.join(full_dir, '.jlupgrade-' + filename)
+
         if os.path.exists(filepath):
             log(f"Skipped (exists): {filename}")
             with download_lock:
@@ -8271,7 +9939,7 @@ def queue_item(server, item, base_path, tid, limit):
         # For movies, use the item's provider_ids
         if item['Type'] == 'Episode':
             task_series_ids = series_provider_ids
-            log(f"📦 Task series IDs for '{item['Name']}': TVDB:{task_series_ids.get('Tvdb', 'N/A')} IMDB:{task_series_ids.get('Imdb', 'N/A')}")
+            log(f"ðŸ“¦ Task series IDs for '{item['Name']}': TVDB:{task_series_ids.get('Tvdb', 'N/A')} IMDB:{task_series_ids.get('Imdb', 'N/A')}")
         else:
             task_series_ids = {}
         
@@ -8285,7 +9953,18 @@ def queue_item(server, item, base_path, tid, limit):
             'item_id': item['Id'],  # For subtitle download
             'item_type': item.get('Type', '').lower(),  # movie, episode, etc.
             'provider_ids': provider_ids,  # IMDB/TMDB/TVDB IDs for *arr integration
-            'series_provider_ids': task_series_ids  # Series IDs for episodes (from fetched series data)
+            'series_provider_ids': task_series_ids,  # Series IDs for episodes (from fetched series data)
+            # For instant "you have it" checkmarks and detailed stats
+            'series_id': item.get('SeriesId'),
+            'season_id': item.get('SeasonId'),
+            'title': item.get('Name'),
+            'original_title': item.get('OriginalTitle'),
+            'series_name': item.get('SeriesName'),
+            'season_num': item.get('ParentIndexNumber'),
+            'episode_num': item.get('IndexNumber'),
+            'year': item.get('ProductionYear'),
+            'replace_local_id': replace_local_id,
+            'replace_final_path': replace_final_path,
         }
         
         # Route to server-specific queue or global queue (Pro feature)
@@ -8304,6 +9983,37 @@ def is_safe_path(base_path, target_path):
     target_resolved = os.path.realpath(target_path)
     # Check if target starts with base (is inside base directory)
     return target_resolved.startswith(base_resolved)
+
+
+_FOLDER_NAME_RE = re.compile(r'^[^/\\\x00]{1,120}$')
+
+
+@app.route('/api/create_folder', methods=['POST'])
+@login_required
+def create_folder():
+    """Create a subfolder inside /storage (used by the folder picker)."""
+    data = request.json or {}
+    parent = os.path.normpath(data.get('path') or '/storage')
+    name = (data.get('name') or '').strip()
+
+    if not _FOLDER_NAME_RE.match(name) or name in ('.', '..') or name.startswith('.'):
+        return jsonify({"success": False, "error": "Enter a folder name without slashes"}), 400
+    if '..' in parent.split('/') or not (parent == '/storage' or parent.startswith('/storage/')):
+        return jsonify({"success": False, "error": "Folders can only be created inside /storage"}), 400
+    if not is_safe_path('/storage', parent):
+        return jsonify({"success": False, "error": "Invalid location"}), 400
+
+    target = os.path.join(parent, name)
+    if not is_safe_path('/storage', target):
+        return jsonify({"success": False, "error": "Invalid folder name"}), 400
+    if os.path.exists(target):
+        return jsonify({"success": False, "error": "A folder with that name already exists"}), 409
+    try:
+        os.makedirs(target)
+        log(f"ðŸ“ Created folder {target}")
+        return jsonify({"success": True, "path": target})
+    except OSError as e:
+        return jsonify({"success": False, "error": f"Could not create folder: {e.strerror or e}"}), 500
 
 
 @app.route('/api/browse_local', methods=['POST'])
@@ -8365,19 +10075,27 @@ def browse_local():
 @app.route('/api/sync', methods=['POST'])
 @login_required
 def trigger_sync():
-    threading.Thread(target=sync_job, daemon=True).start()
-    return jsonify({"status": "started"})
-
-
-def sync_job():
-    """Run sync for all configured mappings"""
     cfg = load_config()
-    
-    if not cfg.get('auto_sync_enabled', True):
+    if not cfg.get('mappings'):
+        return jsonify({"status": "error", "error": "No sync mappings configured. Add one first."})
+    include_existing = bool((request.json or {}).get('include_existing')) if request.is_json else False
+    threading.Thread(target=sync_job, kwargs={'manual': True, 'include_existing': include_existing}, daemon=True).start()
+    return jsonify({"status": "started", "mappings": len(cfg.get('mappings', [])), "include_existing": include_existing})
+
+
+def sync_job(manual=False, include_existing=False):
+    """Run sync for all configured mappings.
+
+    manual=True ignores the auto-sync toggle; include_existing=True also downloads items you
+    already have locally ("Sync Duplicate Media").
+    """
+    cfg = load_config()
+
+    if not manual and not cfg.get('auto_sync_enabled', True):
         log("Sync skipped: Auto-sync disabled")
         return
     
-    log("─── Sync Started ───")
+    log("â”€â”€â”€ Sync Started â”€â”€â”€")
     load_cache_from_disk()
     
     download_order = cfg.get('download_order', 'library')
@@ -8389,7 +10107,7 @@ def sync_job():
     
     for mapping in cfg['mappings']:
         server = next(
-            (s for s in cfg['servers'] if s['id'] == mapping['server_id']),
+            (s for s in get_all_servers(cfg) if s['id'] == mapping['server_id']),
             None
         )
         if not server:
@@ -8415,13 +10133,15 @@ def sync_job():
                     'ParentId': mapping['lib_id'],
                     'Recursive': 'true',
                     'IncludeItemTypes': 'Movie,Episode',
-                    'Fields': 'ProviderIds,SeriesProviderIds,SeriesId'
+                    'Fields': 'ProviderIds,SeriesProviderIds,SeriesId,OriginalTitle'
                 }
             ).json().get('Items', [])
             
             # Filter out items we already have or are in skip list
             items_to_queue = []
             skipped_count = 0
+            fill_missing = cfg.get('sync_missing_episodes', True)
+            series_dirs = {}
             for item in items:
                 item_id = item.get('Id', '')
                 series_id = item.get('SeriesId', '')
@@ -8431,19 +10151,21 @@ def sync_job():
                     skipped_count += 1
                     continue
                 
-                if local_id_cache:
-                    providers = item.get('ProviderIds', {})
-                    series_providers = item.get('SeriesProviderIds', {})
-                    imdb_key = f"imdb_{providers.get('Imdb')}"
-                    tmdb_key = f"tmdb_{providers.get('Tmdb')}"
-                    series_imdb = f"imdb_{series_providers.get('Imdb')}"
-                    series_tmdb = f"tmdb_{series_providers.get('Tmdb')}"
-                    series_tvdb = f"tvdb_{series_providers.get('Tvdb')}"
-                    
-                    # Check both item and series level IDs
-                    if (imdb_key in local_id_cache or tmdb_key in local_id_cache or
-                        series_imdb in local_id_cache or series_tmdb in local_id_cache or series_tvdb in local_id_cache):
+                if local_id_cache and not include_existing:
+                    # Skip anything already local: the item itself (ids or title/year)
+                    if local_match_status(item):
                         continue
+                    if item.get('Type') == 'Episode' and series_exists_locally(
+                            item.get('SeriesProviderIds'), [item.get('SeriesName')]):
+                        # A show you already have: fill in only its missing episodes, in its existing folder
+                        if not fill_missing or (item.get('ParentIndexNumber') or 0) == 0:
+                            continue
+                        sid = item.get('SeriesId')
+                        if sid not in series_dirs:
+                            series_dirs[sid] = _sync_series_dir(server, headers, user_id, sid)
+                        if not series_dirs[sid]:
+                            continue   # couldn't find the show's folder - don't risk a duplicate folder
+                        item['_series_dir'] = series_dirs[sid]
                 items_to_queue.append(item)
             
             if skipped_count > 0:
@@ -8455,7 +10177,8 @@ def sync_job():
             queued = 0
             for item in items_to_queue:
                 tid = generate_id()
-                queue_item(server, item, mapping['local_path'], tid, cfg.get('speed_limit_kbs', 0))
+                queue_item(server, item, mapping['local_path'], tid, cfg.get('speed_limit_kbs', 0),
+                           series_dir=item.get('_series_dir'))
                 queued += 1
             
             log(f"Sync: Queued {queued} items from {server['name']}")
@@ -8463,7 +10186,7 @@ def sync_job():
         except Exception as e:
             log(f"Sync Error ({server['name']}): {e}")
     
-    log("─── Sync Finished ───")
+    log("â”€â”€â”€ Sync Finished â”€â”€â”€")
 
 
 # --- Application Startup ---
@@ -8474,10 +10197,19 @@ def test_arr_connection(arr_type, url, api_key):
     """Test connection to Sonarr/Radarr/Lidarr"""
     if not url or not api_key:
         return {'success': False, 'error': 'URL and API key required'}
-    
+
+    # Clean up URL
+    url = url.rstrip('/')
+
+    # Lidarr uses API v1, Sonarr/Radarr use v3
+    api_version = 'v1' if arr_type == 'lidarr' else 'v3'
+
+    # Log for debugging
+    log(f"[ARR TEST] Testing {arr_type} at {url} (API {api_version})")
+
     try:
         response = requests.get(
-            f"{url.rstrip('/')}/api/v3/system/status",
+            f"{url}/api/{api_version}/system/status",
             headers={'X-Api-Key': api_key},
             timeout=10
         )
@@ -8488,9 +10220,164 @@ def test_arr_connection(arr_type, url, api_key):
                 'version': data.get('version', 'Unknown'),
                 'name': data.get('instanceName', arr_type.capitalize())
             }
-        return {'success': False, 'error': f"HTTP {response.status_code}"}
+
+        # Provide more specific error messages
+        if response.status_code == 401:
+            return {'success': False, 'error': '401 Unauthorized - Check your API key (Settings > General > API Key in Sonarr/Radarr)'}
+        elif response.status_code == 404:
+            return {'success': False, 'error': '404 Not Found - Check URL (should be http://host:port without /api)'}
+        elif response.status_code == 403:
+            return {'success': False, 'error': '403 Forbidden - API access may be disabled or IP restricted'}
+        else:
+            # Try to get error message from response
+            try:
+                err_data = response.json()
+                err_msg = err_data.get('message') or err_data.get('error') or f"HTTP {response.status_code}"
+            except:
+                err_msg = f"HTTP {response.status_code}"
+            return {'success': False, 'error': err_msg}
+    except requests.exceptions.ConnectionError:
+        return {'success': False, 'error': f'Connection failed - Is {arr_type} running at {url}?'}
+    except requests.exceptions.Timeout:
+        return {'success': False, 'error': 'Connection timed out'}
     except Exception as e:
         return {'success': False, 'error': str(e)}
+
+
+def jl_to_arr_path(path, cfg=None):
+    """Translate a JellyLooter path (/storage/...) to the path the *arr apps see."""
+    cfg = cfg or load_config()
+    arr_storage = (cfg.get('arr_storage_path') or '').rstrip('/')
+    if arr_storage and (path == '/storage' or path.startswith('/storage/')):
+        return arr_storage + path[len('/storage'):]
+    for m in cfg.get('arr_path_mappings', []) or []:
+        jl = (m.get('remotePath') or m.get('from') or '').rstrip('/')
+        arr = (m.get('localPath') or m.get('to') or '').rstrip('/')
+        if jl and (path == jl or path.startswith(jl + '/')):
+            return arr + path[len(jl):]
+    return path
+
+
+def _arr_pick_root(roots, arr_dest):
+    """Choose the *arr root folder that contains arr_dest (else the first one)."""
+    paths = [r.get('path', '').rstrip('/') for r in roots if r.get('path')]
+    best = [p for p in paths if arr_dest == p or arr_dest.startswith(p + '/')]
+    if best:
+        return max(best, key=len)
+    return paths[0] if paths else None
+
+
+def arr_ensure_added(kind, provider_ids, title, year, dest_dir, monitor_new=None):
+    """Step one of a download (#10): make sure Sonarr/Radarr/Lidarr know about the show/movie/artist.
+
+    Adds it monitored, WITHOUT an indexer search, in the root folder matching the download destination.
+    Returns a short status string for the log/UI.
+    """
+    if not is_feature_available('arr_integration'):
+        return 'arr integration needs Pro'
+    cfg = load_config()
+    if not cfg.get('arr_auto_import', True):
+        return 'auto-import disabled'
+    pid = {k.lower(): v for k, v in (provider_ids or {}).items() if v}
+    app = {'series': 'sonarr', 'movie': 'radarr', 'artist': 'lidarr'}[kind]
+    url = (cfg.get(f'{app}_url') or '').rstrip('/')
+    key = cfg.get(f'{app}_api_key') or ''
+    if not url or not key:
+        return f'{app} not configured'
+    api = 'v1' if app == 'lidarr' else 'v3'
+    H = {'X-Api-Key': key}
+    try:
+        roots = requests.get(f"{url}/api/{api}/rootfolder", headers=H, timeout=10).json()
+        profiles = requests.get(f"{url}/api/{api}/qualityprofile", headers=H, timeout=10).json()
+        root = _arr_pick_root(roots, jl_to_arr_path(dest_dir, cfg))
+        if not root or not profiles:
+            return f'{app}: no root folder / quality profile configured'
+        if app == 'sonarr':
+            existing = requests.get(f"{url}/api/v3/series", headers=H, timeout=20).json()
+            match = next((s for s in existing if (pid.get('tvdb') and str(s.get('tvdbId')) == str(pid['tvdb'])) or
+                          (pid.get('imdb') and s.get('imdbId') == pid['imdb'])), None)
+            if match:
+                if monitor_new and not match.get('monitored'):
+                    full = requests.get(f"{url}/api/v3/series/{match['id']}", headers=H, timeout=20).json()
+                    full['monitored'] = True
+                    requests.put(f"{url}/api/v3/series/{match['id']}", headers=H, json=full, timeout=30)
+                    log(f"📡 [SONARR] Now monitoring \"{match.get('title')}\" for new episodes")
+                    return 'already in Sonarr - now monitored for new episodes'
+                return 'already in Sonarr'
+            term = f"tvdb:{pid['tvdb']}" if pid.get('tvdb') else (f"imdb:{pid['imdb']}" if pid.get('imdb') else title)
+            found = requests.get(f"{url}/api/v3/series/lookup", headers=H, params={'term': term}, timeout=20).json()
+            if not found:
+                return f'Sonarr could not find "{title}"'
+            body = dict(found[0])
+            # monitor_new: None = not asked (ended show), True = watch for new episodes, False = don't monitor
+            if monitor_new is True:
+                monitored, monitor_opt = True, 'future'
+            elif monitor_new is False:
+                monitored, monitor_opt = False, 'none'
+            else:
+                monitored, monitor_opt = True, 'all'
+            body.update(qualityProfileId=profiles[0]['id'], rootFolderPath=root, monitored=monitored, seasonFolder=True,
+                        addOptions={'searchForMissingEpisodes': False, 'monitor': monitor_opt})
+            r = requests.post(f"{url}/api/v3/series", headers=H, json=body, timeout=30)
+        elif app == 'radarr':
+            existing = requests.get(f"{url}/api/v3/movie", headers=H, timeout=20).json()
+            if any((pid.get('tmdb') and str(m.get('tmdbId')) == str(pid['tmdb'])) or
+                   (pid.get('imdb') and m.get('imdbId') == pid['imdb']) for m in existing):
+                return 'already in Radarr'
+            if pid.get('tmdb'):
+                found = [requests.get(f"{url}/api/v3/movie/lookup/tmdb", headers=H, params={'tmdbId': pid['tmdb']}, timeout=20).json()]
+            else:
+                term = f"imdb:{pid['imdb']}" if pid.get('imdb') else f"{title} {year or ''}".strip()
+                found = requests.get(f"{url}/api/v3/movie/lookup", headers=H, params={'term': term}, timeout=20).json()
+            if not found or not found[0]:
+                return f'Radarr could not find "{title}"'
+            body = dict(found[0])
+            body.update(qualityProfileId=profiles[0]['id'], rootFolderPath=root, monitored=True,
+                        addOptions={'searchForMovie': False})
+            r = requests.post(f"{url}/api/v3/movie", headers=H, json=body, timeout=30)
+        else:
+            existing = requests.get(f"{url}/api/v1/artist", headers=H, timeout=20).json()
+            mbid = pid.get('musicbrainzartist')
+            if any((mbid and a.get('foreignArtistId') == mbid) or a.get('artistName', '').lower() == (title or '').lower() for a in existing):
+                return 'already in Lidarr'
+            term = f"lidarr:{mbid}" if mbid else title
+            found = requests.get(f"{url}/api/v1/artist/lookup", headers=H, params={'term': term}, timeout=20).json()
+            meta = requests.get(f"{url}/api/v1/metadataprofile", headers=H, timeout=10).json()
+            if not found or not meta:
+                return f'Lidarr could not find "{title}"'
+            body = dict(found[0])
+            body.update(qualityProfileId=profiles[0]['id'], metadataProfileId=meta[0]['id'], rootFolderPath=root,
+                        monitored=True, addOptions={'searchForMissingAlbums': False, 'monitor': 'all'})
+            r = requests.post(f"{url}/api/v1/artist", headers=H, json=body, timeout=30)
+        if r.ok:
+            log(f"📡 [{app.upper()}] Added \"{title}\" (root {root}, no search) before downloading")
+            return f'added to {app.capitalize()}'
+        return f'{app} refused: HTTP {r.status_code} {r.text[:120]}'
+    except Exception as e:
+        return f'{app} error: {type(e).__name__}: {e}'
+
+
+def _arr_add_for_download(server, item_id, base_path, monitor_new=None):
+    """Background: look up the item being downloaded and add its show/movie/artist to the *arr app."""
+    try:
+        headers = get_auth_header(server['key'])
+        item = requests.get(f"{server['url']}/Items", headers=headers, timeout=15,
+                            params={'Ids': item_id, 'Fields': 'ProviderIds,ProductionYear'}).json().get('Items', [{}])[0]
+        t = item.get('Type')
+        if t in ('Season', 'Episode') and item.get('SeriesId'):
+            item = requests.get(f"{server['url']}/Items", headers=headers, timeout=15,
+                                params={'Ids': item['SeriesId'], 'Fields': 'ProviderIds,ProductionYear'}).json().get('Items', [{}])[0]
+            t = 'Series'
+        kind = {'Series': 'series', 'Movie': 'movie', 'MusicArtist': 'artist'}.get(t)
+        if t in ('MusicAlbum', 'Audio') and item.get('AlbumArtist'):
+            kind, item = 'artist', {'Name': item.get('AlbumArtist'), 'ProviderIds': {}}
+        if not kind:
+            return
+        status = arr_ensure_added(kind, item.get('ProviderIds'), item.get('Name'), item.get('ProductionYear'), base_path,
+                                  monitor_new=monitor_new if kind == 'series' else None)
+        log(f"📡 [ARR] {item.get('Name')}: {status}")
+    except Exception as e:
+        log(f"📡 [ARR] Could not add item before download: {e}")
 
 
 def notify_arr_download(filepath, media_type=None, provider_ids=None):
@@ -8503,20 +10390,20 @@ def notify_arr_download(filepath, media_type=None, provider_ids=None):
         provider_ids: Dict with 'imdb', 'tmdb', 'tvdb' IDs
     """
     if not is_feature_available('arr_integration'):
-        log(f"📡 [ARR] Skipping - *arr integration not available (Pro feature)")
+        log(f"ðŸ“¡ [ARR] Skipping - *arr integration not available (Pro feature)")
         return
     
     cfg = load_config()
     
     # Check if auto-import is enabled
     if not cfg.get('arr_auto_import', True):
-        log(f"📡 [ARR] Skipping - arr_auto_import is disabled")
+        log(f"ðŸ“¡ [ARR] Skipping - arr_auto_import is disabled")
         return
     
     provider_ids = provider_ids or {}
-    log(f"📡 [ARR] notify_arr_download called for: {os.path.basename(filepath)}")
-    log(f"📡 [ARR] Raw provider IDs received: {provider_ids}")
-    log(f"📡 [ARR] Media type: {media_type}")
+    log(f"ðŸ“¡ [ARR] notify_arr_download called for: {os.path.basename(filepath)}")
+    log(f"ðŸ“¡ [ARR] Raw provider IDs received: {provider_ids}")
+    log(f"ðŸ“¡ [ARR] Media type: {media_type}")
     
     # Get the folder containing the file (for targeted scan)
     folder_path = os.path.dirname(filepath)
@@ -8539,8 +10426,12 @@ def notify_arr_download(filepath, media_type=None, provider_ids=None):
     
     mapped_folder_path = folder_path
     mapping_applied = False
-    
-    log(f"📡 [ARR] Looking for path mapping for: {folder_path}")
+    if cfg.get('arr_storage_path') and folder_path.startswith('/storage'):
+        mapped_folder_path = jl_to_arr_path(folder_path, cfg)
+        mapping_applied = True
+        log(f"📡 [ARR] ✅ {folder_path} -> {mapped_folder_path}")
+
+    log(f"ðŸ“¡ [ARR] Looking for path mapping for: {folder_path}")
     
     # First try explicit mappings
     for mapping in path_mappings:
@@ -8553,8 +10444,8 @@ def notify_arr_download(filepath, media_type=None, provider_ids=None):
         if jl_path and folder_path.startswith(jl_path):
             # Found a match - convert JellyLooter path to *arr path
             mapped_folder_path = folder_path.replace(jl_path, arr_path, 1)
-            log(f"📡 [ARR] ✅ Path mapping matched ({mapping_source})!")
-            log(f"📡 [ARR]    {folder_path} -> {mapped_folder_path}")
+            log(f"ðŸ“¡ [ARR] âœ… Path mapping matched ({mapping_source})!")
+            log(f"ðŸ“¡ [ARR]    {folder_path} -> {mapped_folder_path}")
             mapping_applied = True
             break
     
@@ -8563,8 +10454,8 @@ def notify_arr_download(filepath, media_type=None, provider_ids=None):
         mapped_folder_path = folder_path[len(base_path_prefix):]
         if not mapped_folder_path.startswith('/'):
             mapped_folder_path = '/' + mapped_folder_path
-        log(f"📡 [ARR] ✅ Base path prefix stripped!")
-        log(f"📡 [ARR]    {folder_path} -> {mapped_folder_path}")
+        log(f"ðŸ“¡ [ARR] âœ… Base path prefix stripped!")
+        log(f"ðŸ“¡ [ARR]    {folder_path} -> {mapped_folder_path}")
         mapping_applied = True
     
     # If still no match, try auto-detecting based on local server path mappings
@@ -8577,22 +10468,22 @@ def notify_arr_download(filepath, media_type=None, provider_ids=None):
                 mapped_folder_path = folder_path[len(local_path):]
                 if not mapped_folder_path.startswith('/'):
                     mapped_folder_path = '/' + mapped_folder_path
-                log(f"📡 [ARR] ✅ Auto-stripped local server base path!")
-                log(f"📡 [ARR]    {folder_path} -> {mapped_folder_path}")
+                log(f"ðŸ“¡ [ARR] âœ… Auto-stripped local server base path!")
+                log(f"ðŸ“¡ [ARR]    {folder_path} -> {mapped_folder_path}")
                 mapping_applied = True
                 break
     
     if not mapping_applied:
-        log(f"📡 [ARR] ⚠️ No path mapping matched - using original path")
-        log(f"📡 [ARR] TIP: Set 'arr_base_path_prefix' in config to auto-strip base path")
-        log(f"📡 [ARR] Example: arr_base_path_prefix=/storage/data/media would convert")
-        log(f"📡 [ARR]   {folder_path} -> {folder_path.replace('/storage/data/media', '', 1) if '/storage/data/media' in folder_path else '(path)'}")
+        log(f"ðŸ“¡ [ARR] âš ï¸ No path mapping matched - using original path")
+        log(f"ðŸ“¡ [ARR] TIP: Set 'arr_base_path_prefix' in config to auto-strip base path")
+        log(f"ðŸ“¡ [ARR] Example: arr_base_path_prefix=/storage/data/media would convert")
+        log(f"ðŸ“¡ [ARR]   {folder_path} -> {folder_path.replace('/storage/data/media', '', 1) if '/storage/data/media' in folder_path else '(path)'}")
         if path_mappings:
-            log(f"📡 [ARR] Available mappings ({len(path_mappings)}):")
+            log(f"ðŸ“¡ [ARR] Available mappings ({len(path_mappings)}):")
             for i, m in enumerate(path_mappings[:5]):  # Show first 5
                 jl = m.get('remotePath') or m.get('from', '')
                 arr = m.get('localPath') or m.get('to', '')
-                log(f"📡 [ARR]   {i+1}. '{jl}' -> '{arr}'")
+                log(f"ðŸ“¡ [ARR]   {i+1}. '{jl}' -> '{arr}'")
     
     # Auto-detect media type if not provided
     if media_type is None:
@@ -8601,7 +10492,7 @@ def notify_arr_download(filepath, media_type=None, provider_ids=None):
             media_type = 'movie'
         elif '/tv/' in lower_path or '/series/' in lower_path or 'season' in lower_path or re.search(r's\d{2}e\d{2}', lower_path, re.IGNORECASE):
             media_type = 'episode'
-        log(f"📡 [ARR] Auto-detected media type: {media_type}")
+        log(f"ðŸ“¡ [ARR] Auto-detected media type: {media_type}")
     
     notified = False
     
@@ -8611,7 +10502,7 @@ def notify_arr_download(filepath, media_type=None, provider_ids=None):
         radarr_key = cfg.get('radarr_api_key', '')
         
         if radarr_url and radarr_key:
-            log(f"📡 [RADARR] Attempting to notify Radarr at {radarr_url}")
+            log(f"ðŸ“¡ [RADARR] Attempting to notify Radarr at {radarr_url}")
             try:
                 headers = {'X-Api-Key': radarr_key, 'Content-Type': 'application/json'}
                 
@@ -8619,7 +10510,7 @@ def notify_arr_download(filepath, media_type=None, provider_ids=None):
                 tmdb_id = provider_ids.get('tmdb') or provider_ids.get('Tmdb')
                 imdb_id = provider_ids.get('imdb') or provider_ids.get('Imdb')
                 
-                log(f"📡 [RADARR] Looking up movie - TMDB: {tmdb_id}, IMDB: {imdb_id}")
+                log(f"ðŸ“¡ [RADARR] Looking up movie - TMDB: {tmdb_id}, IMDB: {imdb_id}")
                 
                 movie_id = None
                 
@@ -8629,24 +10520,24 @@ def notify_arr_download(filepath, media_type=None, provider_ids=None):
                         f"{radarr_url}/api/v3/movie?tmdbId={tmdb_id}",
                         headers=headers, timeout=10
                     )
-                    log(f"📡 [RADARR] Lookup by TMDB response: {lookup_resp.status_code}")
+                    log(f"ðŸ“¡ [RADARR] Lookup by TMDB response: {lookup_resp.status_code}")
                     if lookup_resp.ok:
                         movies = lookup_resp.json()
                         if movies:
                             movie_id = movies[0].get('id')
-                            log(f"📡 [RADARR] Found movie in library (ID: {movie_id})")
+                            log(f"ðŸ“¡ [RADARR] Found movie in library (ID: {movie_id})")
                         else:
-                            log(f"📡 [RADARR] Movie not in library yet")
+                            log(f"ðŸ“¡ [RADARR] Movie not in library yet")
                 
                 # If not found, try to add it
                 if not movie_id and (tmdb_id or imdb_id):
-                    log(f"📡 [RADARR] Attempting to add movie to library...")
+                    log(f"ðŸ“¡ [RADARR] Attempting to add movie to library...")
                     
                     # Get root folder
                     root_resp = requests.get(f"{radarr_url}/api/v3/rootfolder", headers=headers, timeout=10)
                     root_folders = root_resp.json() if root_resp.ok else []
                     root_path = root_folders[0]['path'] if root_folders else mapped_folder_path
-                    log(f"📡 [RADARR] Root folder: {root_path}")
+                    log(f"ðŸ“¡ [RADARR] Root folder: {root_path}")
                     
                     # Get quality profile
                     profile_resp = requests.get(f"{radarr_url}/api/v3/qualityprofile", headers=headers, timeout=10)
@@ -8688,17 +10579,17 @@ def notify_arr_download(filepath, media_type=None, provider_ids=None):
                             
                             if add_resp.ok:
                                 movie_id = add_resp.json().get('id')
-                                log(f"📡 [RADARR] Added movie: {movie_data.get('title')} (ID: {movie_id})")
+                                log(f"ðŸ“¡ [RADARR] Added movie: {movie_data.get('title')} (ID: {movie_id})")
                             elif add_resp.status_code == 400:
-                                log(f"📡 [RADARR] Movie already exists or invalid: {add_resp.text[:200]}")
+                                log(f"ðŸ“¡ [RADARR] Movie already exists or invalid: {add_resp.text[:200]}")
                             else:
-                                log(f"⚠️ [RADARR] Failed to add movie: {add_resp.status_code} - {add_resp.text[:200]}")
+                                log(f"âš ï¸ [RADARR] Failed to add movie: {add_resp.status_code} - {add_resp.text[:200]}")
                 
                 # Trigger scan - try multiple methods
                 scan_success = False
                 
                 # Method 1: DownloadedMoviesScan (for download client integration)
-                log(f"📡 [RADARR] Triggering DownloadedMoviesScan for: {mapped_folder_path}")
+                log(f"ðŸ“¡ [RADARR] Triggering DownloadedMoviesScan for: {mapped_folder_path}")
                 import_resp = requests.post(
                     f"{radarr_url}/api/v3/command",
                     headers=headers,
@@ -8708,30 +10599,30 @@ def notify_arr_download(filepath, media_type=None, provider_ids=None):
                     },
                     timeout=10
                 )
-                log(f"📡 [RADARR] DownloadedMoviesScan response: {import_resp.status_code}")
+                log(f"ðŸ“¡ [RADARR] DownloadedMoviesScan response: {import_resp.status_code}")
                 if import_resp.ok:
-                    log(f"✅ [RADARR] DownloadedMoviesScan triggered successfully")
+                    log(f"âœ… [RADARR] DownloadedMoviesScan triggered successfully")
                     scan_success = True
                 else:
-                    log(f"⚠️ [RADARR] DownloadedMoviesScan failed: {import_resp.text[:200]}")
+                    log(f"âš ï¸ [RADARR] DownloadedMoviesScan failed: {import_resp.text[:200]}")
                 
                 # Method 2: RescanMovie if we have movie ID
                 if movie_id:
-                    log(f"📡 [RADARR] Triggering RescanMovie for ID: {movie_id}")
+                    log(f"ðŸ“¡ [RADARR] Triggering RescanMovie for ID: {movie_id}")
                     rescan_resp = requests.post(
                         f"{radarr_url}/api/v3/command",
                         headers=headers,
                         json={'name': 'RescanMovie', 'movieId': movie_id},
                         timeout=10
                     )
-                    log(f"📡 [RADARR] RescanMovie response: {rescan_resp.status_code}")
+                    log(f"ðŸ“¡ [RADARR] RescanMovie response: {rescan_resp.status_code}")
                     if rescan_resp.ok:
-                        log(f"✅ [RADARR] RescanMovie triggered successfully")
+                        log(f"âœ… [RADARR] RescanMovie triggered successfully")
                         scan_success = True
                 
                 # Method 3: RefreshMovie (updates metadata AND rescans disk)
                 if movie_id:
-                    log(f"📡 [RADARR] Triggering RefreshMovie for ID: {movie_id}")
+                    log(f"ðŸ“¡ [RADARR] Triggering RefreshMovie for ID: {movie_id}")
                     refresh_resp = requests.post(
                         f"{radarr_url}/api/v3/command",
                         headers=headers,
@@ -8739,16 +10630,16 @@ def notify_arr_download(filepath, media_type=None, provider_ids=None):
                         timeout=10
                     )
                     if refresh_resp.ok:
-                        log(f"✅ [RADARR] RefreshMovie triggered successfully")
+                        log(f"âœ… [RADARR] RefreshMovie triggered successfully")
                         scan_success = True
                 
                 notified = scan_success
                     
             except Exception as e:
-                log(f"❌ [RADARR] Notification failed: {type(e).__name__}: {e}")
+                log(f"âŒ [RADARR] Notification failed: {type(e).__name__}: {e}")
         else:
             if media_type == 'movie':
-                log(f"📡 [RADARR] Skipping - Radarr not configured (url: {bool(radarr_url)}, key: {bool(radarr_key)})")
+                log(f"ðŸ“¡ [RADARR] Skipping - Radarr not configured (url: {bool(radarr_url)}, key: {bool(radarr_key)})")
     
     # Notify Sonarr for episodes/series
     if media_type in ('episode', 'series', None):
@@ -8756,7 +10647,7 @@ def notify_arr_download(filepath, media_type=None, provider_ids=None):
         sonarr_key = cfg.get('sonarr_api_key', '')
         
         if sonarr_url and sonarr_key:
-            log(f"📡 [SONARR] Attempting to notify Sonarr at {sonarr_url}")
+            log(f"ðŸ“¡ [SONARR] Attempting to notify Sonarr at {sonarr_url}")
             try:
                 headers = {'X-Api-Key': sonarr_key, 'Content-Type': 'application/json'}
                 
@@ -8770,7 +10661,7 @@ def notify_arr_download(filepath, media_type=None, provider_ids=None):
                 if imdb_id:
                     imdb_id = str(imdb_id).strip()
                 
-                log(f"📡 [SONARR] Looking up series - TVDB: {tvdb_id}, IMDB: {imdb_id}")
+                log(f"ðŸ“¡ [SONARR] Looking up series - TVDB: {tvdb_id}, IMDB: {imdb_id}")
                 
                 series_id = None
                 
@@ -8781,27 +10672,27 @@ def notify_arr_download(filepath, media_type=None, provider_ids=None):
                             f"{sonarr_url}/api/v3/series?tvdbId={tvdb_id}",
                             headers=headers, timeout=10
                         )
-                        log(f"📡 [SONARR] Lookup by TVDB response: {lookup_resp.status_code}")
+                        log(f"ðŸ“¡ [SONARR] Lookup by TVDB response: {lookup_resp.status_code}")
                         if lookup_resp.ok:
                             series_list = lookup_resp.json()
                             if series_list:
                                 series_id = series_list[0].get('id')
-                                log(f"📡 [SONARR] Found series in library (ID: {series_id})")
+                                log(f"ðŸ“¡ [SONARR] Found series in library (ID: {series_id})")
                             else:
-                                log(f"📡 [SONARR] Series not in library yet (empty result)")
+                                log(f"ðŸ“¡ [SONARR] Series not in library yet (empty result)")
                         else:
-                            log(f"⚠️ [SONARR] Lookup failed: {lookup_resp.status_code}")
+                            log(f"âš ï¸ [SONARR] Lookup failed: {lookup_resp.status_code}")
                     except Exception as lookup_err:
-                        log(f"⚠️ [SONARR] Lookup error: {lookup_err}")
+                        log(f"âš ï¸ [SONARR] Lookup error: {lookup_err}")
                 
                 # If not found, try to add it
                 if not series_id and (tvdb_id or imdb_id):
-                    log(f"📡 [SONARR] Series not in library - attempting to add...")
+                    log(f"ðŸ“¡ [SONARR] Series not in library - attempting to add...")
                     
                     # Get root folders
                     root_resp = requests.get(f"{sonarr_url}/api/v3/rootfolder", headers=headers, timeout=10)
                     root_folders = root_resp.json() if root_resp.ok else []
-                    log(f"📡 [SONARR] Available root folders: {[rf.get('path') for rf in root_folders]}")
+                    log(f"ðŸ“¡ [SONARR] Available root folders: {[rf.get('path') for rf in root_folders]}")
                     
                     # Try to find the best matching root folder for our mapped path
                     root_path = None
@@ -8811,13 +10702,13 @@ def notify_arr_download(filepath, media_type=None, provider_ids=None):
                             rf_path = rf.get('path', '')
                             if mapped_folder_path.startswith(rf_path):
                                 root_path = rf_path
-                                log(f"📡 [SONARR] Matched root folder: {root_path}")
+                                log(f"ðŸ“¡ [SONARR] Matched root folder: {root_path}")
                                 break
                         
                         # If no match, use the first root folder
                         if not root_path:
                             root_path = root_folders[0]['path']
-                            log(f"📡 [SONARR] Using default root folder: {root_path}")
+                            log(f"ðŸ“¡ [SONARR] Using default root folder: {root_path}")
                     else:
                         # Extract root from mapped path (e.g., /anime from /anime/Show/Season 01)
                         path_parts = mapped_folder_path.strip('/').split('/')
@@ -8825,16 +10716,16 @@ def notify_arr_download(filepath, media_type=None, provider_ids=None):
                             root_path = '/' + path_parts[0]
                         else:
                             root_path = '/tv'
-                        log(f"📡 [SONARR] No root folders found, guessing: {root_path}")
+                        log(f"ðŸ“¡ [SONARR] No root folders found, guessing: {root_path}")
                     
                     # Get quality profile
                     profile_resp = requests.get(f"{sonarr_url}/api/v3/qualityprofile", headers=headers, timeout=10)
                     profiles = profile_resp.json() if profile_resp.ok else []
                     quality_profile_id = profiles[0]['id'] if profiles else 1
-                    log(f"📡 [SONARR] Using quality profile ID: {quality_profile_id}")
+                    log(f"ðŸ“¡ [SONARR] Using quality profile ID: {quality_profile_id}")
                     
                     # Lookup series info using proper API format
-                    log(f"📡 [SONARR] Looking up series info for add...")
+                    log(f"ðŸ“¡ [SONARR] Looking up series info for add...")
                     lookup_results = []
                     
                     if tvdb_id:
@@ -8844,7 +10735,7 @@ def notify_arr_download(filepath, media_type=None, provider_ids=None):
                             params={'term': f'tvdb:{tvdb_id}'},
                             timeout=15
                         )
-                        log(f"📡 [SONARR] Lookup by TVDB response: {lookup_resp.status_code}")
+                        log(f"ðŸ“¡ [SONARR] Lookup by TVDB response: {lookup_resp.status_code}")
                         if lookup_resp.ok:
                             lookup_results = lookup_resp.json()
                     
@@ -8856,15 +10747,15 @@ def notify_arr_download(filepath, media_type=None, provider_ids=None):
                             params={'term': f'imdb:{imdb_id}'},
                             timeout=15
                         )
-                        log(f"📡 [SONARR] Lookup by IMDB response: {lookup_resp.status_code}")
+                        log(f"ðŸ“¡ [SONARR] Lookup by IMDB response: {lookup_resp.status_code}")
                         if lookup_resp.ok:
                             lookup_results = lookup_resp.json()
                     
-                    log(f"📡 [SONARR] Lookup found {len(lookup_results)} result(s)")
+                    log(f"ðŸ“¡ [SONARR] Lookup found {len(lookup_results)} result(s)")
                     
                     if lookup_results:
                         series_data = lookup_results[0]
-                        log(f"📡 [SONARR] Adding series: {series_data.get('title')} (TVDB: {series_data.get('tvdbId')})")
+                        log(f"ðŸ“¡ [SONARR] Adding series: {series_data.get('title')} (TVDB: {series_data.get('tvdbId')})")
                         
                         # Add series to Sonarr
                         add_data = {
@@ -8880,7 +10771,7 @@ def notify_arr_download(filepath, media_type=None, provider_ids=None):
                             }
                         }
                         
-                        log(f"📡 [SONARR] Add request: rootFolder={root_path}, title={series_data.get('title')}")
+                        log(f"ðŸ“¡ [SONARR] Add request: rootFolder={root_path}, title={series_data.get('title')}")
                         add_resp = requests.post(
                             f"{sonarr_url}/api/v3/series",
                             headers=headers,
@@ -8890,10 +10781,10 @@ def notify_arr_download(filepath, media_type=None, provider_ids=None):
                         
                         if add_resp.ok:
                             series_id = add_resp.json().get('id')
-                            log(f"✅ [SONARR] Added series successfully! ID: {series_id}")
+                            log(f"âœ… [SONARR] Added series successfully! ID: {series_id}")
                         elif add_resp.status_code == 400:
                             error_text = add_resp.text
-                            log(f"⚠️ [SONARR] Add failed (400): {error_text[:300]}")
+                            log(f"âš ï¸ [SONARR] Add failed (400): {error_text[:300]}")
                             # Try to extract series ID if it already exists
                             if 'already been added' in error_text.lower():
                                 # Try to get series ID by searching
@@ -8903,11 +10794,11 @@ def notify_arr_download(filepath, media_type=None, provider_ids=None):
                                 )
                                 if search_resp.ok and search_resp.json():
                                     series_id = search_resp.json()[0].get('id')
-                                    log(f"📡 [SONARR] Found existing series ID: {series_id}")
+                                    log(f"ðŸ“¡ [SONARR] Found existing series ID: {series_id}")
                         else:
-                            log(f"❌ [SONARR] Add failed: {add_resp.status_code} - {add_resp.text[:300]}")
+                            log(f"âŒ [SONARR] Add failed: {add_resp.status_code} - {add_resp.text[:300]}")
                     else:
-                        log(f"⚠️ [SONARR] Lookup returned no results for TVDB:{tvdb_id}")
+                        log(f"âš ï¸ [SONARR] Lookup returned no results for TVDB:{tvdb_id}")
                         
                         # Fallback: try to search by series title from folder path
                         # e.g., /anime/Zombie Land SAGA tt9054354 351953/Season 01
@@ -8923,7 +10814,7 @@ def notify_arr_download(filepath, media_type=None, provider_ids=None):
                                 series_name = series_name.strip()
                                 
                                 if series_name:
-                                    log(f"📡 [SONARR] Trying fallback search by title: {series_name}")
+                                    log(f"ðŸ“¡ [SONARR] Trying fallback search by title: {series_name}")
                                     title_lookup = requests.get(
                                         f"{sonarr_url}/api/v3/series/lookup",
                                         headers=headers,
@@ -8932,18 +10823,18 @@ def notify_arr_download(filepath, media_type=None, provider_ids=None):
                                     )
                                     if title_lookup.ok:
                                         title_results = title_lookup.json()
-                                        log(f"📡 [SONARR] Title search found {len(title_results)} result(s)")
+                                        log(f"ðŸ“¡ [SONARR] Title search found {len(title_results)} result(s)")
                                         if title_results:
                                             series_data = title_results[0]
-                                            log(f"📡 [SONARR] Best match: {series_data.get('title')}")
+                                            log(f"ðŸ“¡ [SONARR] Best match: {series_data.get('title')}")
                         except Exception as fallback_err:
-                            log(f"⚠️ [SONARR] Fallback search failed: {fallback_err}")
+                            log(f"âš ï¸ [SONARR] Fallback search failed: {fallback_err}")
                 
                 # Trigger scan - try multiple methods
                 scan_success = False
                 
                 # Method 1: DownloadedEpisodesScan
-                log(f"📡 [SONARR] Triggering DownloadedEpisodesScan for: {mapped_folder_path}")
+                log(f"ðŸ“¡ [SONARR] Triggering DownloadedEpisodesScan for: {mapped_folder_path}")
                 import_resp = requests.post(
                     f"{sonarr_url}/api/v3/command",
                     headers=headers,
@@ -8953,30 +10844,30 @@ def notify_arr_download(filepath, media_type=None, provider_ids=None):
                     },
                     timeout=10
                 )
-                log(f"📡 [SONARR] DownloadedEpisodesScan response: {import_resp.status_code}")
+                log(f"ðŸ“¡ [SONARR] DownloadedEpisodesScan response: {import_resp.status_code}")
                 if import_resp.ok:
-                    log(f"✅ [SONARR] DownloadedEpisodesScan triggered successfully")
+                    log(f"âœ… [SONARR] DownloadedEpisodesScan triggered successfully")
                     scan_success = True
                 else:
-                    log(f"⚠️ [SONARR] DownloadedEpisodesScan failed: {import_resp.text[:200]}")
+                    log(f"âš ï¸ [SONARR] DownloadedEpisodesScan failed: {import_resp.text[:200]}")
                 
                 # Method 2: RescanSeries if we have series ID
                 if series_id:
-                    log(f"📡 [SONARR] Triggering RescanSeries for ID: {series_id}")
+                    log(f"ðŸ“¡ [SONARR] Triggering RescanSeries for ID: {series_id}")
                     rescan_resp = requests.post(
                         f"{sonarr_url}/api/v3/command",
                         headers=headers,
                         json={'name': 'RescanSeries', 'seriesId': series_id},
                         timeout=10
                     )
-                    log(f"📡 [SONARR] RescanSeries response: {rescan_resp.status_code}")
+                    log(f"ðŸ“¡ [SONARR] RescanSeries response: {rescan_resp.status_code}")
                     if rescan_resp.ok:
-                        log(f"✅ [SONARR] RescanSeries triggered successfully")
+                        log(f"âœ… [SONARR] RescanSeries triggered successfully")
                         scan_success = True
                 
                 # Method 3: RefreshSeries (updates metadata AND rescans disk)
                 if series_id:
-                    log(f"📡 [SONARR] Triggering RefreshSeries for ID: {series_id}")
+                    log(f"ðŸ“¡ [SONARR] Triggering RefreshSeries for ID: {series_id}")
                     refresh_resp = requests.post(
                         f"{sonarr_url}/api/v3/command",
                         headers=headers,
@@ -8984,19 +10875,19 @@ def notify_arr_download(filepath, media_type=None, provider_ids=None):
                         timeout=10
                     )
                     if refresh_resp.ok:
-                        log(f"✅ [SONARR] RefreshSeries triggered successfully")
+                        log(f"âœ… [SONARR] RefreshSeries triggered successfully")
                         scan_success = True
                 
                 notified = notified or scan_success
                     
             except Exception as e:
-                log(f"❌ [SONARR] Notification failed: {type(e).__name__}: {e}")
+                log(f"âŒ [SONARR] Notification failed: {type(e).__name__}: {e}")
         else:
             if media_type in ('episode', 'series'):
-                log(f"📡 [SONARR] Skipping - Sonarr not configured (url: {bool(sonarr_url)}, key: {bool(sonarr_key)})")
+                log(f"ðŸ“¡ [SONARR] Skipping - Sonarr not configured (url: {bool(sonarr_url)}, key: {bool(sonarr_key)})")
     
     if not notified:
-        log(f"⚠️ [ARR] No *arr notification sent for: {os.path.basename(filepath)}")
+        log(f"âš ï¸ [ARR] No *arr notification sent for: {os.path.basename(filepath)}")
     
     # Notify Lidarr for music
     if not notified and media_type in ('music', None):
@@ -9006,14 +10897,14 @@ def notify_arr_download(filepath, media_type=None, provider_ids=None):
         if lidarr_url and lidarr_key:
             try:
                 requests.post(
-                    f"{lidarr_url.rstrip('/')}/api/v3/command",
+                    f"{lidarr_url.rstrip('/')}/api/v1/command",
                     headers={'X-Api-Key': lidarr_key, 'Content-Type': 'application/json'},
                     json={'name': 'DownloadedAlbumsScan', 'path': folder_path},
                     timeout=10
                 )
-                log(f"📡 Notified Lidarr: {os.path.basename(filepath)}")
+                log(f"ðŸ“¡ Notified Lidarr: {os.path.basename(filepath)}")
             except Exception as e:
-                log(f"⚠️ Lidarr notification failed: {e}")
+                log(f"âš ï¸ Lidarr notification failed: {e}")
 
 
 @app.route('/api/test_arr', methods=['POST'])
@@ -9062,12 +10953,12 @@ def api_fetch_arr_path_mappings():
                     arr_path = rf.get('path', '').rstrip('/')
                     if arr_path:
                         arr_root_folders.append((arr_path, 'Sonarr', rf.get('freeSpace', 0)))
-                log(f"📡 Fetched {len([x for x in arr_root_folders if x[1] == 'Sonarr'])} root folder(s) from Sonarr")
+                log(f"ðŸ“¡ Fetched {len([x for x in arr_root_folders if x[1] == 'Sonarr'])} root folder(s) from Sonarr")
             else:
                 errors.append(f"Sonarr: HTTP {resp.status_code}")
         except Exception as e:
             errors.append(f"Sonarr: {str(e)}")
-            log(f"⚠️ Sonarr error: {e}")
+            log(f"âš ï¸ Sonarr error: {e}")
     
     # Fetch from Radarr
     radarr_url = cfg.get('radarr_url', '').rstrip('/')
@@ -9092,12 +10983,12 @@ def api_fetch_arr_path_mappings():
                             arr_root_folders[idx] = (arr_path, 'Both', rf.get('freeSpace', 0))
                         else:
                             arr_root_folders.append((arr_path, 'Radarr', rf.get('freeSpace', 0)))
-                log(f"📡 Fetched root folders from Radarr")
+                log(f"ðŸ“¡ Fetched root folders from Radarr")
             else:
                 errors.append(f"Radarr: HTTP {resp.status_code}")
         except Exception as e:
             errors.append(f"Radarr: {str(e)}")
-            log(f"⚠️ Radarr error: {e}")
+            log(f"âš ï¸ Radarr error: {e}")
     
     if not arr_root_folders:
         return jsonify({
@@ -9106,7 +10997,7 @@ def api_fetch_arr_path_mappings():
             'errors': errors
         })
     
-    log(f"📡 [ARR] Found {len(arr_root_folders)} unique root folder(s) to map")
+    log(f"ðŸ“¡ [ARR] Found {len(arr_root_folders)} unique root folder(s) to map")
     
     # Now auto-detect JellyLooter paths for each *arr root folder
     # Strategy: Search common mount points and find where each folder actually exists
@@ -9162,7 +11053,7 @@ def api_fetch_arr_path_mappings():
             except:
                 pass
     
-    log(f"📡 [ARR] Searching {len(search_bases)} potential base paths")
+    log(f"ðŸ“¡ [ARR] Searching {len(search_bases)} potential base paths")
     
     # For each *arr root folder, find where it exists on this system
     for arr_path, source, free_space in arr_root_folders:
@@ -9171,7 +11062,7 @@ def api_fetch_arr_path_mappings():
         # First check if the arr_path itself exists (no mapping needed)
         if os.path.isdir(arr_path):
             jl_path = arr_path
-            log(f"📡 [ARR] Direct match: {arr_path} exists")
+            log(f"ðŸ“¡ [ARR] Direct match: {arr_path} exists")
         else:
             # Get the folder name from arr_path (e.g., /anime -> anime, /tv/tv -> tv)
             arr_folder = arr_path.rstrip('/').split('/')[-1] if arr_path else ''
@@ -9182,7 +11073,7 @@ def api_fetch_arr_path_mappings():
                 candidate = f"{base}{arr_path}"
                 if os.path.isdir(candidate):
                     jl_path = candidate
-                    log(f"📡 [ARR] Found: {arr_path} -> {jl_path}")
+                    log(f"ðŸ“¡ [ARR] Found: {arr_path} -> {jl_path}")
                     break
                 
                 # Try just the folder name: base/folder
@@ -9190,7 +11081,7 @@ def api_fetch_arr_path_mappings():
                     candidate = f"{base}/{arr_folder}"
                     if os.path.isdir(candidate):
                         jl_path = candidate
-                        log(f"📡 [ARR] Found by folder name: {arr_path} -> {jl_path}")
+                        log(f"ðŸ“¡ [ARR] Found by folder name: {arr_path} -> {jl_path}")
                         break
         
         # Create the mapping
@@ -9203,7 +11094,7 @@ def api_fetch_arr_path_mappings():
         })
         
         if not jl_path:
-            log(f"⚠️ [ARR] Could not find local path for: {arr_path}")
+            log(f"âš ï¸ [ARR] Could not find local path for: {arr_path}")
     
     # Count accessible
     accessible_count = sum(1 for m in mappings if m.get('accessible'))
@@ -9223,11 +11114,11 @@ def api_fetch_arr_path_mappings():
                         if os.path.isdir(candidate):
                             m['remotePath'] = candidate
                             m['accessible'] = True
-                            log(f"📡 [ARR] Fixed using common base: {m['localPath']} -> {candidate}")
+                            log(f"ðŸ“¡ [ARR] Fixed using common base: {m['localPath']} -> {candidate}")
     
     # Recount
     accessible_count = sum(1 for m in mappings if m.get('accessible'))
-    log(f"📡 [ARR] Built {len(mappings)} path mappings, {accessible_count} accessible")
+    log(f"ðŸ“¡ [ARR] Built {len(mappings)} path mappings, {accessible_count} accessible")
     
     # Save to config
     cfg['arr_path_mappings'] = mappings
@@ -9391,7 +11282,7 @@ def api_stop_after_current():
     """Stop starting new downloads after current ones complete"""
     global stop_after_current
     stop_after_current = True
-    log("🛑 Will stop after current downloads complete")
+    log("ðŸ›‘ Will stop after current downloads complete")
     return jsonify({'status': 'ok', 'stop_after_current': True})
 
 
@@ -9401,7 +11292,7 @@ def api_cancel_stop_after_current():
     """Cancel stop after current"""
     global stop_after_current
     stop_after_current = False
-    log("▶️ Cancelled stop-after-current")
+    log("â–¶ï¸ Cancelled stop-after-current")
     return jsonify({'status': 'ok', 'stop_after_current': False})
 
 
@@ -9442,6 +11333,614 @@ def api_get_location(server_id):
     return jsonify(location or {})
 
 
+# ============================================================================
+# Built-in WireGuard VPN with optional kill switch (Pro)
+# ============================================================================
+# The whole container is routed through wg0 while LAN subnets stay direct (local Jellyfin,
+# *arr apps, the web UI). Done with plain `ip`/`wg` so only NET_ADMIN is needed.
+
+VPN_IFACE = 'wg0'
+VPN_DIR = '/config/vpn'
+VPN_DEFAULT_LAN = '192.168.0.0/16,10.0.0.0/8,172.16.0.0/12,100.64.0.0/10'
+PIA_SERVERLIST_URL = 'https://serverlist.piaservers.net/vpninfo/servers/v6'
+PIA_TOKEN_URL = 'https://www.privateinternetaccess.com/api/client/v2/token'
+PIA_CA_URL = 'https://raw.githubusercontent.com/pia-foss/manual-connections/master/ca.rsa.4096.crt'
+VPN_PROVIDERS = {
+    'proton': 'Proton VPN', 'pia': 'Private Internet Access (PIA)', 'mullvad': 'Mullvad', 'ivpn': 'IVPN',
+    'airvpn': 'AirVPN', 'windscribe': 'Windscribe', 'surfshark': 'Surfshark', 'custom': 'Other WireGuard provider',
+}
+
+vpn_lock = threading.RLock()
+vpn_state = {
+    'status': 'off',            # off | connecting | connected | down | error
+    'message': '',
+    'endpoint': None,
+    'vpn_address': None,
+    'public_ip': None,
+    'direct_ip': None,
+    'last_handshake': None,
+    'connected_since': None,
+    'killswitch_active': False,
+    'saved_default': None,      # original "default via X dev Y" route
+}
+
+
+def _run(cmd, input_text=None, check=True, timeout=20):
+    r = subprocess.run(cmd, input=input_text, capture_output=True, text=True, timeout=timeout)
+    if check and r.returncode != 0:
+        raise RuntimeError(f"{' '.join(cmd[:3])}: {(r.stderr or r.stdout).strip()[:200]}")
+    return r
+
+
+def vpn_capable():
+    """(ok, reason): are wg/ip/iptables present and do we have NET_ADMIN?"""
+    for tool in ('wg', 'ip', 'iptables'):
+        if not shutil.which(tool):
+            return False, f"'{tool}' is missing from the image - update the container"
+    try:
+        r = subprocess.run(['ip', 'link', 'add', 'jlcaptest', 'type', 'dummy'], capture_output=True, text=True, timeout=10)
+        if r.returncode != 0:
+            msg = r.stderr.lower()
+            if 'not permitted' in msg or 'permission' in msg:
+                return False, 'The container needs the NET_ADMIN capability (add --cap-add=NET_ADMIN)'
+            # dummy module may be missing; fall back to checking iptables access
+        else:
+            subprocess.run(['ip', 'link', 'del', 'jlcaptest'], capture_output=True, timeout=10)
+        r = subprocess.run(['iptables', '-S', 'OUTPUT'], capture_output=True, text=True, timeout=10)
+        if r.returncode != 0:
+            return False, 'The container needs the NET_ADMIN capability (add --cap-add=NET_ADMIN)'
+    except Exception as e:
+        return False, f'Could not check network permissions: {e}'
+    return True, ''
+
+
+def parse_wireguard_conf(text):
+    """Parse a provider's WireGuard .conf -> dict (validates the essentials)."""
+    iface, peer, section = {}, {}, None
+    for raw in (text or '').splitlines():
+        line = raw.split('#', 1)[0].strip()
+        if not line:
+            continue
+        if line.startswith('['):
+            section = line.strip('[]').strip().lower()
+            continue
+        if '=' not in line:
+            continue
+        k, v = [x.strip() for x in line.split('=', 1)]
+        target = iface if section == 'interface' else peer if section == 'peer' else None
+        if target is not None:
+            target[k.lower()] = v
+    missing = [n for n, d, k in (('PrivateKey', iface, 'privatekey'), ('Address', iface, 'address'),
+                                  ('PublicKey', peer, 'publickey'), ('Endpoint', peer, 'endpoint')) if not d.get(k)]
+    if missing:
+        raise ValueError('WireGuard config is missing: ' + ', '.join(missing))
+    host, _, port = peer['endpoint'].rpartition(':')
+    if not host or not port.isdigit():
+        raise ValueError('Endpoint must look like host:port')
+    v4_addrs = [a.strip() for a in iface['address'].split(',') if ':' not in a]
+    if not v4_addrs:
+        raise ValueError('The config needs an IPv4 Address')
+    return {
+        'private_key': iface['privatekey'],
+        'addresses': v4_addrs,                       # IPv6 dropped: Docker bridges rarely have v6 (and it could leak)
+        'dns': [d.strip() for d in iface.get('dns', '').split(',') if d.strip() and ':' not in d],
+        'mtu': iface.get('mtu', '1420'),
+        'public_key': peer['publickey'],
+        'preshared_key': peer.get('presharedkey', ''),
+        'endpoint_host': host.strip('[]'),
+        'endpoint_port': int(port),
+        'keepalive': peer.get('persistentkeepalive', '25'),
+    }
+
+
+def _default_route():
+    out = _run(['ip', '-4', 'route', 'show', 'default'], check=False).stdout.strip().splitlines()
+    for line in out:
+        m = re.match(r'default via (\S+) dev (\S+)', line)
+        if m:
+            return {'gw': m.group(1), 'dev': m.group(2), 'line': line}
+    return None
+
+
+def _default_route_is_vpn():
+    out = _run(['ip', '-4', 'route', 'show', 'default'], check=False).stdout
+    return f'dev {VPN_IFACE}' in out
+
+
+def _lan_subnets(cfg):
+    return [s.strip() for s in (cfg.get('vpn_lan_subnets') or VPN_DEFAULT_LAN).split(',') if s.strip()]
+
+
+def _resolve_endpoint(host):
+    import socket
+    if re.match(r'^\d+\.\d+\.\d+\.\d+$', host):
+        return host
+    return socket.gethostbyname(host)
+
+
+def apply_killswitch(cfg, endpoint_ip=None, endpoint_port=None):
+    """Block all outbound traffic except LAN, loopback and the VPN tunnel/endpoint."""
+    _run(['iptables', '-N', 'JL_KILLSWITCH'], check=False)
+    _run(['iptables', '-F', 'JL_KILLSWITCH'])
+    rules = [['-o', 'lo', '-j', 'ACCEPT'], ['-o', VPN_IFACE, '-j', 'ACCEPT']]
+    for net in _lan_subnets(cfg):
+        rules.append(['-d', net, '-j', 'ACCEPT'])
+    if endpoint_ip and endpoint_port:
+        rules.append(['-p', 'udp', '-d', endpoint_ip, '--dport', str(endpoint_port), '-j', 'ACCEPT'])
+    rules.append(['-j', 'REJECT'])
+    for r in rules:
+        _run(['iptables', '-A', 'JL_KILLSWITCH'] + r)
+    if _run(['iptables', '-C', 'OUTPUT', '-j', 'JL_KILLSWITCH'], check=False).returncode != 0:
+        _run(['iptables', '-I', 'OUTPUT', '1', '-j', 'JL_KILLSWITCH'])
+    # IPv6: nothing should leave over v6 while the kill switch is on
+    if shutil.which('ip6tables'):
+        _run(['ip6tables', '-N', 'JL_KILLSWITCH'], check=False)
+        _run(['ip6tables', '-F', 'JL_KILLSWITCH'], check=False)
+        _run(['ip6tables', '-A', 'JL_KILLSWITCH', '-o', 'lo', '-j', 'ACCEPT'], check=False)
+        _run(['ip6tables', '-A', 'JL_KILLSWITCH', '-d', 'fe80::/10', '-j', 'ACCEPT'], check=False)
+        _run(['ip6tables', '-A', 'JL_KILLSWITCH', '-j', 'REJECT'], check=False)
+        if _run(['ip6tables', '-C', 'OUTPUT', '-j', 'JL_KILLSWITCH'], check=False).returncode != 0:
+            _run(['ip6tables', '-I', 'OUTPUT', '1', '-j', 'JL_KILLSWITCH'], check=False)
+    vpn_state['killswitch_active'] = True
+
+
+def remove_killswitch():
+    for tool in ('iptables', 'ip6tables'):
+        if not shutil.which(tool):
+            continue
+        while _run([tool, '-D', 'OUTPUT', '-j', 'JL_KILLSWITCH'], check=False).returncode == 0:
+            pass
+        _run([tool, '-F', 'JL_KILLSWITCH'], check=False)
+        _run([tool, '-X', 'JL_KILLSWITCH'], check=False)
+    vpn_state['killswitch_active'] = False
+
+
+def _write_resolv(dns):
+    if not dns:
+        return
+    backup = '/etc/resolv.conf.jl-orig'
+    try:
+        if not os.path.exists(backup):
+            shutil.copy2('/etc/resolv.conf', backup)
+        with open('/etc/resolv.conf', 'w') as f:
+            f.write(''.join(f'nameserver {d}\n' for d in dns))
+    except OSError as e:
+        log(f"🛡️ VPN: could not set DNS ({e}) - using the container's DNS")
+
+
+def _restore_resolv():
+    backup = '/etc/resolv.conf.jl-orig'
+    if os.path.exists(backup):
+        try:
+            shutil.copyfile(backup, '/etc/resolv.conf')
+            os.remove(backup)
+        except OSError:
+            pass
+
+
+def vpn_tunnel_down(keep_killswitch=False):
+    """Remove wg0 and put the original default route back."""
+    with vpn_lock:
+        _run(['ip', 'link', 'del', VPN_IFACE], check=False)
+        saved = vpn_state.get('saved_default')
+        if saved:
+            _run(['ip', 'route', 'replace', 'default', 'via', saved['gw'], 'dev', saved['dev']], check=False)
+        ep = vpn_state.get('endpoint_ip')
+        if ep:
+            _run(['ip', 'route', 'del', f'{ep}/32'], check=False)
+        _restore_resolv()
+        if not keep_killswitch:
+            remove_killswitch()
+        vpn_state.update(endpoint_ip=None, vpn_address=None, last_handshake=None, connected_since=None)
+
+
+def vpn_tunnel_up(conf, cfg):
+    """Bring wg0 up from a parsed config; all non-LAN traffic goes through it."""
+    with vpn_lock:
+        vpn_tunnel_down(keep_killswitch=True)
+        default = _default_route() or vpn_state.get('saved_default')
+        if not default:
+            raise RuntimeError('No default route found in the container')
+        vpn_state['saved_default'] = {'gw': default['gw'], 'dev': default['dev']}
+        endpoint_ip = _resolve_endpoint(conf['endpoint_host'])
+        if cfg.get('vpn_kill_switch', True):
+            apply_killswitch(cfg, endpoint_ip, conf['endpoint_port'])
+        # Endpoint + LAN keep using the real gateway
+        _run(['ip', 'route', 'replace', f'{endpoint_ip}/32', 'via', default['gw'], 'dev', default['dev']])
+        for net in _lan_subnets(cfg):
+            _run(['ip', 'route', 'replace', net, 'via', default['gw'], 'dev', default['dev']], check=False)
+        _run(['ip', 'link', 'add', VPN_IFACE, 'type', 'wireguard'])
+        os.makedirs(VPN_DIR, exist_ok=True)
+        key_file = os.path.join(VPN_DIR, '.wg.key')
+        psk_file = os.path.join(VPN_DIR, '.wg.psk')
+        fd = os.open(key_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, 'w') as f:
+            f.write(conf['private_key'])
+        cmd = ['wg', 'set', VPN_IFACE, 'private-key', key_file, 'peer', conf['public_key'],
+               'endpoint', f"{endpoint_ip}:{conf['endpoint_port']}", 'allowed-ips', '0.0.0.0/0',
+               'persistent-keepalive', str(conf.get('keepalive') or 25)]
+        if conf.get('preshared_key'):
+            fd = os.open(psk_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(fd, 'w') as f:
+                f.write(conf['preshared_key'])
+            cmd += ['preshared-key', psk_file]
+        try:
+            _run(cmd)
+        finally:
+            for p in (key_file, psk_file):
+                if os.path.exists(p):
+                    os.remove(p)
+        for addr in conf['addresses']:
+            _run(['ip', '-4', 'address', 'add', addr if '/' in addr else addr + '/32', 'dev', VPN_IFACE])
+        _run(['ip', 'link', 'set', 'mtu', str(conf.get('mtu') or 1420), 'up', 'dev', VPN_IFACE])
+        _run(['ip', 'route', 'replace', 'default', 'dev', VPN_IFACE])
+        _write_resolv(conf.get('dns'))
+        vpn_state.update(endpoint=f"{conf['endpoint_host']}:{conf['endpoint_port']}", endpoint_ip=endpoint_ip,
+                         vpn_address=conf['addresses'][0])
+
+
+def vpn_handshake_age():
+    r = _run(['wg', 'show', VPN_IFACE, 'latest-handshakes'], check=False)
+    if r.returncode != 0 or not r.stdout.strip():
+        return None
+    try:
+        ts = int(r.stdout.split()[-1])
+    except (ValueError, IndexError):
+        return None
+    return None if ts == 0 else time.time() - ts
+
+
+def _public_ip(timeout=8):
+    for url in ('https://api.ipify.org?format=json', 'https://ifconfig.co/json'):
+        try:
+            r = requests.get(url, timeout=timeout)
+            if r.ok:
+                return r.json().get('ip')
+        except Exception:
+            continue
+    return None
+
+
+# ---- PIA: generate a WireGuard config from username/password + region ----
+def _pia_regions():
+    txt = requests.get(PIA_SERVERLIST_URL, timeout=20).text
+    data = json.loads(txt.split('\n')[0])
+    regions = [r for r in data.get('regions', []) if r.get('servers', {}).get('wg')]
+    return sorted(regions, key=lambda r: r.get('name', ''))
+
+
+def _pia_ca_file():
+    path = os.path.join(VPN_DIR, 'pia_ca.rsa.4096.crt')
+    if not os.path.exists(path):
+        os.makedirs(VPN_DIR, exist_ok=True)
+        pem = requests.get(PIA_CA_URL, timeout=20).text
+        if 'BEGIN CERTIFICATE' not in pem:
+            raise RuntimeError('Could not download the PIA certificate')
+        with open(path, 'w') as f:
+            f.write(pem)
+    return path
+
+
+def pia_generate_conf(username, password, region_id):
+    """Register a fresh WireGuard key with PIA and return a parsed config."""
+    from requests.adapters import HTTPAdapter
+
+    class _SNIAdapter(HTTPAdapter):
+        """Connect to the server's IP but verify the TLS cert for its PIA hostname."""
+        def __init__(self, hostname, **kw):
+            self._hostname = hostname
+            super().__init__(**kw)
+
+        def init_poolmanager(self, *a, **kw):
+            kw['assert_hostname'] = self._hostname
+            kw['server_hostname'] = self._hostname
+            super().init_poolmanager(*a, **kw)
+
+    tok = requests.post(PIA_TOKEN_URL, data={'username': username, 'password': password}, timeout=20)
+    if tok.status_code in (401, 403) or not tok.ok:
+        raise RuntimeError('PIA rejected the username/password')
+    token = tok.json().get('token')
+    if not token:
+        raise RuntimeError('PIA did not return a login token')
+    region = next((r for r in _pia_regions() if r.get('id') == region_id), None)
+    if not region:
+        raise RuntimeError('Unknown PIA region')
+    server = region['servers']['wg'][0]
+    priv = _run(['wg', 'genkey']).stdout.strip()
+    pub = _run(['wg', 'pubkey'], input_text=priv).stdout.strip()
+    s = requests.Session()
+    s.mount(f"https://{server['ip']}:1337", _SNIAdapter(server['cn']))
+    resp = s.get(f"https://{server['ip']}:1337/addKey", params={'pt': token, 'pubkey': pub},
+                 verify=_pia_ca_file(), timeout=20).json()
+    if resp.get('status') != 'OK':
+        raise RuntimeError(f"PIA refused the key: {resp.get('message', resp.get('status'))}")
+    return {
+        'private_key': priv, 'addresses': [resp['peer_ip'] + '/32'], 'dns': resp.get('dns_servers', [])[:2],
+        'mtu': '1420', 'public_key': resp['server_key'], 'preshared_key': '',
+        'endpoint_host': resp.get('server_ip', server['ip']), 'endpoint_port': int(resp['server_port']), 'keepalive': '25',
+    }
+
+
+def _vpn_conf_from_settings(cfg):
+    provider = cfg.get('vpn_provider', 'custom')
+    if provider == 'pia':
+        user = decrypt_sensitive(cfg.get('vpn_pia_username', ''))
+        pw = decrypt_sensitive(cfg.get('vpn_pia_password', ''))
+        if not user or not pw or not cfg.get('vpn_pia_region'):
+            raise RuntimeError('Enter your PIA username, password and region')
+        return pia_generate_conf(user, pw, cfg['vpn_pia_region'])
+    text = decrypt_sensitive(cfg.get('vpn_wg_conf', ''))
+    if not text:
+        raise RuntimeError('Paste or upload your WireGuard configuration first')
+    return parse_wireguard_conf(text)
+
+
+def vpn_connect():
+    """Connect according to saved settings. Returns (ok, message)."""
+    cfg = load_config()
+    if not is_feature_available('vpn'):
+        return False, 'VPN is a Pro feature'
+    ok, reason = vpn_capable()
+    if not ok:
+        vpn_state.update(status='error', message=reason)
+        return False, reason
+    vpn_state.update(status='connecting', message='Connecting...')
+    try:
+        if not vpn_state.get('direct_ip') and not vpn_state.get('killswitch_active') and not _default_route_is_vpn():
+            vpn_state['direct_ip'] = _public_ip()   # remember the real IP to prove it's hidden later
+        if cfg.get('vpn_kill_switch', True):
+            apply_killswitch(cfg)            # block before anything else can leak
+        else:
+            remove_killswitch()              # kill switch turned off -> drop any old block rules
+        conf = _vpn_conf_from_settings(cfg)
+        vpn_tunnel_up(conf, cfg)
+        for _ in range(15):
+            age = vpn_handshake_age()
+            if age is not None and age < 180:
+                break
+            time.sleep(1)
+        else:
+            raise RuntimeError('No handshake from the VPN server (check the config / account)')
+        ip = _public_ip()
+        vpn_state.update(status='connected', message='Connected', public_ip=ip,
+                         connected_since=datetime.datetime.now().isoformat(timespec='seconds'),
+                         last_handshake=vpn_handshake_age())
+        log(f"🛡️ VPN connected via {vpn_state['endpoint']} - public IP now {ip or 'unknown'}")
+        return True, 'Connected'
+    except Exception as e:
+        msg = str(e)
+        if cfg.get('vpn_kill_switch', True):
+            vpn_tunnel_down(keep_killswitch=True)
+            vpn_state.update(status='down', message=f'{msg} - kill switch is blocking internet traffic')
+        else:
+            vpn_tunnel_down()
+            vpn_state.update(status='down', message=f'{msg} - continuing without the VPN')
+        log(f"🛡️ VPN connect failed: {msg}")
+        return False, msg
+
+
+def vpn_disconnect():
+    vpn_tunnel_down()
+    vpn_state.update(status='off', message='VPN off', public_ip=None)
+    log("🛡️ VPN disconnected")
+
+
+def vpn_blocking_downloads():
+    """True when the kill switch is holding traffic because the VPN is down."""
+    return vpn_state.get('killswitch_active') and vpn_state.get('status') != 'connected'
+
+
+def vpn_monitor():
+    """Background: keep the tunnel healthy; reconnect or fall back depending on the kill switch."""
+    failures = 0
+    while True:
+        time.sleep(30)
+        try:
+            cfg = load_config()
+            if not cfg.get('vpn_enabled') or not is_feature_available('vpn'):
+                if vpn_state['status'] not in ('off',) or vpn_state.get('killswitch_active'):
+                    vpn_disconnect()
+                continue
+            age = vpn_handshake_age()
+            healthy = vpn_state['status'] == 'connected' and age is not None and age < 180
+            if healthy:
+                failures = 0
+                vpn_state['last_handshake'] = age
+                continue
+            failures += 1
+            log(f"🛡️ VPN not responding (attempt {failures}) - reconnecting")
+            vpn_connect()
+        except Exception as e:
+            log(f"🛡️ VPN monitor error: {e}")
+
+
+def vpn_startup():
+    cfg = load_config()
+    if cfg.get('vpn_enabled') and is_feature_available('vpn'):
+        vpn_connect()
+    threading.Thread(target=vpn_monitor, daemon=True).start()
+
+
+@app.route('/api/vpn/status')
+@login_required
+def api_vpn_status():
+    cfg = load_config()
+    ok, reason = vpn_capable()
+    conf_summary = None
+    if cfg.get('vpn_wg_conf'):
+        try:
+            c = parse_wireguard_conf(decrypt_sensitive(cfg['vpn_wg_conf']))
+            conf_summary = {'endpoint': f"{c['endpoint_host']}:{c['endpoint_port']}", 'address': c['addresses'][0]}
+        except Exception as e:
+            conf_summary = {'error': str(e)}
+    age = vpn_handshake_age() if vpn_state['status'] == 'connected' else None
+    return jsonify({
+        'pro': is_feature_available('vpn'),
+        'capable': ok, 'capable_reason': reason,
+        'enabled': bool(cfg.get('vpn_enabled')),
+        'provider': cfg.get('vpn_provider', 'proton'),
+        'kill_switch': cfg.get('vpn_kill_switch', True),
+        'lan_subnets': cfg.get('vpn_lan_subnets') or VPN_DEFAULT_LAN,
+        'pia_region': cfg.get('vpn_pia_region', ''),
+        'pia_username_set': bool(cfg.get('vpn_pia_username')),
+        'conf': conf_summary,
+        'providers': list(VPN_PROVIDERS.items()),   # list keeps display order (jsonify sorts dict keys)
+        'state': {k: v for k, v in vpn_state.items() if k not in ('saved_default', 'endpoint_ip')},
+        'handshake_age': round(age) if age is not None else None,
+        'blocking': bool(vpn_blocking_downloads()),
+    })
+
+
+@app.route('/api/vpn/save', methods=['POST'])
+@login_required
+def api_vpn_save():
+    if not is_feature_available('vpn'):
+        return jsonify({'success': False, 'error': 'VPN is a Pro feature'}), 403
+    data = request.json or {}
+    cfg = load_config()
+    provider = data.get('provider', cfg.get('vpn_provider', 'proton'))
+    if provider not in VPN_PROVIDERS:
+        return jsonify({'success': False, 'error': 'Unknown provider'}), 400
+    cfg['vpn_provider'] = provider
+    cfg['vpn_kill_switch'] = bool(data.get('kill_switch', True))
+    lan = (data.get('lan_subnets') or VPN_DEFAULT_LAN).strip()
+    if not all(re.match(r'^\d+\.\d+\.\d+\.\d+/\d{1,2}$', s.strip()) for s in lan.split(',') if s.strip()):
+        return jsonify({'success': False, 'error': 'LAN subnets must look like 192.168.0.0/16, 10.0.0.0/8'}), 400
+    cfg['vpn_lan_subnets'] = lan
+    if data.get('wg_conf'):
+        try:
+            parse_wireguard_conf(data['wg_conf'])
+        except ValueError as e:
+            return jsonify({'success': False, 'error': str(e)}), 400
+        cfg['vpn_wg_conf'] = encrypt_sensitive(data['wg_conf'])
+    if provider == 'pia':
+        if data.get('pia_username'):
+            cfg['vpn_pia_username'] = encrypt_sensitive(data['pia_username'])
+        if data.get('pia_password'):
+            cfg['vpn_pia_password'] = encrypt_sensitive(data['pia_password'])
+        if data.get('pia_region'):
+            cfg['vpn_pia_region'] = data['pia_region']
+    cfg['vpn_enabled'] = bool(data.get('enabled'))
+    save_config(cfg)
+    # Apply immediately
+    if cfg['vpn_enabled']:
+        threading.Thread(target=vpn_connect, daemon=True).start()
+    elif vpn_state['status'] != 'off' or vpn_state.get('killswitch_active'):
+        vpn_disconnect()
+    return jsonify({'success': True})
+
+
+@app.route('/api/vpn/connect', methods=['POST'])
+@login_required
+def api_vpn_connect():
+    ok, msg = vpn_connect()
+    return jsonify({'success': ok, 'message': msg, 'public_ip': vpn_state.get('public_ip')})
+
+
+@app.route('/api/vpn/disconnect', methods=['POST'])
+@login_required
+def api_vpn_disconnect():
+    vpn_disconnect()
+    return jsonify({'success': True})
+
+
+@app.route('/api/vpn/pia_regions')
+@login_required
+def api_vpn_pia_regions():
+    try:
+        regions = _pia_regions()
+        return jsonify({'regions': [{'id': r['id'], 'name': r['name'], 'country': r.get('country'),
+                                     'port_forward': r.get('port_forward', False)} for r in regions]})
+    except Exception as e:
+        return jsonify({'regions': [], 'error': f'Could not load PIA regions: {e}'})
+
+
+@app.route('/api/vpn/check_ip', methods=['POST'])
+@login_required
+def api_vpn_check_ip():
+    ip = _public_ip()
+    if vpn_state['status'] == 'connected':
+        vpn_state['public_ip'] = ip
+    return jsonify({'public_ip': ip, 'direct_ip': vpn_state.get('direct_ip'),
+                    'hidden': bool(ip and vpn_state.get('direct_ip') and ip != vpn_state['direct_ip'])})
+
+
+CONFIG_SCHEMA_VERSION = 4
+
+
+def migrate_config_file():
+    """One-time upgrade of a v3.x config to the v4 layout, done on the raw file.
+
+    v3.2 kept remote servers in cfg['servers'] and used a server's 'type' for the server software
+    ('jellyfin'); v4 keeps every server in cfg['local_servers'] with type 'local' or 'remote'.
+    Keys are moved exactly as stored (still encrypted) and server ids are kept, so sync mappings,
+    passwords/tokens and user ids all carry over. The original file is backed up first.
+    """
+    if not os.path.exists(CONFIG_FILE):
+        return
+    try:
+        with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+            raw = json.load(f)
+    except (OSError, ValueError) as e:
+        log(f"⚠️ Config migration skipped - could not read config: {e}")
+        return
+    if raw.get('config_version', 0) >= CONFIG_SCHEMA_VERSION:
+        return
+
+    servers_out, seen = [], set()
+    notes = []
+
+    def add(entry, kind):
+        s = dict(entry)
+        if not s.get('id'):
+            s['id'] = generate_id()
+        if s['id'] in seen:
+            return
+        software = s.get('server_type') or (s.get('type') if s.get('type') not in ('local', 'remote', None) else None)
+        s['server_type'] = software or 'jellyfin'
+        s['type'] = kind
+        s.setdefault('name', s.get('url', 'Server'))
+        if 'api_key' in s and not s.get('key'):
+            s['key'] = s.pop('api_key')
+        seen.add(s['id'])
+        servers_out.append(s)
+
+    # 1. Existing local_servers: v3.2 stored software in 'type' -> these are LOCAL servers
+    for s in raw.get('local_servers') or []:
+        kind = s.get('type') if s.get('type') in ('local', 'remote') else 'local'
+        add(s, kind)
+    # 2. Legacy single local server (v2.x / v3.0)
+    if not any(s['type'] == 'local' for s in servers_out) and raw.get('local_server_url'):
+        add({'name': 'Local Server', 'url': raw['local_server_url'].rstrip('/'),
+             'key': raw.get('local_server_key', ''), 'server_type': raw.get('local_server_type', 'jellyfin')}, 'local')
+        notes.append('legacy local server')
+    # 3. v3.x remote servers
+    moved = 0
+    for s in raw.get('servers') or []:
+        before = len(servers_out)
+        add(s, 'remote')
+        moved += len(servers_out) - before
+
+    if moved:
+        notes.append(f'{moved} remote server(s)')
+    changed = (raw.get('local_servers') != servers_out) or bool(raw.get('servers'))
+
+    if changed:
+        backup = CONFIG_FILE + '.v3-backup.json'
+        if not os.path.exists(backup):
+            shutil.copy2(CONFIG_FILE, backup)
+    raw['local_servers'] = servers_out
+    raw['servers'] = []
+    raw['config_version'] = CONFIG_SCHEMA_VERSION
+    tmp = CONFIG_FILE + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(raw, f, indent=4)
+    os.replace(tmp, CONFIG_FILE)
+    if changed:
+        log(f"⬆️ Upgraded settings from v3 ({', '.join(notes) or 'server list'}) - "
+            f"{len(servers_out)} server(s) kept with their logins. Backup: {os.path.basename(CONFIG_FILE)}.v3-backup.json")
+
+
 def init_app():
     """Initialize application"""
     global app
@@ -9464,6 +11963,10 @@ def init_app():
 
 
 if __name__ == '__main__':
+    try:
+        migrate_config_file()   # v3.x -> v4 server layout; must run before anything reads the config
+    except Exception as mig_error:
+        log(f"⚠️ Config migration error (settings left untouched): {mig_error}")
     init_app()
     load_cache_from_disk()
     load_download_history()  # Load persistent download history
@@ -9476,29 +11979,38 @@ if __name__ == '__main__':
     # Clean up old partial downloads (Pro feature)
     cleanup_old_partials(max_age_days=7)
     
+    # VPN first, so nothing downloads outside the tunnel when the kill switch is on
+    try:
+        vpn_startup()
+    except Exception as vpn_error:
+        log(f"🛡️ VPN startup error: {vpn_error}")
+
     cfg = load_config()
     num_workers = cfg.get('max_concurrent_downloads', 2)
     adjust_workers(num_workers)
     
     # Start transcode workers if Pro user OR test mode enabled
     num_transcode_workers = cfg.get('max_concurrent_transcodes', 1)
-    test_mode_enabled = cfg.get('_transcode_test_mode', False)
+    test_mode_enabled = (DEV_MODE and cfg.get('_transcode_test_mode', False))
     transcode_enabled = cfg.get('transcode_enabled', False)
     
     if transcode_enabled or test_mode_enabled:
         if is_feature_available('transcoding') or test_mode_enabled:
             adjust_transcode_workers(num_transcode_workers, force=test_mode_enabled)
-            log(f"🎬 Transcoding: ENABLED (preset: {cfg.get('transcode_preset', 'h265')}, encoder: {cfg.get('transcode_encoder', 'auto')})")
+            log(f"ðŸŽ¬ Transcoding: ENABLED (preset: {cfg.get('transcode_preset', 'h265')}, encoder: {cfg.get('transcode_encoder', 'auto')})")
             if test_mode_enabled:
-                log(f"🧪 Transcode test mode is ENABLED")
+                log(f"ðŸ§ª Transcode test mode is ENABLED")
         else:
-            log(f"🎬 Transcoding: Disabled (requires Pro license)")
+            log(f"ðŸŽ¬ Transcoding: Disabled (requires Pro license)")
     else:
-        log(f"🎬 Transcoding: Disabled")
+        log(f"ðŸŽ¬ Transcoding: Disabled")
     
     setup_schedule()
     threading.Thread(target=schedule_runner, daemon=True).start()
-    
+
+    # Pro: pick unfinished/queued downloads back up after a restart or power cut
+    threading.Thread(target=lambda: (time.sleep(5), auto_resume_partials()), daemon=True).start()
+
     # Check timezone support
     check_timezone_support()
     

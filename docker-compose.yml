@@ -8,6 +8,26 @@ services:
       - "5000:5000"
     volumes:
       - ./config:/config
-      - /path/to/your/media:/storage  # Change this!
+      - /path/to/your/media:/storage  # Change this! e.g. /mnt/user/data/media on Unraid
     environment:
       - TZ=America/Chicago
+
+    # ---- Hardware transcoding (Pro) - uncomment ONE option ----
+    #
+    # NVIDIA (needs the Nvidia-Driver plugin on Unraid / nvidia-container-toolkit elsewhere):
+    # runtime: nvidia
+    # environment:
+    #   - TZ=America/Chicago
+    #   - NVIDIA_VISIBLE_DEVICES=all
+    #   - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+    #
+    # Intel QuickSync / AMD VAAPI:
+    # devices:
+    #   - /dev/dri:/dev/dri
+    #
+    # Then pick the encoder in Settings -> Pro -> Transcoding.
+
+    # ---- Built-in WireGuard VPN (Pro) - uncomment to allow it ----
+    # cap_add:
+    #   - NET_ADMIN
+    # Then set it up in Settings -> Pro -> VPN (Proton, PIA, Mullvad, IVPN, AirVPN, Windscribe, Surfshark...).

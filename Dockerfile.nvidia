@@ -18,6 +18,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xz-utils \
     ca-certificates \
     tzdata \
+    # Built-in WireGuard VPN + kill switch (Pro; container needs --cap-add=NET_ADMIN)
+    wireguard-tools \
+    iproute2 \
+    iptables \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Jellyfin's FFmpeg which has full NVENC/QSV/VAAPI support
@@ -50,8 +54,11 @@ COPY looter_app.py .
 # Copy templates (required)
 COPY templates/ templates/
 
+# Copy static files (favicon, etc.)
+COPY static/ static/
+
 # Create directories
-RUN mkdir -p /config /storage static
+RUN mkdir -p /config /storage
 
 EXPOSE 5000
 
