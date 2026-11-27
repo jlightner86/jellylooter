@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
-<Container version="3.1">
-    <n>JellyLooter</n>
+<Container version="2">
+    <Name>JellyLooter</Name>
     <Repository>ghcr.io/jlightner86/jellylooter:latest</Repository>
     <Registry>https://github.com/jlightner86/jellylooter</Registry>
     <Network>bridge</Network>
